@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaCode, FaMusic, FaBook, FaRunning, FaHandsHelping } from 'react-icons/fa';
+import { FaCode, FaMusic, FaBook, FaRunning, FaHandsHelping, FaFacebook, FaTwitter, FaInstagram } from 'react-icons/fa';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
@@ -9,11 +9,11 @@ const App = () => {
   const scale = useTransform(scrollY, [0, 200], [1, 0.95]);
 
   const categories = [
-    { name: 'Technical Clubs', icon: <FaCode />, color: 'from-red-200 to-red-300' },
-    { name: 'Cultural Clubs', icon: <FaMusic />, color: 'from-red-100 to-red-200' },
-    { name: 'Literary Societies', icon: <FaBook />, color: 'from-red-200 to-red-300' },
-    { name: 'Sports & Fitness', icon: <FaRunning />, color: 'from-red-100 to-red-200' },
-    { name: 'Social & Service', icon: <FaHandsHelping />, color: 'from-red-200 to-red-300' },
+    { name: 'Technical Clubs', icon: <FaCode />, color: 'from-red-200 to-red-400' },
+    { name: 'Cultural Clubs', icon: <FaMusic />, color: 'from-red-100 to-red-300' },
+    { name: 'Literary Societies', icon: <FaBook />, color: 'from-red-200 to-red-400' },
+    { name: 'Sports & Fitness', icon: <FaRunning />, color: 'from-red-100 to-red-300' },
+    { name: 'Social & Service', icon: <FaHandsHelping />, color: 'from-red-200 to-red-400' },
   ];
 
   return (
@@ -26,17 +26,17 @@ const App = () => {
         className="fixed top-0 w-full bg-white shadow-md z-50"
       >
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-red-300">ACEM</h1>
+          <h1 className="text-3xl font-bold text-red-600">ACEM</h1>
           <div className="flex gap-4">
             <Link
               to="/login"
-              className="px-4 py-2 text-red-300 border border-red-300 rounded-full hover:bg-red-100 transition"
+              className="px-4 py-2 text-red-600 border border-red-600 rounded-full hover:bg-red-50 transition"
             >
               Login
             </Link>
             <Link
               to="/signup"
-              className="px-4 py-2 bg-red-300 text-white rounded-full hover:bg-red-400 transition"
+              className="px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition"
             >
               Signup
             </Link>
@@ -47,7 +47,7 @@ const App = () => {
       {/* Hero Section */}
       <motion.section
         style={{ opacity, scale }}
-        className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-100 to-white pt-20"
+        className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-white pt-20"
       >
         <div className="container mx-auto px-4 flex flex-col items-center text-center">
           <motion.div
@@ -56,7 +56,7 @@ const App = () => {
             transition={{ duration: 0.8 }}
             className="w-full md:w-3/4"
           >
-            <h1 className="text-4xl md:text-6xl font-bold mb-4 text-red-300">
+            <h1 className="text-4xl md:text-6xl font-bold mb-4 text-red-600">
               Unite. Explore. Celebrate.
             </h1>
             <p className="text-lg md:text-xl mb-6 text-gray-700">
@@ -67,7 +67,7 @@ const App = () => {
                 href="#clubs"
                 whileHover={{ scale: 1.05, rotate: 2 }}
                 whileTap={{ scale: 0.95 }}
-                className="px-6 py-3 bg-red-300 text-white rounded-full font-semibold hover:bg-red-400 transition"
+                className="px-6 py-3 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 transition"
               >
                 Explore Clubs
               </motion.a>
@@ -75,7 +75,7 @@ const App = () => {
                 href="#join"
                 whileHover={{ scale: 1.05, rotate: -2 }}
                 whileTap={{ scale: 0.95 }}
-                className="px-6 py-3 border border-red-300 text-red-300 rounded-full font-semibold hover:bg-red-100 transition"
+                className="px-6 py-3 border border-red-600 text-red-600 rounded-full font-semibold hover:bg-red-50 transition"
               >
                 Join a Club
               </motion.a>
@@ -91,7 +91,7 @@ const App = () => {
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="text-3xl font-bold text-center mb-12 text-red-300"
+            className="text-3xl font-bold text-center mb-12 text-red-600"
           >
             Explore Our Clubs
           </motion.h2>
@@ -122,30 +122,30 @@ const App = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-8 bg-red-300 text-white">
+      <footer className="py-8 bg-red-600 text-white">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
               <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
               <ul className="space-y-2">
-                <li><Link to="/" className="hover:text-red-100">Home</Link></li>
-                <li><Link to="/about" className="hover:text-red-100">About</Link></li>
-                <li><Link to="/clubs" className="hover:text-red-100">Clubs</Link></li>
-                <li><Link to="/join" className="hover:text-red-100">Join a Club</Link></li>
-                <li><Link to="/contact" className="hover:text-red-100">Contact</Link></li>
+                <li><Link to="/" className="hover:text-red-200">Home</Link></li>
+                <li><Link to="/about" className="hover:text-red-200">About</Link></li>
+                <li><Link to="/clubs" className="hover:text-red-200">Clubs</Link></li>
+                <li><Link to="/join" className="hover:text-red-200">Join a Club</Link></li>
+                <li><Link to="/contact" className="hover:text-red-200">Contact</Link></li>
               </ul>
             </div>
             <div>
               <h3 className="text-lg font-semibold mb-4">Follow Us</h3>
               <div className="flex gap-4">
-                <a href="#" className="text-2xl hover:text-red-100">📱</a>
-                <a href="#" className="text-2xl hover:text-red-100">🐦</a>
-                <a href="#" className="text-2xl hover:text-red-100">📸</a>
+                <a href="#" className="text-2xl hover:text-red-200"><FaFacebook /></a>
+                <a href="#" className="text-2xl hover:text-red-200"><FaTwitter /></a>
+                <a href="#" className="text-2xl hover:text-red-200"><FaInstagram /></a>
               </div>
             </div>
             <div>
               <h3 className="text-lg font-semibold mb-4">Credits</h3>
-              <p>Developed by Grok 3, powered by xAI</p>
+              <p>Developed By SkillShastra</p>
             </div>
           </div>
         </div>

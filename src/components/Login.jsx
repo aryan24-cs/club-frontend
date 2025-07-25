@@ -1,0 +1,159 @@
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import axios from 'axios';
+
+const Login = () => {
+  const [mobile, setMobile] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSendOtp = async () => {
+    if (!/^\d{10}$/.test(mobile)) {
+      setError('Please enter a valid 10-digit mobile number');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      await axios.post('http://localhost:5000/api/auth/send-otp', { mobile });
+      setOtpSent(true);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to send OTP. Try again.');
+    }
+    setLoading(false);
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otp || !/^\d{6}$/.test(otp)) {
+      setError('Please enter a valid 6-digit OTP');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      const res = await axios.post('http://localhost:5000/api/auth/verify-otp-login', { mobile, otp });
+      alert('Login successful! Token: ' + res.data.token);
+      // Store token in localStorage or redirect to dashboard
+    } catch (err) {
+      setError(err.response?.data?.error || 'Invalid OTP. Try again.');
+    }
+    setLoading(false);
+  };
+
+  // Accordion background animation variants
+  const accordionVariants = {
+    expanded: { height: '100%', opacity: 0.3 },
+    collapsed: { height: '20%', opacity: 0.1 },
+  };
+
+  return (
+    <div className="min-h-screen bg-white flex items-center justify-center relative overflow-hidden">
+      {/* Animated Accordion Background */}
+      <div className="absolute inset-0 z-0">
+        {[...Array(5)].map((_, index) => (
+          <motion.div
+            key={index}
+            className="absolute w-full bg-gradient-to-r from-red-600 to-red-200"
+            style={{ top: `${index * 20}%` }}
+            variants={accordionVariants}
+            initial="collapsed"
+            animate="expanded"
+            transition={{ duration: 2, delay: index * 0.3, repeat: Infinity, repeatType: 'reverse' }}
+          />
+        ))}
+      </div>
+
+      {/* Login Form */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="relative z-10 w-full max-w-md p-8 bg-white rounded-xl shadow-2xl"
+      >
+        <h2 className="text-3xl font-bold text-red-600 text-center mb-8">Login</h2>
+        <div className="space-y-6">
+          {!otpSent ? (
+            <>
+              <div>
+                <label className="block text-gray-700 font-medium mb-2">Mobile Number</label>
+                <input
+                  type="text"
+                  value={mobile}
+                  onChange={(e) => setMobile(e.target.value)}
+                  placeholder="Enter 10-digit mobile number"
+                  className="w-full px-4 py-3 border-b-2 border-red-600 text-gray-900 bg-transparent focus:outline-none focus:border-red-700 transition"
+                />
+              </div>
+              <AnimatePresence>
+                {error && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="text-red-600 text-sm"
+                  >
+                    {error}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleSendOtp}
+                disabled={loading}
+                className="w-full px-4 py-3 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 transition disabled:opacity-50"
+              >
+                {loading ? 'Sending...' : 'Send OTP'}
+              </motion.button>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="block text-gray-700 font-medium mb-2">Enter OTP</label>
+                <input
+                  type="text"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  placeholder="Enter 6-digit OTP"
+                  className="w-full px-4 py-3 border-b-2 border-red-600 text-gray-900 bg-transparent focus:outline-none focus:border-red-700 transition"
+                />
+              </div>
+              <AnimatePresence>
+                {error && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="text-red-600 text-sm"
+                  >
+                    {error}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleVerifyOtp}
+                disabled={loading}
+                className="w-full px-4 py-3 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 transition disabled:opacity-50"
+              >
+                {loading ? 'Verifying...' : 'Verify OTP'}
+              </motion.button>
+            </>
+          )}
+          <p className="text-center text-gray-700">
+            Don't have an account?{' '}
+            <Link to="/signup" className="text-red-600 hover:underline font-medium">
+              Signup
+            </Link>
+          </p>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+export default Login;
