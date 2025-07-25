@@ -1,0 +1,413 @@
+import React, { memo, useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  FaCode,
+  FaMusic,
+  FaBook,
+  FaRunning,
+  FaHandsHelping,
+  FaTrophy,
+  FaFacebook,
+  FaTwitter,
+  FaInstagram,
+  FaCalendarAlt,
+  FaUser,
+} from "react-icons/fa";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+import Navbar from "./Navbar";
+
+// Error Boundary Component
+class ErrorBoundary extends React.Component {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="text-center p-8 text-red-600">
+          <h2 className="text-2xl font-bold">Something went wrong.</h2>
+          <p>Please try refreshing the page or contact support.</p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// Memoized ClubCard component
+const ClubCard = memo(({ club }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true }}
+    transition={{ duration: 0.5 }}
+    whileHover={{ scale: 1.05, boxShadow: "0 10px 20px rgba(0,0,0,0.1)" }}
+    className="p-6 bg-white rounded-xl shadow-md text-center border border-gray-200"
+  >
+    <div className="p-4 rounded-full bg-red-100 text-red-600 text-3xl mb-4">
+      {club.icon === "FaCode" ? (
+        <FaCode />
+      ) : club.icon === "FaMusic" ? (
+        <FaMusic />
+      ) : club.icon === "FaBook" ? (
+        <FaBook />
+      ) : club.icon === "FaRunning" ? (
+        <FaRunning />
+      ) : club.icon === "FaHandsHelping" ? (
+        <FaHandsHelping />
+      ) : (
+        <FaTrophy />
+      )}
+    </div>
+    <h3 className="text-lg font-semibold text-gray-900">{club.name}</h3>
+    <Link
+      to={`/clubs/${club.name}/edit`}
+      className="mt-2 inline-block text-red-600 hover:text-red-700 font-medium transition"
+    >
+      Edit Club
+    </Link>
+  </motion.div>
+));
+
+// Memoized MembershipRequestCard component
+const MembershipRequestCard = memo(
+  ({ request, handleApprove, handleReject }) => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.5 }}
+      whileHover={{ scale: 1.03, boxShadow: "0 8px 16px rgba(0,0,0,0.1)" }}
+      className="p-6 bg-white rounded-xl shadow-md border border-gray-200"
+    >
+      <div className="flex items-center gap-3 mb-3">
+        <FaUser className="text-red-600 text-xl" />
+        <h4 className="text-lg font-semibold text-gray-900">
+          {request.userId.name}
+        </h4>
+      </div>
+      <p className="text-gray-600 text-sm mb-2">
+        Email: {request.userId.email}
+      </p>
+      <p className="text-gray-600 text-sm mb-2">Club: {request.clubName}</p>
+      <p className="text-gray-600 text-sm mb-2">Status: {request.status}</p>
+      <div className="flex gap-2">
+        <button
+          onClick={() => handleApprove(request._id)}
+          className="px-4 py-1 bg-green-600 text-white rounded-full font-semibold hover:bg-green-700 transition"
+          disabled={request.status !== "pending"}
+        >
+          Approve
+        </button>
+        <button
+          onClick={() => handleReject(request._id)}
+          className="px-4 py-1 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 transition"
+          disabled={request.status !== "pending"}
+        >
+          Reject
+        </button>
+      </div>
+    </motion.div>
+  )
+);
+
+const AdminDashboard = () => {
+  const [user, setUser] = useState(null);
+  const [clubs, setClubs] = useState([]);
+  const [membershipRequests, setMembershipRequests] = useState([]);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          navigate("/login");
+          return;
+        }
+
+        const config = { headers: { Authorization: `Bearer ${token}` } };
+
+        // Fetch user data
+        const userResponse = await axios.get(
+          "http://localhost:5000/api/auth/user",
+          config
+        );
+        setUser(userResponse.data);
+
+        // Fetch clubs where user is head coordinator
+        const clubsResponse = await axios.get(
+          "http://localhost:5000/api/clubs",
+          config
+        );
+        const filteredClubs = clubsResponse.data.filter((club) =>
+          userResponse.data.headCoordinatorClubs.includes(club.name)
+        );
+        setClubs(filteredClubs);
+
+        // Fetch membership requests
+        const requestsResponse = await axios.get(
+          "http://localhost:5000/api/membership-requests",
+          config
+        );
+        setMembershipRequests(requestsResponse.data);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          localStorage.removeItem("token");
+          navigate("/login");
+        } else {
+          setError(
+            err.response?.data?.error ||
+              "Failed to load data. Please try again."
+          );
+        }
+      }
+    };
+    fetchData();
+  }, [navigate]);
+
+  const handleApprove = async (requestId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const response = await axios.patch(
+        `http://localhost:5000/api/membership-requests/${requestId}`,
+        { status: "approved" },
+        config
+      );
+      setMembershipRequests((prev) =>
+        prev.map((req) =>
+          req._id === requestId ? { ...req, status: "approved" } : req
+        )
+      );
+      setError(response.data.message);
+    } catch (err) {
+      setError(err.response?.data?.error || "Failed to approve request.");
+    }
+  };
+
+  const handleReject = async (requestId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const response = await axios.patch(
+        `http://localhost:5000/api/membership-requests/${requestId}`,
+        { status: "rejected" },
+        config
+      );
+      setMembershipRequests((prev) =>
+        prev.map((req) =>
+          req._id === requestId ? { ...req, status: "rejected" } : req
+        )
+      );
+      setError(response.data.message);
+    } catch (err) {
+      setError(err.response?.data?.error || "Failed to reject request.");
+    }
+  };
+
+  return (
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
+        <style>
+          {`
+            @keyframes gradientShift {
+              0% { background-position: 0% 50%; }
+              50% { background-position: 100% 50%; }
+              100% { background-position: 0% 50%; }
+            }
+            .hero-bg {
+              background: linear-gradient(45deg, #FEE2E2, #FFFFFF, #E5E7EB, #FEE2E2);
+              background-size: 200% 200%;
+              animation: gradientShift 15s ease infinite;
+            }
+          `}
+        </style>
+
+        {/* Navbar */}
+        <Navbar user={user} />
+
+        {/* Hero Section */}
+        <section className="pt-24 pb-16 hero-bg relative overflow-hidden">
+          <div className="absolute inset-0 bg-white opacity-70" />
+          <div className="container mx-auto px-4 text-center relative z-10">
+            <motion.h1
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6"
+            >
+              Admin Dashboard,{" "}
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{
+                  duration: 1,
+                  repeat: Infinity,
+                  repeatType: "reverse",
+                }}
+                className="text-red-600"
+              >
+                {user?.name || "Admin"}
+              </motion.span>
+              !
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="text-xl md:text-2xl text-gray-700 max-w-3xl mx-auto mb-8"
+            >
+              Manage your clubs and membership requests
+            </motion.p>
+          </div>
+        </section>
+
+        {/* Error Display */}
+        {error && (
+          <motion.p
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="text-red-600 text-center text-sm mt-4"
+          >
+            {error}
+          </motion.p>
+        )}
+
+        {/* Managed Clubs Section */}
+        <section className="py-12 bg-white">
+          <div className="container mx-auto px-4">
+            <motion.h2
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="text-3xl font-bold text-gray-900 mb-8 text-center"
+            >
+              Your Managed Clubs
+            </motion.h2>
+            {clubs.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="text-center"
+              >
+                <p className="text-gray-700 mb-4 text-lg">
+                  You are not assigned to any clubs.
+                </p>
+              </motion.div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {clubs.map((club) => (
+                  <ClubCard key={club._id} club={club} />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Membership Requests Section */}
+        <section className="py-12 bg-gray-50">
+          <div className="container mx-auto px-4">
+            <motion.h2
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="text-3xl font-bold text-gray-900 mb-8 text-center"
+            >
+              Membership Requests
+            </motion.h2>
+            {membershipRequests.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="text-center"
+              >
+                <p className="text-gray-700 mb-4 text-lg">
+                  No pending membership requests.
+                </p>
+              </motion.div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {membershipRequests.map((request) => (
+                  <MembershipRequestCard
+                    key={request._id}
+                    request={request}
+                    handleApprove={handleApprove}
+                    handleReject={handleReject}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="py-8 bg-gray-800 text-white">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
+                <ul className="space-y-2">
+                  <li>
+                    <Link to="/admin-dashboard" className="hover:text-red-200">
+                      Dashboard
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/profile" className="hover:text-red-200">
+                      Profile
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/clubs" className="hover:text-red-200">
+                      Clubs
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/events" className="hover:text-red-200">
+                      Events
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/contact" className="hover:text-red-200">
+                      Contact
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Follow Us</h3>
+                <div className="flex gap-4">
+                  <a href="#" className="text-2xl hover:text-red-200">
+                    <FaFacebook />
+                  </a>
+                  <a href="#" className="text-2xl hover:text-red-200">
+                    <FaTwitter />
+                  </a>
+                  <a href="#" className="text-2xl hover:text-red-200">
+                    <FaInstagram />
+                  </a>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Credits</h3>
+                <p>Developed By SkillShastra</p>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </ErrorBoundary>
+  );
+};
+
+export default AdminDashboard;
