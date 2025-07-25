@@ -23,22 +23,19 @@ const UserDetailsForm = () => {
   useEffect(() => {
     const createRipple = (e) => {
       const ripple = document.createElement('span');
-      const diameter = 5; // 5px diameter
+      const diameter = 15;
       const radius = diameter / 2;
       ripple.style.width = ripple.style.height = `${diameter}px`;
       ripple.style.left = `${e.clientX - radius}px`;
       ripple.style.top = `${e.clientY - radius}px`;
       ripple.style.position = 'fixed';
       ripple.style.borderRadius = '50%';
-      ripple.style.backgroundColor = 'rgba(220, 20, 60, 0.3)'; // Red with opacity
+      ripple.style.backgroundColor = 'rgba(220, 20, 60, 0.3)';
       ripple.style.pointerEvents = 'none';
       ripple.style.zIndex = '9999';
       ripple.style.animation = 'ripple 0.6s ease-out';
       document.body.appendChild(ripple);
-
-      setTimeout(() => {
-        ripple.remove();
-      }, 600); // Match animation duration
+      setTimeout(() => ripple.remove(), 600);
     };
 
     document.addEventListener('click', createRipple);
@@ -46,8 +43,8 @@ const UserDetailsForm = () => {
   }, []);
 
   const labelVariants = {
-    resting: { y: 12, fontSize: '1rem', color: '#4B5563' },
-    floating: { y: -12, fontSize: '0.75rem', color: '#DC143C' },
+    resting: { y: 8, fontSize: '0.875rem', color: '#4B5563' },
+    floating: { y: -8, fontSize: '0.75rem', color: '#DC143C' },
   };
 
   const questionVariants = {
@@ -75,9 +72,7 @@ const UserDetailsForm = () => {
 
   const handleClubSelection = (club) => {
     setSelectedClubs((prev) =>
-      prev.includes(club)
-        ? prev.filter((c) => c !== club)
-        : [...prev, club]
+      prev.includes(club) ? prev.filter((c) => c !== club) : [...prev, club]
     );
   };
 
@@ -119,26 +114,32 @@ const UserDetailsForm = () => {
             className="relative"
           >
             <motion.label
-              className="absolute left-4 top-3 text-gray-700 font-medium pointer-events-none"
+              htmlFor="semester"
+              className="absolute left-4 top-2 sm:top-3 text-gray-600 font-medium pointer-events-none"
               animate={semesterFocused || semester ? 'floating' : 'resting'}
               variants={labelVariants}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.2, ease: 'easeInOut' }}
             >
               Semester
             </motion.label>
             <input
+              id="semester"
               type="number"
               value={semester}
               onChange={(e) => setSemester(e.target.value)}
               onFocus={() => setSemesterFocused(true)}
               onBlur={() => setSemesterFocused(false)}
-              className="w-full px-4 py-3 border-b-2 border-red-600 text-gray-900 bg-transparent focus:outline-none focus:border-red-700 transition"
+              className="w-full px-4 py-2 sm:py-3 text-sm sm:text-base border-b-2 border-red-600 text-gray-900 bg-transparent focus:outline-none focus:border-red-700 transition"
+              aria-label="Semester"
+              min="1"
+              max="8"
             />
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleNextQuestion}
-              className="mt-4 w-full px-4 py-3 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 transition"
+              className="mt-4 w-full px-4 py-2 sm:py-3 bg-red-600 text-white rounded-full font-semibold text-sm sm:text-base hover:bg-red-700 transition"
+              aria-label="Next question"
             >
               Next
             </motion.button>
@@ -155,21 +156,26 @@ const UserDetailsForm = () => {
             className="relative"
           >
             <motion.label
-              className="absolute left-4 top-3 text-gray-700 font-medium pointer-events-none"
+              htmlFor="course"
+              className="absolute left-4 top-2 sm:top-3 text-gray-600 font-medium pointer-events-none"
               animate={courseFocused || course ? 'floating' : 'resting'}
               variants={labelVariants}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.2, ease: 'easeInOut' }}
             >
               Course
             </motion.label>
             <select
+              id="course"
               value={course}
               onChange={(e) => setCourse(e.target.value)}
               onFocus={() => setCourseFocused(true)}
               onBlur={() => setCourseFocused(false)}
-              className="w-full px-4 py-3 border-b-2 border-red-600 text-gray-900 bg-transparent focus:outline-none focus:border-red-700 transition"
+              className="w-full px-4 py-2 sm:py-3 text-sm sm:text-base border-b-2 border-red-600 text-gray-900 bg-transparent focus:outline-none focus:border-red-700 transition"
+              aria-label="Course"
             >
-              <option value="" disabled>Select a course</option>
+              <option value="" disabled>
+                Select a course
+              </option>
               {courses.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -180,7 +186,8 @@ const UserDetailsForm = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleNextQuestion}
-              className="mt-4 w-full px-4 py-3 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 transition"
+              className="mt-4 w-full px-4 py-2 sm:py-3 bg-red-600 text-white rounded-full font-semibold text-sm sm:text-base hover:bg-red-700 transition"
+              aria-label="Next question"
             >
               Next
             </motion.button>
@@ -197,26 +204,30 @@ const UserDetailsForm = () => {
             className="relative"
           >
             <motion.label
-              className="absolute left-4 top-3 text-gray-700 font-medium pointer-events-none"
+              htmlFor="specialization"
+              className="absolute left-4 top-2 sm:top-3 text-gray-600 font-medium pointer-events-none"
               animate={specializationFocused || specialization ? 'floating' : 'resting'}
               variants={labelVariants}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.2, ease: 'easeInOut' }}
             >
               Specialization (e.g., CSE, ME)
             </motion.label>
             <input
+              id="specialization"
               type="text"
               value={specialization}
               onChange={(e) => setSpecialization(e.target.value)}
               onFocus={() => setSpecializationFocused(true)}
               onBlur={() => setSpecializationFocused(false)}
-              className="w-full px-4 py-3 border-b-2 border-red-600 text-gray-900 bg-transparent focus:outline-none focus:border-red-700 transition"
+              className="w-full px-4 py-2 sm:py-3 text-sm sm:text-base border-b-2 border-red-600 text-gray-900 bg-transparent focus:outline-none focus:border-red-700 transition"
+              aria-label="Specialization"
             />
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleNextQuestion}
-              className="mt-4 w-full px-4 py-3 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 transition"
+              className="mt-4 w-full px-4 py-2 sm:py-3 bg-red-600 text-white rounded-full font-semibold text-sm sm:text-base hover:bg-red-700 transition"
+              aria-label="Next question"
             >
               Next
             </motion.button>
@@ -231,25 +242,28 @@ const UserDetailsForm = () => {
             animate="animate"
             exit="exit"
           >
-            <h3 className="text-gray-600 font-semibold text-center mb-4">
+            <h3 className="text-gray-600 font-semibold text-center mb-4 text-sm sm:text-base">
               Select Clubs (You can choose multiple)
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-48 sm:max-h-64 overflow-y-auto pr-2">
               {clubs.map((club) => (
                 <div key={club} className="flex items-center space-x-3">
-                  <label className="flex items-center cursor-pointer">
+                  <label className="flex items-center cursor-pointer w-full">
                     <input
                       type="checkbox"
-                      id={club}
+                      id={`club-${club}`}
                       checked={selectedClubs.includes(club)}
                       onChange={() => handleClubSelection(club)}
                       className="hidden"
+                      aria-label={`Select ${club}`}
                     />
-                    <span className={`w-5 h-5 flex items-center justify-center border-2 rounded-md transition-all duration-200 ${
+                    <span
+                      className={`w-5 h-5 flex items-center justify-center border-2 rounded-md transition-all duration-200 ${
                         selectedClubs.includes(club)
                           ? 'bg-red-600 border-red-600'
                           : 'border-gray-300 hover:border-red-400'
-                      }`}>
+                      }`}
+                    >
                       {selectedClubs.includes(club) && (
                         <svg
                           className="w-3 h-3 text-white"
@@ -267,7 +281,7 @@ const UserDetailsForm = () => {
                         </svg>
                       )}
                     </span>
-                    <span className="ml-2 text-gray-700 font-medium hover:text-red-600 transition-colors">
+                    <span className="ml-2 text-gray-700 font-medium hover:text-red-600 transition-colors text-sm sm:text-base">
                       {club}
                     </span>
                   </label>
@@ -279,7 +293,8 @@ const UserDetailsForm = () => {
               whileTap={{ scale: 0.95 }}
               onClick={handleSubmit}
               disabled={loading}
-              className="mt-6 w-full px-4 py-3 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 transition disabled:opacity-50"
+              className="mt-6 w-full px-4 py-2 sm:py-3 bg-red-600 text-white rounded-full font-semibold text-sm sm:text-base hover:bg-red-700 transition disabled:opacity-50"
+              aria-label="Submit details"
             >
               {loading ? 'Submitting...' : 'Submit Details'}
             </motion.button>
@@ -291,18 +306,12 @@ const UserDetailsForm = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center relative">
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 sm:p-6">
       <style>
         {`
           @keyframes ripple {
-            0% {
-              transform: scale(0);
-              opacity: 1;
-            }
-            100% {
-              transform: scale(3);
-              opacity: 0;
-            }
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(4); opacity: 0; }
           }
           [style*="animation: ripple"] {
             animation: ripple 0.6s ease-out;
@@ -312,29 +321,30 @@ const UserDetailsForm = () => {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md p-8 bg-white rounded-xl shadow-2xl"
+        transition={{ duration: 0.5, ease: 'easeInOut' }}
+        className="w-full max-w-sm sm:max-w-md md:max-w-lg p-4 sm:p-6 bg-white rounded-lg shadow-md sm:shadow-lg"
       >
-        <h2 className="text-3xl font-bold text-red-600 text-center mb-8">
+        <h2 className="text-2xl sm:text-3xl font-semibold text-red-600 text-center mb-6 sm:mb-8">
           Complete Your Profile
         </h2>
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <AnimatePresence mode="wait">
             {error && (
               <motion.p
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="text-red-600 text-sm text-center"
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className="text-red-500 text-sm text-center"
               >
                 {error}
               </motion.p>
             )}
             {renderQuestion()}
           </AnimatePresence>
-          <p className="text-center text-gray-700">
-            <Link to="/home" className="text-red-600 hover:underline font-medium">
-              Skip to Home
+          <p className="text-center text-gray-600 text-sm sm:text-base">
+            <Link to="/clubs" className="text-blue-600 hover:underline font-semibold">
+              Skip to Clubs
             </Link>
           </p>
         </div>
