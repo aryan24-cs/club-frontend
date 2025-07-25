@@ -43,7 +43,7 @@ const LandingPage = () => {
 
   // Sample image data with tilt angles (replace with actual image paths from frontend/src/assets)
   const eventImages = [
-    { src: '/src/assets/event1.jpg', alt: 'Technical Club Hackathon', tilt: -3 },
+    { src: 'https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.echelonedge.com%2Fpress-release%2Ftech-solutions-national-technology-events%2F&psig=AOvVaw0uGxG75jegZfD5VOGpi9Dt&ust=1753533103499000&source=images&cd=vfe&opi=89978449&ved=0CBUQjRxqFwoTCMC4-_-B2I4DFQAAAAAdAAAAABAE', alt: 'Technical Club Hackathon', tilt: -3 },
     { src: '/src/assets/event2.jpg', alt: 'Cultural Club Dance Performance', tilt: 4 },
     { src: '/src/assets/event3.jpg', alt: 'Literary Society Book Reading', tilt: -2 },
     { src: '/src/assets/event4.jpg', alt: 'Sports Club Marathon', tilt: 5 },
