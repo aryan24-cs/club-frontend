@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const Login = () => {
@@ -11,6 +11,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [mobileFocused, setMobileFocused] = useState(false);
   const [otpFocused, setOtpFocused] = useState(false);
+  const navigate = useNavigate();
 
   const handleSendOtp = async () => {
     if (!/^\d{10}$/.test(mobile)) {
@@ -37,8 +38,8 @@ const Login = () => {
     setLoading(true);
     try {
       const res = await axios.post('http://localhost:5000/api/auth/verify-otp-login', { mobile, otp });
-      alert('Login successful! Token: ' + res.data.token);
-      // Store token in localStorage or redirect to dashboard
+      localStorage.setItem('token', res.data.token); // Store JWT token
+      navigate('/dashboard'); // Redirect to homepage
     } catch (err) {
       setError(err.response?.data?.error || 'Invalid OTP. Try again.');
     }
