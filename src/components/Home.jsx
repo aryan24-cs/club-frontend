@@ -1,6 +1,6 @@
 import React, { memo, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaBell, FaCode, FaMusic, FaBook, FaRunning, FaHandsHelping, FaTrophy, FaFacebook, FaTwitter, FaInstagram , FaCalendarAlt} from 'react-icons/fa';
+import { FaBell, FaCode, FaMusic, FaBook, FaRunning, FaHandsHelping, FaTrophy, FaFacebook, FaTwitter, FaInstagram, FaCalendarAlt } from 'react-icons/fa';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from './Navbar';
@@ -9,7 +9,7 @@ import Navbar from './Navbar';
 class ErrorBoundary extends React.Component {
   state = { hasError: false };
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError() {
     return { hasError: true };
   }
 
@@ -36,9 +36,16 @@ const ClubCard = memo(({ club }) => (
     whileHover={{ scale: 1.05, boxShadow: '0 10px 20px rgba(0,0,0,0.1)' }}
     className="p-6 bg-white rounded-xl shadow-md text-center border border-gray-200"
   >
-    <div className="p-4 rounded-full bg-red-100 text-red-600 text-3xl mb-4">{club.icon}</div>
+    <div className="p-4 rounded-full bg-red-100 text-red-600 text-3xl mb-4">
+      {club.icon === 'FaCode' ? <FaCode /> : 
+       club.icon === 'FaMusic' ? <FaMusic /> : 
+       club.icon === 'FaBook' ? <FaBook /> : 
+       club.icon === 'FaRunning' ? <FaRunning /> : 
+       club.icon === 'FaHandsHelping' ? <FaHandsHelping /> : 
+       <FaTrophy />}
+    </div>
     <h3 className="text-lg font-semibold text-gray-900">{club.name}</h3>
-    <Link to={`/club/${club.id}`} className="mt-2 inline-block text-red-600 hover:text-red-700 font-medium transition">View Details</Link>
+    <Link to={`/club/${club._id}`} className="mt-2 inline-block text-red-600 hover:text-red-700 font-medium transition">View Details</Link>
   </motion.div>
 ));
 
@@ -66,10 +73,10 @@ const Home = () => {
   const [user, setUser] = useState(null);
   const [clubs, setClubs] = useState([]);
   const [activities, setActivities] = useState([]);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch user data, clubs, and activities
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -77,27 +84,30 @@ const Home = () => {
           navigate('/login');
           return;
         }
-        // Mock data (replace with API calls)
-        setUser({ name: 'Satyam Pandey' });
-        setClubs([]); // Empty for testing no-clubs case
-        setActivities([
-          {
-            id: 1,
-            title: 'CodeFest 2025',
-            date: 'August 10, 2025',
-            description: 'A 24-hour coding marathon with exciting challenges.',
-            club: 'Technical Club',
-          },
-          {
-            id: 2,
-            title: 'Dance Workshop',
-            date: 'August 15, 2025',
-            description: 'Learn contemporary dance with professional instructors.',
-            club: 'Cultural Club',
-          },
-        ]);
+
+        const config = {
+          headers: { Authorization: `Bearer ${token}` },
+        };
+
+        // Fetch user data
+        const userResponse = await axios.get('http://localhost:5000/api/auth/user', config);
+        setUser(userResponse.data);
+
+        // Fetch clubs
+        const clubsResponse = await axios.get('http://localhost:5000/api/clubs', config);
+        setClubs(clubsResponse.data);
+
+        // Fetch activities
+        const activitiesResponse = await axios.get('http://localhost:5000/api/activities', config);
+        setActivities(activitiesResponse.data);
       } catch (err) {
         console.error('Error fetching data:', err);
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          localStorage.removeItem('token');
+          navigate('/login');
+        } else {
+          setError(err.response?.data?.error || 'Failed to load data. Please try again.');
+        }
       }
     };
     fetchData();
@@ -176,7 +186,6 @@ const Home = () => {
                 transition: { duration: 0.3 },
               }}
               whileTap={{ scale: 0.95 }}
-              // animate={{ scale: [1, 1.05, 1], transition: { duration: 2, repeat: Infinity } }}
               className="mt-6"
             >
               <Link
@@ -188,6 +197,18 @@ const Home = () => {
             </motion.div>
           </div>
         </section>
+
+        {/* Error Display */}
+        {error && (
+          <motion.p
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="text-red-600 text-center text-sm mt-4"
+          >
+            {error}
+          </motion.p>
+        )}
 
         {/* Available Clubs Section */}
         <section className="py-12 bg-white">
@@ -233,7 +254,7 @@ const Home = () => {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {clubs.map((club) => (
-                  <ClubCard key={club.id} club={club} />
+                  <ClubCard key={club._id} club={club} />
                 ))}
               </div>
             )}
@@ -253,7 +274,7 @@ const Home = () => {
             </motion.h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               {activities.map((activity) => (
-                <ActivityCard key={activity.id} activity={activity} />
+                <ActivityCard key={activity._id} activity={activity} />
               ))}
             </div>
             <div className="text-center">

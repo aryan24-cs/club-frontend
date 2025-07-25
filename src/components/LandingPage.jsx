@@ -9,7 +9,7 @@ const ClubCard = memo(({ category, index }) => {
     <motion.div
       initial={{ opacity: 0, y: 50, rotateX: 10 }}
       whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
-      viewport={{ once: true }} // Ensures animation only runs once
+      viewport={{ once: true }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
       whileHover={{ scale: 1.05, rotateY: 5, boxShadow: '0 10px 20px rgba(0, 0, 0, 0.1)' }}
       className={`relative flex flex-col items-center p-6 bg-gradient-to-br ${category.color} rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden`}
@@ -39,6 +39,15 @@ const LandingPage = () => {
     { name: 'Literary Societies', icon: <FaBook />, color: 'from-red-200 to-red-400' },
     { name: 'Sports & Fitness', icon: <FaRunning />, color: 'from-red-100 to-red-300' },
     { name: 'Social & Service', icon: <FaHandsHelping />, color: 'from-red-200 to-red-400' },
+  ];
+
+  // Sample image data with tilt angles (replace with actual image paths from frontend/src/assets)
+  const eventImages = [
+    { src: '/src/assets/event1.jpg', alt: 'Technical Club Hackathon', tilt: -3 },
+    { src: '/src/assets/event2.jpg', alt: 'Cultural Club Dance Performance', tilt: 4 },
+    { src: '/src/assets/event3.jpg', alt: 'Literary Society Book Reading', tilt: -2 },
+    { src: '/src/assets/event4.jpg', alt: 'Sports Club Marathon', tilt: 5 },
+    { src: '/src/assets/event5.jpg', alt: 'Social Service Community Outreach', tilt: -4 },
   ];
 
   return (
@@ -123,6 +132,60 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
             {categories.map((category, index) => (
               <ClubCard key={category.name} category={category} index={index} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Past Events Gallery Section */}
+      <section id="past-events" className="py-16 bg-gradient-to-br from-red-50 to-white">
+        <div className="container mx-auto px-4">
+          <motion.h2
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-3xl font-bold text-center mb-12 text-red-600"
+          >
+            Memorable Past Events
+          </motion.h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {eventImages.map((image, index) => (
+              <motion.div
+                key={image.src}
+                initial={{ opacity: 0, y: 50, rotate: image.tilt }}
+                whileInView={{ opacity: 1, y: 0, rotate: image.tilt }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: index * 0.15 }}
+                whileHover={{ scale: 1.05, rotate: image.tilt + 2, rotateX: 5, rotateY: 5, boxShadow: '0 15px 30px rgba(0, 0, 0, 0.3)' }}
+                className="relative group"
+              >
+                <div className="relative bg-white p-4 rounded-xl shadow-lg">
+                  {/* Wooden Frame */}
+                  <div
+                    className="absolute inset-0 rounded-xl border-8"
+                    style={{
+                      background: 'linear-gradient(45deg, #8B4513, #A0522D, #DEB887)',
+                      boxShadow: 'inset 0 0 10px rgba(0, 0, 0, 0.4)',
+                    }}
+                  ></div>
+                  {/* Polaroid-style Inner Frame */}
+                  <div className="relative bg-white p-3 m-3 rounded-lg shadow-md z-10">
+                    <img
+                      src={image.src}
+                      alt={image.alt}
+                      className="w-full h-48 sm:h-56 md:h-64 object-cover rounded-md"
+                    />
+                    {/* Caption Area */}
+                    <div className="mt-3 p-2 bg-white bg-opacity-80 text-center rounded-b-lg">
+                      <p className="text-sm md:text-base font-semibold text-gray-800 group-hover:text-red-600 transition-colors duration-300">
+                        {image.alt}
+                      </p>
+                    </div>
+                  </div>
+                  {/* Decorative Overlay on Hover */}
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 rounded-xl z-20"></div>
+                </div>
+              </motion.div>
             ))}
           </div>
         </div>
