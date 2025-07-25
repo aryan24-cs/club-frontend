@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { FaBell, FaCode, FaMusic, FaBook, FaRunning, FaHandsHelping, FaTrophy, FaFacebook, FaTwitter, FaInstagram } from 'react-icons/fa';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import Navbar from './Navbar';
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -73,10 +74,7 @@ const Home = () => {
         }
         // Replace with actual API calls
         setUser({ name: 'John Doe', role: 'Student' });
-        setClubs([
-          { id: 1, name: 'Technical Clubs', icon: <FaCode /> },
-          { id: 2, name: 'Cultural Clubs', icon: <FaMusic /> },
-        ]);
+        setClubs([]); // Empty for testing no-clubs case
         setBadges([{ id: 1, name: 'Top Coder' }, { id: 2, name: 'Event Enthusiast' }]);
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -88,28 +86,8 @@ const Home = () => {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-white text-gray-900 font-sans">
-        {/* Header */}
-        <motion.header
-          initial={{ y: -100 }}
-          animate={{ y: 0 }}
-          transition={{ type: 'spring', stiffness: 120, damping: 20 }}
-          className="fixed top-0 w-full bg-white shadow-md z-50"
-        >
-          <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-red-600">ACEM</h1>
-            <div className="flex items-center gap-4">
-              <FaBell className="text-red-600 text-xl cursor-pointer hover:text-red-700" />
-              <div className="relative group">
-                <span className="text-gray-700 font-medium">{user?.name}</span>
-                <div className="absolute hidden group-hover:block bg-white shadow-lg rounded-lg mt-2 p-2">
-                  <Link to="/profile" className="block px-4 py-2 text-gray-700 hover:bg-red-50">Profile</Link>
-                  <Link to="/settings" className="block px-4 py-2 text-gray-700 hover:bg-red-50">Settings</Link>
-                  <button className="block px-4 py-2 text-gray-700 hover:bg-red-50 w-full text-left" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>Logout</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.header>
+        {/* Navbar */}
+        <Navbar user={user} />
 
         {/* Welcome Section */}
         <section className="pt-24 pb-12 bg-gradient-to-br from-red-50 to-white">
@@ -122,12 +100,40 @@ const Home = () => {
             >
               Welcome, {user?.name}!
             </motion.h2>
-            <p className="text-center text-gray-700">You are a {user?.role}. Explore your clubs and achievements below.</p>
+            <p className="text-center text-gray-700">You are a {user?.role}. Explore your profile and clubs below.</p>
+          </div>
+        </section>
+
+        {/* Profile Section */}
+        <section className="py-12 bg-white">
+          <div className="container mx-auto px-4">
+            <motion.h3
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="text-2xl font-bold text-red-600 mb-8"
+            >
+              Your Profile
+            </motion.h3>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="p-6 bg-white rounded-xl shadow-lg border border-red-200"
+            >
+              <h4 className="text-xl font-semibold text-gray-900 mb-4">Achievements</h4>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {badges.map((badge) => (
+                  <Badge key={badge.id} badge={badge} />
+                ))}
+              </div>
+            </motion.div>
           </div>
         </section>
 
         {/* Joined Clubs */}
-        <section className="py-12 bg-white">
+        <section className="py-12 bg-gradient-to-br from-red-50 to-white">
           <div className="container mx-auto px-4">
             <motion.h3
               initial={{ opacity: 0, y: 50 }}
@@ -137,30 +143,33 @@ const Home = () => {
             >
               Your Clubs
             </motion.h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {clubs.map((club) => (
-                <ClubCard key={club.id} club={club} />
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Achievements */}
-        <section className="py-12 bg-gradient-to-br from-red-50 to-white">
-          <div className="container mx-auto px-4">
-            <motion.h3
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="text-2xl font-bold text-red-600 mb-8"
-            >
-              Your Achievements
-            </motion.h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {badges.map((badge) => (
-                <Badge key={badge.id} badge={badge} />
-              ))}
-            </div>
+            {clubs.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="text-center"
+              >
+                <img
+                  src="https://images.unsplash.com/photo-1516321497487-e288fb19713f?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80"
+                  alt="No Clubs"
+                  className="mx-auto mb-4 rounded-lg shadow-md"
+                />
+                <p className="text-gray-700 mb-4 text-lg">You are not in any club yet.</p>
+                <Link
+                  to="/clubs"
+                  className="px-6 py-3 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 transition"
+                >
+                  Explore Clubs
+                </Link>
+              </motion.div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {clubs.map((club) => (
+                  <ClubCard key={club.id} club={club} />
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
