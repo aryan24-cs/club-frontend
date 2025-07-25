@@ -5,6 +5,10 @@ import Login from './components/Login';
 import Signup from './components/Signup';
 import Home from './components/Home';
 import UserDetailsForm from './components/UserDetailsForm';
+import ClubsPage from './components/ClubsPage';
+import ClubDetailPage from './components/ClubDetailPage';
+import CreateClubPage from './components/CreateClubPage';
+import EditClubPage from './components/EditClubPage';
 import Navbar from './components/Navbar';
 
 // Protected Route Component
@@ -60,12 +64,46 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-        {/* Placeholder routes for future implementation */}
-        <Route path="/clubs" element={<ProtectedRoute><Layout><div>Clubs Page (TBD)</div></Layout></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><Layout><div>Profile Page (TBD)</div></Layout></ProtectedRoute>} />
-        <Route path="/events" element={<ProtectedRoute><Layout><div>Events Page (TBD)</div></Layout></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><Layout><div>Settings Page (TBD)</div></Layout></ProtectedRoute>} />
-        <Route path="/contact" element={<ProtectedRoute><Layout><div>Contact Page (TBD)</div></Layout></ProtectedRoute>} />
+        <Route
+          path="/clubs"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ClubsPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/clubs/:clubName"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ClubDetailPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/create-club"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <CreateClubPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/clubs/:clubName/edit"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <EditClubPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </>
   );
