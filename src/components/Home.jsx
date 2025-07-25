@@ -182,11 +182,11 @@ const Home = () => {
               transition={{ duration: 0.5, delay: 0.4 }}
               whileHover={{
                 scale: 1.1,
-                boxShadow: '0 12px 24px rgba(220,20,60,0.3)',
+                boxShadow: '0 12px 24px rgba(220,20,60,0.1)',
                 transition: { duration: 0.3 },
               }}
               whileTap={{ scale: 0.95 }}
-              className="mt-6"
+              className="mt-6 w-fit m-auto rounded-full"
             >
               <Link
                 to="/clubs"
@@ -242,6 +242,7 @@ const Home = () => {
                   }}
                   whileTap={{ scale: 0.95 }}
                   transition={{ duration: 0.3 }}
+                  className='w-fit m-auto rounded-full'
                 >
                   <Link
                     to="/clubs"
@@ -286,6 +287,7 @@ const Home = () => {
                 }}
                 whileTap={{ scale: 0.95 }}
                 transition={{ duration: 0.3 }}
+                className='w-fit m-auto rounded-full'
               >
                 <Link
                   to="/events"
