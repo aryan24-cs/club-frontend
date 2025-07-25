@@ -1,9 +1,34 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { FaCode, FaMusic, FaBook, FaRunning, FaHandsHelping, FaFacebook, FaTwitter, FaInstagram } from 'react-icons/fa';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
-const App = () => {
+// Memoized ClubCard component to prevent unnecessary re-renders
+const ClubCard = memo(({ category, index }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 50, rotateX: 10 }}
+      whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
+      viewport={{ once: true }} // Ensures animation only runs once
+      transition={{ duration: 0.5, delay: index * 0.1 }}
+      whileHover={{ scale: 1.05, rotateY: 5, boxShadow: '0 10px 20px rgba(0, 0, 0, 0.1)' }}
+      className={`relative flex flex-col items-center p-6 bg-gradient-to-br ${category.color} rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden`}
+    >
+      <div className="absolute inset-0 bg-white opacity-10 transform skew-y-6"></div>
+      <motion.div
+        className="p-4 rounded-full bg-white bg-opacity-20 text-white text-4xl mb-4 z-10"
+        whileHover={{ rotate: 360 }}
+        transition={{ duration: 0.5 }}
+      >
+        {category.icon}
+      </motion.div>
+      <h3 className="text-xl font-semibold text-gray-900 z-10">{category.name}</h3>
+      <p className="text-sm text-gray-700 mt-2 text-center z-10">Join the {category.name.toLowerCase()} and unleash your passion!</p>
+    </motion.div>
+  );
+});
+
+const LandingPage = () => {
   const { scrollY } = useScroll();
   const opacity = useTransform(scrollY, [0, 200], [1, 0.7]);
   const scale = useTransform(scrollY, [0, 200], [1, 0.95]);
@@ -97,25 +122,7 @@ const App = () => {
           </motion.h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
             {categories.map((category, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 50, rotateX: 10 }}
-                whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                whileHover={{ scale: 1.05, rotateY: 5, boxShadow: '0 10px 20px rgba(0, 0, 0, 0.1)' }}
-                className={`relative flex flex-col items-center p-6 bg-gradient-to-br ${category.color} rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden`}
-              >
-                <div className="absolute inset-0 bg-white opacity-10 transform skew-y-6"></div>
-                <motion.div
-                  className="p-4 rounded-full bg-white bg-opacity-20 text-white text-4xl mb-4 z-10"
-                  whileHover={{ rotate: 360 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  {category.icon}
-                </motion.div>
-                <h3 className="text-xl font-semibold text-gray-900 z-10">{category.name}</h3>
-                <p className="text-sm text-gray-700 mt-2 z-10">Join the {category.name.toLowerCase()} and unleash your passion!</p>
-              </motion.div>
+              <ClubCard key={category.name} category={category} index={index} />
             ))}
           </div>
         </div>
@@ -154,4 +161,4 @@ const App = () => {
   );
 };
 
-export default App;
+export default LandingPage;

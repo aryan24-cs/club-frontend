@@ -9,6 +9,8 @@ const Login = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [mobileFocused, setMobileFocused] = useState(false);
+  const [otpFocused, setOtpFocused] = useState(false);
 
   const handleSendOtp = async () => {
     if (!/^\d{10}$/.test(mobile)) {
@@ -43,47 +45,39 @@ const Login = () => {
     setLoading(false);
   };
 
-  // Accordion background animation variants
-  const accordionVariants = {
-    expanded: { height: '100%', opacity: 0.3 },
-    collapsed: { height: '20%', opacity: 0.1 },
+  // Label animation variants
+  const labelVariants = {
+    resting: { y: 12, fontSize: '1rem', color: '#4B5563' }, // gray-700
+    floating: { y: -12, fontSize: '0.75rem', color: '#DC143C' }, // red-600
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center relative overflow-hidden">
-      {/* Animated Accordion Background */}
-      <div className="absolute inset-0 z-0">
-        {[...Array(5)].map((_, index) => (
-          <motion.div
-            key={index}
-            className="absolute w-full bg-gradient-to-r from-red-600 to-red-200"
-            style={{ top: `${index * 20}%` }}
-            variants={accordionVariants}
-            initial="collapsed"
-            animate="expanded"
-            transition={{ duration: 2, delay: index * 0.3, repeat: Infinity, repeatType: 'reverse' }}
-          />
-        ))}
-      </div>
-
-      {/* Login Form */}
+    <div className="min-h-screen bg-white flex items-center justify-center relative">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
-        className="relative z-10 w-full max-w-md p-8 bg-white rounded-xl shadow-2xl"
+        className="w-full max-w-md p-8 bg-white rounded-xl shadow-2xl"
       >
         <h2 className="text-3xl font-bold text-red-600 text-center mb-8">Login</h2>
         <div className="space-y-6">
           {!otpSent ? (
             <>
-              <div>
-                <label className="block text-gray-700 font-medium mb-2">Mobile Number</label>
+              <div className="relative">
+                <motion.label
+                  className="absolute left-4 top-3 text-gray-700 font-medium pointer-events-none"
+                  animate={mobileFocused || mobile ? 'floating' : 'resting'}
+                  variants={labelVariants}
+                  transition={{ duration: 0.2 }}
+                >
+                  Mobile Number
+                </motion.label>
                 <input
                   type="text"
                   value={mobile}
                   onChange={(e) => setMobile(e.target.value)}
-                  placeholder="Enter 10-digit mobile number"
+                  onFocus={() => setMobileFocused(true)}
+                  onBlur={() => setMobileFocused(false)}
                   className="w-full px-4 py-3 border-b-2 border-red-600 text-gray-900 bg-transparent focus:outline-none focus:border-red-700 transition"
                 />
               </div>
@@ -111,13 +105,21 @@ const Login = () => {
             </>
           ) : (
             <>
-              <div>
-                <label className="block text-gray-700 font-medium mb-2">Enter OTP</label>
+              <div className="relative">
+                <motion.label
+                  className="absolute left-4 top-3 text-gray-700 font-medium pointer-events-none"
+                  animate={otpFocused || otp ? 'floating' : 'resting'}
+                  variants={labelVariants}
+                  transition={{ duration: 0.2 }}
+                >
+                  Enter OTP
+                </motion.label>
                 <input
                   type="text"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
-                  placeholder="Enter 6-digit OTP"
+                  onFocus={() => setOtpFocused(true)}
+                  onBlur={() => setOtpFocused(false)}
                   className="w-full px-4 py-3 border-b-2 border-red-600 text-gray-900 bg-transparent focus:outline-none focus:border-red-700 transition"
                 />
               </div>
