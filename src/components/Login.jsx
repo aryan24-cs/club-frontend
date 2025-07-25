@@ -1,8 +1,41 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { FaUsers } from 'react-icons/fa';
 
+// Floating Bubble Component (Fragrance-like animation)
+const Bubble = ({ size, delay }) => {
+  const randomXOffset = Math.random() * 100 - 50; // Random horizontal sway (-50 to 50px)
+
+  return (
+    <motion.div
+      className="absolute rounded-full bg-mint opacity-50"
+      style={{
+        width: size,
+        height: size,
+        backgroundColor: '#CFFFE2',
+        willChange: 'transform, opacity',
+      }}
+      initial={{ x: `${randomXOffset}vw`, y: '100vh', opacity: 0.5 }}
+      animate={{
+        x: [`${randomXOffset}vw`, `${randomXOffset + (Math.random() * 20 - 10)}vw`], // Slight horizontal sway
+        y: '-10vh', // Move to top
+        opacity: [0.5, 0.7, 0], // Fade in, then out
+      }}
+      transition={{
+        duration: 8 + Math.random() * 4, // Random duration (8-12s)
+        repeat: Infinity,
+        repeatType: 'loop',
+        ease: 'easeOut',
+        delay: delay,
+      }}
+      whileHover={{ scale: 1.3, opacity: 0.8 }}
+    />
+  );
+};
+
+// OTP Input Component
 const OtpInput = ({ otp, setOtp, otpFocused, setOtpFocused }) => {
   const inputRefs = useRef([]);
   const OTP_LENGTH = 6;
@@ -47,9 +80,10 @@ const OtpInput = ({ otp, setOtp, otpFocused, setOtpFocused }) => {
             onPaste={handlePaste}
             onFocus={() => setOtpFocused(index)}
             onBlur={() => setOtpFocused(null)}
-            className={`w-10 h-10 text-center text-lg border-2 rounded-md focus:outline-none transition ${
-              otpFocused === index ? 'border-red-600' : 'border-gray-300'
+            className={`w-12 h-12 text-center text-lg border-2 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-600 transition-all duration-300 ${
+              otpFocused === index ? 'border-teal-600' : 'border-gray-300'
             }`}
+            aria-label={`OTP digit ${index + 1}`}
           />
         ))}
     </div>
@@ -68,6 +102,9 @@ const Login = () => {
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [otpFocused, setOtpFocused] = useState(null);
   const navigate = useNavigate();
+
+  const { scrollY } = useScroll();
+  const bgY = useTransform(scrollY, [0, 200], [0, -50]); // Parallax effect
 
   const handleSendOtp = async () => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -126,18 +163,82 @@ const Login = () => {
 
   const labelVariants = {
     resting: { y: 12, fontSize: '1rem', color: '#4B5563' },
-    floating: { y: -12, fontSize: '0.75rem', color: '#DC143C' },
+    floating: { y: -12, fontSize: '0.75rem', color: '#456882' },
   };
 
+  // Progress steps
+  const steps = ['Enter Email', 'Verify OTP', 'Login'];
+  const currentStep = !otpSent ? 0 : !useOtp ? 2 : 1;
+
+  // Bubbles
+  const bubbles = Array.from({ length: 8 }, (_, i) => ({
+    size: `${15 + Math.random() * 20}px`, // Random size between 15-35px
+    delay: i * 0.5, // Staggered delays
+  }));
+
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center relative">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center relative overflow-hidden font-[Poppins]">
+      {/* Background and Bubbles */}
+      <motion.div
+        className="absolute inset-0 z-0"
+        style={{ y: bgY }}
+      >
+        <div className="relative w-full h-full">
+          <div className="absolute inset-0 bg-gradient-to-br from-teal-100 via-white to-blue-100"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-teal-600/30 to-transparent"></div>
+          {bubbles.map((bubble, index) => (
+            <Bubble key={index} size={bubble.size} delay={bubble.delay} />
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Login Form */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-md p-8 bg-white rounded-xl shadow-2xl"
+        className="w-full max-w-md p-6 sm:p-8 bg-white rounded-xl shadow-2xl relative z-10"
       >
-        <h2 className="text-3xl font-bold text-red-600 text-center mb-8">Login</h2>
+        {/* Club Icon */}
+        <motion.div
+          className="flex justify-center mb-6"
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+        >
+          <img
+            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRhlQcHePKIv2tzDNPalbDjniC7_AmmGT9Y0A&s"
+            alt="Club Icon"
+            className="w-16 h-16 sm:w-20 sm:h-20 object-contain"
+            aria-hidden="true"
+          />
+        </motion.div>
+
+        {/* Title */}
+        <h2 className="text-3xl font-bold text-teal-600 text-center mb-6" style={{ color: '#456882' }}>
+          Login to ACEM Clubs
+        </h2>
+
+        {/* Progress Indicator */}
+        <div className="flex justify-between mb-6">
+          {steps.map((step, index) => (
+            <div key={index} className="flex flex-col items-center">
+              <motion.div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold ${
+                  index <= currentStep ? 'bg-teal-600' : 'bg-gray-300'
+                }`}
+                style={{ backgroundColor: index <= currentStep ? '#456882' : '#D1D5DB' }}
+                animate={{ scale: index === currentStep ? 1.1 : 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                {index + 1}
+              </motion.div>
+              <span className="text-xs text-gray-700 mt-2">{step}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Form Content */}
         <div className="space-y-6">
           {!otpSent ? (
             <>
@@ -156,7 +257,8 @@ const Login = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   onFocus={() => setEmailFocused(true)}
                   onBlur={() => setEmailFocused(false)}
-                  className="w-full px-4 py-3 border-b-2 border-red-600 text-gray-900 bg-transparent focus:outline-none focus:border-red-700 transition"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-md text-gray-900 bg-transparent focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-600 transition-all duration-300"
+                  aria-label="Email Address"
                 />
               </div>
               {!useOtp && (
@@ -175,7 +277,8 @@ const Login = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     onFocus={() => setPasswordFocused(true)}
                     onBlur={() => setPasswordFocused(false)}
-                    className="w-full px-4 py-3 border-b-2 border-red-600 text-gray-900 bg-transparent focus:outline-none focus:border-red-700 transition"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-md text-gray-900 bg-transparent focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-600 transition-all duration-300"
+                    aria-label="Password"
                   />
                 </div>
               )}
@@ -185,7 +288,7 @@ const Login = () => {
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="text-red-600 text-sm"
+                    className="text-red-600 text-sm text-center"
                   >
                     {error}
                   </motion.p>
@@ -196,14 +299,34 @@ const Login = () => {
                 whileTap={{ scale: 0.95 }}
                 onClick={useOtp ? handleSendOtp : handlePasswordLogin}
                 disabled={loading}
-                className="w-full px-4 py-3 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 transition disabled:opacity-50"
+                className="w-full px-4 py-3 bg-teal-600 text-white rounded-full font-semibold hover:bg-teal-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center"
+                style={{ backgroundColor: '#456882' }}
+                aria-label={useOtp ? 'Send OTP' : 'Login'}
               >
-                {loading ? 'Processing...' : useOtp ? 'Send OTP' : 'Login'}
+                {loading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-5 w-5 mr-2 text-white"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8z"
+                      />
+                    </svg>
+                    {useOtp ? 'Sending...' : 'Logging In...'}
+                  </>
+                ) : (
+                  useOtp ? 'Send OTP' : 'Login'
+                )}
               </motion.button>
               <p className="text-center text-gray-700">
                 <button
                   onClick={() => setUseOtp(!useOtp)}
-                  className="text-red-600 hover:underline font-medium"
+                  className="text-teal-600 hover:underline font-medium"
+                  style={{ color: '#456882' }}
                 >
                   {useOtp ? 'Use Password Instead' : 'Use OTP Instead'}
                 </button>
@@ -239,15 +362,34 @@ const Login = () => {
                 whileTap={{ scale: 0.95 }}
                 onClick={handleVerifyOtp}
                 disabled={loading}
-                className="w-full px-4 py-3 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 transition disabled:opacity-50"
+                className="w-full px-4 py-3 bg-teal-600 text-white rounded-full font-semibold hover:bg-teal-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center"
+                style={{ backgroundColor: '#456882' }}
+                aria-label="Verify OTP"
               >
-                {loading ? 'Verifying...' : 'Verify OTP'}
+                {loading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-5 w-5 mr-2 text-white"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8z"
+                      />
+                    </svg>
+                    Verifying...
+                  </>
+                ) : (
+                  'Verify OTP'
+                )}
               </motion.button>
             </>
           )}
           <p className="text-center text-gray-700">
             Don't have an account?{' '}
-            <Link to="/signup" className="text-red-600 hover:underline font-medium">
+            <Link to="/signup" className="text-teal-600 hover:underline font-medium" style={{ color: '#456882' }}>
               Signup
             </Link>
           </p>
