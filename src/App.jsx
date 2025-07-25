@@ -4,6 +4,7 @@ import LandingPage from './components/LandingPage';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import Home from './components/Home';
+import UserDetailsForm from './components/UserDetailsForm';
 import Navbar from './components/Navbar';
 
 // Protected Route Component
@@ -29,6 +30,26 @@ const App = () => {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route
+          path="/user-details"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <UserDetailsForm />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/home"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Home />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/dashboard"
           element={

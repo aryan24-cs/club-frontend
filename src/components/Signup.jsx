@@ -121,7 +121,7 @@ const Signup = () => {
         password,
       });
       localStorage.setItem('token', res.data.token);
-      navigate('/dashboard');
+      navigate('/user-details');
     } catch (err) {
       setError(err.response?.data?.error || 'Signup failed. Try again.');
     }
