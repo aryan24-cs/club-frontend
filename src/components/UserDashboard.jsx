@@ -1,8 +1,5 @@
-
 import React, { memo, useEffect, useState, useCallback } from "react";
-
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
-import { TypeAnimation } from "react-type-animation";
 import {
   FaCode,
   FaMusic,
@@ -10,9 +7,6 @@ import {
   FaRunning,
   FaHandsHelping,
   FaTrophy,
-  FaFacebook,
-  FaTwitter,
-  FaInstagram,
   FaCalendarAlt,
   FaUsers,
   FaBell,
@@ -24,1030 +18,1206 @@ import {
   FaShareAlt,
   FaFilter,
   FaSearch,
+  FaChartLine,
+  FaMedal,
+  FaGraduationCap,
+  FaFireAlt,
+  FaEye,
+  FaSpinner,
+  FaWhatsapp,
+  FaEnvelope,
+  FaCheckCircle,
+  FaTimesCircle,
+  FaCrown,
+  FaShieldAlt,
+  FaArrowRight,
+  FaPlus,
+  FaExternalLinkAlt,
+  FaHome,
+  FaUserCircle,
+  FaSignOutAlt,
 } from "react-icons/fa";
-import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import Navbar from "./Navbar";
+import { useNavigate, Link } from "react-router-dom";
 
-// Theme object for consistent styling
+// Static mock data for features not supported by backend
+const mockData = {
+  notifications: [
+    {
+      _id: 1,
+      message: "Your application to Drama Society has been approved!",
+      date: "2025-07-25",
+      type: "success",
+      read: false,
+      clubId: "64f5b1234567890abcdef125",
+    },
+    {
+      _id: 2,
+      message: "AI Workshop registration is now open",
+      date: "2025-07-24",
+      type: "info",
+      read: false,
+      eventId: 1,
+    },
+    {
+      _id: 3,
+      message: "Photography Competition deadline approaching",
+      date: "2025-07-23",
+      type: "warning",
+      read: true,
+      eventId: 2,
+    },
+  ],
+  achievements: [
+    {
+      id: "achievement1",
+      title: "Active Participant",
+      description: "Attended 10+ events",
+      icon: "🎯",
+      earnedAt: "2025-03-15",
+      category: "Participation",
+    },
+    {
+      id: "achievement2",
+      title: "Club Ambassador",
+      description: "Member of 3+ clubs",
+      icon: "🏆",
+      earnedAt: "2025-05-01",
+      category: "Leadership",
+    },
+  ],
+  activityExtras: {
+    1: {
+      time: "10:00 AM - 4:00 PM",
+      location: "Main Auditorium",
+      type: "workshop",
+      attendees: 85,
+      maxCapacity: 100,
+      registrationOpen: true,
+      featured: true,
+      image: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e",
+      tags: ["AI", "Technology", "Learning"],
+      prerequisites: "Basic programming knowledge",
+    },
+    2: {
+      time: "9:00 AM - 6:00 PM",
+      location: "Campus Grounds",
+      type: "competition",
+      attendees: 45,
+      maxCapacity: 50,
+      registrationOpen: true,
+      featured: false,
+      image: "https://images.unsplash.com/photo-1452587925148-ce544e77e70d",
+      tags: ["Photography", "Competition", "Art"],
+      prizes: ["₹5000", "₹3000", "₹2000"],
+    },
+    3: {
+      time: "7:00 PM - 9:00 PM",
+      location: "College Theatre",
+      type: "performance",
+      attendees: 200,
+      maxCapacity: 250,
+      registrationOpen: false,
+      featured: true,
+      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
+      tags: ["Drama", "Performance", "Entertainment"],
+    },
+  },
+  clubExtras: {
+    "64f5b1234567890abcdef123": {
+      icon: "FaCode",
+      rating: 4.8,
+      memberCount: 125,
+      coordinators: ["John Doe", "Jane Smith"],
+      headCoordinator: "Dr. Sarah Wilson",
+      whatsappLink: "https://chat.whatsapp.com/sample",
+      isActive: true,
+      founded: "2019",
+      achievements: ["Best Project Award 2023", "National Level Recognition"],
+    },
+    "64f5b1234567890abcdef124": {
+      icon: "FaMusic",
+      rating: 4.6,
+      memberCount: 89,
+      coordinators: ["Mike Johnson"],
+      headCoordinator: "Prof. David Brown",
+      whatsappLink: "https://chat.whatsapp.com/sample2",
+      isActive: true,
+      founded: "2018",
+      achievements: ["Inter-college Photo Contest Winner"],
+    },
+    "64f5b1234567890abcdef125": {
+      icon: "FaBook",
+      rating: 4.7,
+      memberCount: 67,
+      coordinators: ["Emily Davis"],
+      headCoordinator: "Dr. Lisa Anderson",
+      whatsappLink: "https://chat.whatsapp.com/sample3",
+      isActive: true,
+      founded: "2020",
+      achievements: ["Best Drama Performance 2024"],
+    },
+  },
+};
+
+// Theme configuration
 const theme = {
-  primary: '#456882',
-  secondary: '#CFFFE2',
-  accent: '#d1d5db',
+  primary: "#456882",
+  secondary: "#CFFFE2",
+  accent: "#d1d5db",
+  success: "#10b981",
+  warning: "#f59e0b",
+  error: "#ef4444",
+  info: "#3b82f6",
 };
 
-// Click Bubble Effect Component
-const ClickBubble = ({ x, y, id }) => {
-  return (
-    <motion.div
-      key={id}
-      className="fixed pointer-events-none z-50"
-      style={{ left: x - 15, top: y - 15 }}
-      initial={{ scale: 0, opacity: 1 }}
-      animate={{ scale: [0, 1.5, 0], opacity: [1, 0.8, 0] }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
-    >
-      <div className="w-[30px] h-[30px] rounded-full bg-gradient-to-r from-teal-400 to-teal-600 shadow-lg" />
-    </motion.div>
-  );
-};
-
-// Floating Bubble Component
-const Bubble = ({ size, delay }) => {
-  const randomXOffset = Math.random() * 100 - 50;
-
-  return (
-    <motion.div
-      className="absolute rounded-full bg-mint opacity-50"
-      style={{
-        width: size,
-        height: size,
-        backgroundColor: theme.secondary,
-        willChange: 'transform, opacity',
-      }}
-      initial={{ x: `${randomXOffset}vw`, y: '100vh', opacity: 0.5 }}
-      animate={{
-        x: [`${randomXOffset}vw`, `${randomXOffset + (Math.random() * 20 - 10)}vw`],
-        y: '-10vh',
-        opacity: [0.5, 0.7, 0],
-      }}
-      transition={{
-        duration: 8 + Math.random() * 4,
-        repeat: Infinity,
-        repeatType: 'loop',
-        ease: 'easeOut',
-        delay: delay,
-      }}
-      whileHover={{ scale: 1.3, opacity: 0.8 }}
-    />
-  );
-};
-
-// Error Boundary Component
-class ErrorBoundary extends React.Component {
-  state = { hasError: false, error: null };
-
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error, errorInfo) {
-    console.error("ErrorBoundary caught an error:", error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="text-center p-8 text-teal-600">
-          <h2 className="text-2xl font-bold">Something went wrong.</h2>
-          <p>Please try refreshing the page or contact support.</p>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="mt-4 px-6 py-2 bg-teal-600 text-white rounded-full"
-            style={{ backgroundColor: theme.primary }}
-            onClick={() => window.location.reload()}
-          >
-            Retry
-          </motion.button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-
-// Quick Stats Component
-const QuickStats = ({ user, clubs, activities }) => {
-  const stats = [
-    {
-      icon: <FaUsers />,
-      label: "Clubs Joined",
-      value: user?.clubs?.length || 0,
-      color: "from-blue-500 to-blue-600"
-    },
-    {
-      icon: <FaCalendarAlt />,
-      label: "Events Attended",
-      value: user?.eventsAttended?.length || 0,
-      color: "from-green-500 to-green-600"
-    },
-    {
-      icon: <FaTrophy />,
-      label: "Achievements",
-      value: user?.achievements?.length || 0,
-      color: "from-yellow-500 to-yellow-600"
-    },
-    {
-      icon: <FaBell />,
-      label: "Pending Requests",
-      value: user?.pendingClubs?.length || 0,
-      color: "from-red-500 to-red-600"
-    }
-  ];
-
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-      {stats.map((stat, index) => (
-        <motion.div
-          key={index}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.1 }}
-          whileHover={{ scale: 1.05, y: -5 }}
-          className={`bg-gradient-to-r ${stat.color} p-4 rounded-xl text-white shadow-lg`}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-2xl font-bold">{stat.value}</p>
-              <p className="text-sm opacity-90">{stat.label}</p>
-            </div>
-            <div className="text-2xl opacity-80">{stat.icon}</div>
-          </div>
-        </motion.div>
-      ))}
-    </div>
-  );
-};
-
-// Icon mapping for ClubCard
+// Icon mapping
 const iconMap = {
   FaCode: <FaCode />,
   FaMusic: <FaMusic />,
   FaBook: <FaBook />,
   FaRunning: <FaRunning />,
   FaHandsHelping: <FaHandsHelping />,
-  FaTrophy: <FaTrophy />
+  FaTrophy: <FaTrophy />,
 };
 
-// Enhanced Club Card Component
-const ClubCard = memo(({ club, handleJoinClub, isPending, isJoined }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 50 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true }}
-    transition={{ type: 'spring', stiffness: 100, damping: 15 }}
-    whileHover={{ scale: 1.05, boxShadow: '0 10px 20px rgba(0, 0, 0, 0.1)' }}
-    className="relative flex flex-col items-center p-6 bg-gradient-to-br from-teal-200 to-teal-400 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden"
-  >
-    <div className="absolute inset-0 bg-white opacity-10 transform skew-y-6"></div>
-    
-    {/* Club Rating */}
-    <div className="absolute top-2 right-2 flex items-center gap-1 bg-white/20 backdrop-blur-sm rounded-full px-2 py-1">
-      <FaStar className="text-yellow-400 text-sm" />
-      <span className="text-white text-sm font-semibold">{club.rating || '4.5'}</span>
-    </div>
+// Navbar Component (from CreateClubPage)
+const Navbar = () => {
+  const navigate = useNavigate();
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
 
-    <motion.div
-      className="p-4 rounded-full bg-white bg-opacity-20 text-white text-3xl mb-4 z-10"
-      whileHover={{ scale: 1.1, y: -5 }}
-      transition={{ duration: 0.3 }}
-    >
-      {iconMap[club.icon] || <FaTrophy />}
-    </motion.div>
-    
-    <h3 className="text-lg font-semibold text-gray-900 z-10">{club.name}</h3>
-    <p className="text-sm text-gray-700 mt-2 text-center z-10">{club.description}</p>
-    
-    {/* Member Count */}
-    <div className="flex items-center gap-1 mt-2 text-gray-700 z-10">
-      <FaUserFriends className="text-sm" />
-      <span className="text-sm">{club.memberCount || '50+'} members</span>
-    </div>
-
-    <div className="mt-4 flex gap-2 justify-center z-10">
-      <Link
-        to={`/club/${club._id}`}
-        className="text-teal-600 hover:text-teal-700 font-medium transition"
-        style={{ color: theme.primary }}
-        aria-label={`View details of ${club.name}`}
-      >
-        View Details
-      </Link>
-      
-      {isJoined ? (
-        <span className="px-4 py-1 bg-green-500 text-white rounded-full font-semibold">
-          Joined
-        </span>
-      ) : (
-        <motion.button
-          onClick={() => handleJoinClub(club._id)}
-          disabled={isPending}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className={`px-4 py-1 rounded-full font-semibold transition ${
-            isPending
-              ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
-              : 'bg-teal-600 text-white hover:bg-teal-700'
-          }`}
-          style={{ backgroundColor: isPending ? theme.accent : theme.primary }}
-          aria-label={isPending ? `Pending request for ${club.name}` : `Join ${club.name}`}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && !isPending && handleJoinClub(club._id)}
-        >
-          {isPending ? 'Pending' : 'Join Club'}
-        </motion.button>
-      )}
-    </div>
-  </motion.div>
-));
-
-// Enhanced Activity Card Component
-const ActivityCard = memo(({ activity }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 50 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true }}
-    transition={{ type: 'spring', stiffness: 100, damping: 15 }}
-    whileHover={{ scale: 1.03, boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }}
-    className="p-6 bg-white rounded-xl shadow-md border border-gray-200 break-inside-avoid mb-6 relative overflow-hidden"
-  >
-    {/* Activity Type Badge */}
-    <div className="absolute top-4 right-4">
-      <span className="px-2 py-1 bg-teal-100 text-teal-600 rounded-full text-xs font-semibold">
-        {activity.type || 'Event'}
-      </span>
-    </div>
-
-    <div className="flex items-center gap-3 mb-3">
-      <FaCalendarAlt className="text-teal-600 text-xl" style={{ color: theme.primary }} />
-      <h4 className="text-lg font-semibold text-gray-900">{activity.title}</h4>
-    </div>
-    
-    <div className="flex items-center gap-4 mb-3 text-sm text-gray-600">
-      <div className="flex items-center gap-1">
-        <FaClock />
-        <span>{activity.date}</span>
-      </div>
-      {activity.location && (
-        <div className="flex items-center gap-1">
-          <FaMapMarkerAlt />
-          <span>{activity.location}</span>
+  return (
+    <nav className="bg-white shadow-md">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-16">
+          <div className="flex items-center">
+            <Link to="/" className="text-2xl font-bold text-[#456882]">
+              ACEM
+            </Link>
+          </div>
+          <div className="flex items-center space-x-4">
+            <Link
+              to="/"
+              className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+              <FaHome className="mr-2" />
+              Home
+            </Link>
+            <Link
+              to="/clubs"
+              className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+              <FaUsers className="mr-2" />
+              Clubs
+            </Link>
+            <Link
+              to="/dashboard"
+              className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+              <FaUserCircle className="mr-2" />
+              Dashboard
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+              <FaSignOutAlt className="mr-2" />
+              Logout
+            </button>
+          </div>
         </div>
-      )}
-    </div>
-    
-    <p className="text-gray-700 mb-3">{activity.description}</p>
-    <p className="text-gray-500 text-sm mb-4">Organized by: {activity.club}</p>
-    
-    {/* Action Buttons */}
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          className="p-2 text-gray-500 hover:text-red-500 transition-colors"
-          aria-label="Like activity"
-          role="button"
-          tabIndex={0}
-        >
-          <FaHeart />
-        </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          className="p-2 text-gray-500 hover:text-blue-500 transition-colors"
-          aria-label="Share activity"
-          role="button"
-          tabIndex={0}
-        >
-          <FaShareAlt />
-        </motion.button>
       </div>
-      
-      <div className="flex items-center gap-1 text-sm text-gray-500">
-        <FaUsers />
-        <span>{activity.attendees || '25'} interested</span>
-      </div>
-    </div>
-  </motion.div>
-));
+    </nav>
+  );
+};
 
-// No Activities Component (Chrome-style error page)
-const NoActivitiesFound = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.8 }}
-    className="text-center py-16"
-  >
-    <div className="relative max-w-md mx-auto">
-      <svg
-        className="mx-auto mb-8 w-64 h-64 text-gray-300"
-        fill="none"
-        viewBox="0 0 400 400"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          d="M50 250 L100 200 L150 220 L200 180 L250 200 L300 160 L350 180 L400 150 L400 300 L50 300 Z"
-          fill="currentColor"
-          opacity="0.3"
-        />
-        <path
-          d="M0 280 L80 240 L140 260 L200 220 L280 240 L350 200 L400 220 L400 300 L0 300 Z"
-          fill="currentColor"
-          opacity="0.2"
-        />
-        <circle cx="320" cy="80" r="30" fill="currentColor" opacity="0.4" />
-        <ellipse cx="100" cy="100" rx="40" ry="20" fill="white" opacity="0.8" />
-        <ellipse cx="280" cy="120" rx="50" ry="25" fill="white" opacity="0.6" />
-        <rect x="160" y="180" width="80" height="80" rx="8" fill="currentColor" opacity="0.4" />
-        <rect x="170" y="190" width="60" height="60" rx="4" fill="white" />
-        <line x1="180" y1="200" x2="220" y2="200" stroke="currentColor" strokeWidth="2" opacity="0.3" />
-        <line x1="180" y1="210" x2="220" y2="210" stroke="currentColor" strokeWidth="2" opacity="0.3" />
-        <line x1="180" y1="220" x2="200" y2="220" stroke="currentColor" strokeWidth="2" opacity="0.3" />
-      </svg>
-      
-      <h3 className="text-2xl font-bold text-gray-800 mb-4">No Upcoming Activities</h3>
-      <p className="text-gray-600 mb-6 max-w-sm mx-auto">
-        There are currently no upcoming activities scheduled. Check back later or explore clubs to stay updated!
-      </p>
-      
-      <div className="flex flex-col sm:flex-row gap-4 justify-center">
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="px-6 py-3 bg-teal-600 text-white rounded-full font-semibold hover:bg-teal-700 transition-all"
-          style={{ backgroundColor: theme.primary }}
-          onClick={() => window.location.reload()}
-          aria-label="Refresh page"
-          role="button"
-          tabIndex={0}
-        >
-          Refresh Page
-        </motion.button>
-        <Link
-          to="/clubs"
-          className="px-6 py-3 border border-teal-600 text-teal-600 rounded-full font-semibold hover:bg-teal-50 transition-all text-center"
-          style={{ borderColor: theme.primary, color: theme.primary }}
-          aria-label="Explore clubs"
-        >
-          Explore Clubs
-        </Link>
-      </div>
-    </div>
-  </motion.div>
-);
-
-// Activity Filter Component
-const ActivityFilters = ({ filters, setFilters, clubs }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="bg-white p-4 rounded-xl shadow-md mb-6"
-  >
-    <div className="flex flex-wrap items-center gap-4">
-      <div className="relative">
-        <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Search activities..."
-          className="pl-10 pr-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-teal-400"
-          value={filters.search}
-          onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-          aria-label="Search activities"
-        />
-      </div>
-      
-      <select
-        className="px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-teal-400"
-        value={filters.type}
-        onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-        aria-label="Filter by activity type"
-      >
-        <option value="">All Types</option>
-        <option value="workshop">Workshop</option>
-        <option value="seminar">Seminar</option>
-        <option value="competition">Competition</option>
-        <option value="social">Social Event</option>
-      </select>
-      
-      <select
-        className="px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-teal-400"
-        value={filters.club}
-        onChange={(e) => setFilters({ ...filters, club: e.target.value })}
-        aria-label="Filter by club"
-      >
-        <option value="">All Clubs</option>
-        {clubs.map((club) => (
-          <option key={club._id} value={club.name.toLowerCase()}>
-            {club.name}
-          </option>
-        ))}
-      </select>
-    </div>
-  </motion.div>
-);
-
-// Memoized Notification Card Component
-const NotificationCard = memo(({ notification }) => (
-  <motion.div
-    initial={{ opacity: 0, x: 50 }}
-    whileInView={{ opacity: 1, x: 0 }}
-    viewport={{ once: true }}
-    transition={{ type: 'spring', stiffness: 100, damping: 15 }}
-    whileHover={{ scale: 1.02 }}
-    className="p-4 bg-white rounded-lg shadow-sm border border-gray-200 flex items-center gap-3"
-  >
-    <FaBell className="text-teal-600 text-lg" style={{ color: theme.primary }} />
-    <div>
-      <p className="text-gray-800 text-sm">{notification.message}</p>
-      <p className="text-gray-500 text-xs">{notification.date}</p>
-    </div>
-  </motion.div>
-));
-
-// User Profile Card
-const UserProfileCard = ({ user }) => (
-  <motion.div
-    initial={{ opacity: 0, x: -50 }}
-    animate={{ opacity: 1, x: 0 }}
-    transition={{ duration: 0.8, ease: 'easeOut' }}
-    whileHover={{ scale: 1.02, boxShadow: '0 10px 20px rgba(0,0,0,0.1)' }}
-    className="relative bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-8 overflow-hidden"
-  >
-    <div className="absolute inset-0 bg-gradient-to-r from-teal-50 to-white opacity-50"></div>
-    <div className="flex items-center gap-4 relative z-10">
+// Enhanced Loading Component
+const LoadingSpinner = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-blue-50">
+    <motion.div className="text-center">
       <motion.div
-        className="h-16 w-16 rounded-full bg-teal-600 flex items-center justify-center text-white text-2xl"
-        whileHover={{ scale: 1.1 }}
-        style={{ backgroundColor: theme.primary }}
+        animate={{ rotate: 360 }}
+        transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+        className="w-16 h-16 border-4 border-[#456882] border-t-transparent rounded-full mx-auto mb-4"
+      />
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="text-gray-600 text-lg"
       >
-        {user?.name?.charAt(0).toUpperCase() || 'U'}
-      </motion.div>
+        Loading your dashboard...
+      </motion.p>
+    </motion.div>
+  </div>
+);
+
+// Enhanced Stats Card Component
+const StatsCard = memo(({ stat, index }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: index * 0.1 }}
+    whileHover={{ scale: 1.05, y: -5 }}
+    className={`bg-gradient-to-r ${stat.color} p-6 rounded-xl text-white shadow-lg hover:shadow-xl`}
+  >
+    <div className="flex items-center justify-between">
       <div>
-        <h3 className="text-xl font-bold text-gray-900">{user?.name || 'User'}</h3>
-        <p className="text-gray-600">{user?.course || 'Course'} - Semester {user?.semester || 'N/A'}</p>
-        <p className="text-gray-600">{user?.specialization || 'Specialization'}</p>
-        {user?.pendingClubs?.length > 0 && (
-          <motion.span
-            className="inline-block mt-2 px-3 py-1 bg-teal-600 text-white rounded-full text-sm"
-            animate={{ scale: [1, 1.1, 1] }}
-            transition={{ repeat: Infinity, duration: 1.5 }}
-            style={{ backgroundColor: theme.primary }}
-          >
-            {user.pendingClubs.length} Pending Request{user.pendingClubs.length > 1 ? 's' : ''}
-          </motion.span>
+        <motion.p
+          className="text-3xl font-bold"
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: index * 0.1 + 0.2 }}
+        >
+          {stat.value}
+        </motion.p>
+        <p className="text-sm opacity-90 mt-1">{stat.label}</p>
+        {stat.change && (
+          <p className="text-xs opacity-75 mt-1">
+            {stat.change > 0 ? "+" : ""}{stat.change}% from last month
+          </p>
         )}
       </div>
+      <motion.div className="text-3xl opacity-80" whileHover={{ scale: 1.2, rotate: 10 }}>
+        {stat.icon}
+      </motion.div>
     </div>
   </motion.div>
-);
+));
 
-// Progress Tracker Component
-const ProgressTracker = ({ user }) => {
-  const clubsJoined = user?.clubs?.length || 0;
-  const eventsAttended = user?.eventsAttended?.length || 0;
-  const progress = Math.min((clubsJoined * 20 + eventsAttended * 10), 100);
+// Enhanced Club Card Component
+const ClubCard = memo(({ club, user, handleJoinClub }) => {
+  const isJoined = user?.clubs?.includes(club._id);
+  const isPending = user?.pendingClubs?.includes(club._id);
+  const clubExtras = mockData.clubExtras[club._id] || {};
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 50 }}
       whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8 }}
-      className="p-6 bg-white rounded-xl shadow-lg border border-gray-200 mb-8"
+      viewport={{ once: true }}
+      transition={{ type: "spring", stiffness: 100, damping: 15 }}
+      whileHover={{ scale: 1.03, boxShadow: "0 15px 30px rgba(0, 0, 0, 0.1)" }}
+      className="relative bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group"
     >
-      <h3 className="text-lg font-bold text-teal-600 mb-4" style={{ color: theme.primary }}>
-        Your Campus Involvement
-      </h3>
-      <div className="flex items-center gap-4 mb-4">
-        <div className="w-full bg-gray-200 rounded-full h-2.5">
-          <motion.div
-            className="bg-teal-600 h-2.5 rounded-full"
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 1, ease: 'easeOut' }}
-            style={{ backgroundColor: theme.primary }}
-          />
-        </div>
-        <span className="text-sm font-semibold">{progress}%</span>
+      {/* Status Badge */}
+      <div className="absolute top-4 right-4 z-10">
+        {isJoined ? (
+          <span className="px-3 py-1 bg-green-500 text-white rounded-full text-xs font-semibold flex items-center gap-1">
+            <FaCheckCircle /> Joined
+          </span>
+        ) : isPending ? (
+          <span className="px-3 py-1 bg-yellow-500 text-white rounded-full text-xs font-semibold flex items-center gap-1">
+            <FaClock /> Pending
+          </span>
+        ) : (
+          <span className="px-3 py-1 bg-blue-500 text-white rounded-full text-xs font-semibold">
+            Available
+          </span>
+        )}
       </div>
-      <p className="text-gray-600 text-sm">
-        Clubs Joined: {clubsJoined} | Events Attended: {eventsAttended}
-      </p>
+
+      {/* Header with gradient background */}
+      <div className="relative bg-gradient-to-r from-[#456882] to-blue-600 p-6 text-white">
+        <div className="absolute inset-0 bg-black opacity-10"></div>
+        <div className="relative z-10">
+          <motion.div
+            className="inline-flex p-3 rounded-full bg-white/20 text-3xl mb-4"
+            whileHover={{ scale: 1.1, rotate: 5 }}
+          >
+            {club.icon ? (
+              <img src={club.icon} alt={`${club.name} icon`} className="w-8 h-8 object-cover rounded-full" />
+            ) : (
+              iconMap[clubExtras.icon] || <FaTrophy />
+            )}
+          </motion.div>
+          <h3 className="text-xl font-bold mb-2">{club.name}</h3>
+          <div className="flex items-center gap-4 text-sm opacity-90">
+            <div className="flex items-center gap-1">
+              <FaStar />
+              <span>{clubExtras.rating || "N/A"}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <FaUsers />
+              <span>{clubExtras.memberCount || 0} members</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-6">
+        <p className="text-gray-600 mb-4 line-clamp-2">{club.description}</p>
+
+        {/* Club Details */}
+        <div className="space-y-2 mb-4 text-sm text-gray-500">
+          <div className="flex justify-between">
+            <span>Category:</span>
+            <span className="font-medium">{club.category}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Founded:</span>
+            <span className="font-medium">{clubExtras.founded || "N/A"}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Head Coordinator:</span>
+            <span className="font-medium">{clubExtras.headCoordinator || club.headCoordinators[0] || "N/A"}</span>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-3">
+          <button
+            className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition flex items-center justify-center gap-2"
+            onClick={() => navigate(`/clubs/${club._id}`)}
+          >
+            <FaEye />
+            View Details
+          </button>
+
+          {isJoined ? (
+            <button
+              className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg flex items-center justify-center gap-2"
+              disabled
+            >
+              <FaCheckCircle />
+              Joined
+            </button>
+          ) : (
+            <motion.button
+              onClick={() => handleJoinClub(club._id)}
+              disabled={isPending}
+              whileHover={{ scale: isPending ? 1 : 1.02 }}
+              whileTap={{ scale: isPending ? 1 : 0.98 }}
+              className={`flex-1 px-4 py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 ${isPending
+                  ? "bg-yellow-400 text-white cursor-not-allowed"
+                  : "bg-[#456882] text-white hover:bg-[#3a536b]"
+                }`}
+            >
+              {isPending ? (
+                <>
+                  <FaClock />
+                  Pending
+                </>
+              ) : (
+                <>
+                  <FaPlus />
+                  Join Club
+                </>
+              )}
+            </motion.button>
+          )}
+        </div>
+
+        {/* Quick Actions */}
+        {isJoined && (
+          <div className="flex gap-2 mt-3 pt-3 border-t">
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              className="p-2 text-green-500 hover:bg-green-50 rounded-lg transition"
+              title="WhatsApp Group"
+              onClick={() => window.open(clubExtras.whatsappLink, "_blank")}
+            >
+              <FaWhatsapp />
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition"
+              title="Email Coordinator"
+              onClick={() => window.location.href = `mailto:${club.contactEmail || clubExtras.headCoordinator}`}
+            >
+              <FaEnvelope />
+            </motion.button>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+});
+
+// Enhanced Activity Card Component
+const ActivityCard = memo(({ activity }) => {
+  const extras = mockData.activityExtras[activity.id] || {};
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(0,0,0,0.1)" }}
+      className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
+    >
+      {/* Featured Badge */}
+      {extras.featured && (
+        <div className="absolute top-4 left-4 z-10">
+          <span className="px-3 py-1 bg-red-500 text-white rounded-full text-xs font-semibold flex items-center gap-1">
+            <FaFireAlt /> Featured
+          </span>
+        </div>
+      )}
+
+      {/* Image */}
+      <div className="relative h-48 overflow-hidden">
+        <img
+          src={activity.images[0] || extras.image || "https://images.unsplash.com/photo-1523240795612-9a054b0db644"}
+          alt={activity.title}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+        <div className="absolute bottom-4 left-4 text-white">
+          <div className="flex items-center gap-2 text-sm">
+            <FaCalendarAlt />
+            <span>{new Date(activity.date).toLocaleDateString()}</span>
+            <FaClock />
+            <span>{extras.time || "N/A"}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-6">
+        <div className="flex items-start justify-between mb-3">
+          <h4 className="text-lg font-bold text-gray-900 line-clamp-2">{activity.title}</h4>
+          <span
+            className={`px-2 py-1 rounded-full text-xs font-semibold ${extras.type === "workshop"
+                ? "bg-blue-100 text-blue-600"
+                : extras.type === "competition"
+                  ? "bg-green-100 text-green-600"
+                  : "bg-purple-100 text-purple-600"
+              }`}
+          >
+            {extras.type || "event"}
+          </span>
+        </div>
+
+        <p className="text-gray-600 mb-4 line-clamp-2">{activity.description}</p>
+
+        {/* Event Details */}
+        <div className="space-y-2 mb-4 text-sm">
+          <div className="flex items-center gap-2 text-gray-500">
+            <FaMapMarkerAlt />
+            <span>{extras.location || "N/A"}</span>
+          </div>
+          <div className="flex items-center gap-2 text-gray-500">
+            <FaUsers />
+            <span>{extras.attendees || 0}/{extras.maxCapacity || "N/A"} registered</span>
+          </div>
+          <div className="flex items-center gap-2 text-gray-500">
+            <FaGraduationCap />
+            <span>By {activity.club}</span>
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        {extras.attendees && extras.maxCapacity && (
+          <div className="mb-4">
+            <div className="flex justify-between text-xs mb-1">
+              <span>Registration</span>
+              <span>{Math.round((extras.attendees / extras.maxCapacity) * 100)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <motion.div
+                className="bg-[#456882] h-2 rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${(extras.attendees / extras.maxCapacity) * 100}%` }}
+                transition={{ duration: 1, ease: "easeOut" }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Tags */}
+        {extras.tags && (
+          <div className="flex flex-wrap gap-1 mb-4">
+            {extras.tags.map((tag, index) => (
+              <span key={index} className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex gap-3">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className={`flex-1 px-4 py-2 rounded-lg font-medium transition ${extras.registrationOpen
+                ? "bg-[#456882] text-white hover:bg-[#3a536b]"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+              }`}
+            disabled={!extras.registrationOpen}
+          >
+            {extras.registrationOpen ? "Register Now" : "Registration Closed"}
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            className="p-2 text-gray-500 hover:text-red-500 transition"
+          >
+            <FaHeart />
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            className="p-2 text-gray-500 hover:text-blue-500 transition"
+          >
+            <FaShareAlt />
+          </motion.button>
+        </div>
+      </div>
+    </motion.div>
+  );
+});
+
+// Enhanced User Profile Card
+
+
+const UserProfileCard = ({ user }) => {
+  const navigate = useNavigate();
+
+  const getRoleBadge = () => {
+    if (user?.isAdmin) return { text: "Super Admin", color: "bg-red-500", icon: <FaCrown /> };
+    if (user?.isHeadCoordinator)
+      return { text: "Head Coordinator", color: "bg-purple-500", icon: <FaShieldAlt /> };
+    return { text: "Student", color: "bg-blue-500", icon: <FaGraduationCap /> };
+  };
+
+  const badge = getRoleBadge();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -50 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.8 }}
+      className="bg-white rounded-xl shadow-lg overflow-hidden"
+    >
+      {/* Header with gradient */}
+      <div className="bg-gradient-to-r from-[#456882] to-blue-600 p-6 text-white relative">
+        <div className="absolute inset-0 bg-black opacity-10"></div>
+        <div className="relative z-10">
+          <div className="flex items-center gap-4">
+            <motion.div
+              className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center text-3xl font-bold"
+              whileHover={{ scale: 1.1 }}
+            >
+              {user?.name?.charAt(0)?.toUpperCase() || "U"}
+            </motion.div>
+            <div className="flex-1">
+              <h3 className="text-2xl font-bold">{user?.name || "User"}</h3>
+              <p className="opacity-90">{user?.course}</p>
+              <p className="opacity-90 text-sm">Semester {user?.semester || "N/A"} • {user?.batch || "N/A"}</p>
+              <div className="flex items-center gap-2 mt-2">
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-semibold ${badge.color} flex items-center gap-1`}
+                >
+                  {badge.icon}
+                  {badge.text}
+                </span>
+                <span className="px-2 py-1 bg-white/20 rounded-full text-xs">
+                  Rank #{user?.overallRank || "N/A"}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="p-6">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="text-center p-3 bg-blue-50 rounded-lg">
+            <p className="text-2xl font-bold text-blue-600">{user?.clubs?.length || 0}</p>
+            <p className="text-xs text-gray-600">Clubs Joined</p>
+          </div>
+          <div className="text-center p-3 bg-green-50 rounded-lg">
+            <p className="text-2xl font-bold text-green-600">{user?.eventsAttended?.length || 0}</p>
+            <p className="text-xs text-gray-600">Events Attended</p>
+          </div>
+          <div className="text-center p-3 bg-purple-50 rounded-lg">
+            <p className="text-2xl font-bold text-purple-600">{user?.achievements?.length || 0}</p>
+            <p className="text-xs text-gray-600">Achievements</p>
+          </div>
+          <div className="text-center p-3 bg-yellow-50 rounded-lg">
+            <p className="text-2xl font-bold text-yellow-600">{user?.attendanceRate || 0}%</p>
+            <p className="text-xs text-gray-600">Attendance</p>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mt-6 flex gap-3">
+          <button
+            className="flex-1 px-4 py-2 bg-[#456882] text-white rounded-lg hover:bg-[#3a536b] transition flex items-center justify-center gap-2"
+            onClick={() => navigate("/profile")}
+          >
+            <FaEye />
+            View Profile
+          </button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            className="px-4 py-2 border border-[#456882] text-[#456882] rounded-lg hover:bg-[#456882]/10 transition"
+          >
+            <FaExternalLinkAlt />
+          </motion.button>
+        </div>
+      </div>
     </motion.div>
   );
 };
 
+// Enhanced Notifications Component
+const NotificationCard = memo(({ notification }) => {
+  const getNotificationStyle = (type) => {
+    switch (type) {
+      case "success":
+        return "border-l-green-500 bg-green-50";
+      case "warning":
+        return "border-l-yellow-500 bg-yellow-50";
+      case "error":
+        return "border-l-red-500 bg-red-50";
+      default:
+        return "border-l-blue-500 bg-blue-50";
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 50 }}
+      whileInView={{ opacity: 1, x: 0 }}
+      viewport={{ once: true }}
+      whileHover={{ scale: 1.02 }}
+      className={`p-4 border-l-4 rounded-lg shadow-sm ${getNotificationStyle(notification.type)}`}
+    >
+      <div className="flex items-start gap-3">
+        <FaBell className="text-lg mt-1" style={{ color: theme.primary }} />
+        <div className="flex-1">
+          <p className="text-sm font-medium text-gray-800">{notification.message}</p>
+          <p className="text-xs text-gray-500 mt-1">
+            {new Date(notification.date).toLocaleDateString()}
+          </p>
+        </div>
+        {!notification.read && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
+      </div>
+    </motion.div>
+  );
+});
+
+// Main Dashboard Component
 const UserDashboard = () => {
   const [user, setUser] = useState(null);
   const [clubs, setClubs] = useState([]);
   const [activities, setActivities] = useState([]);
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState(mockData.notifications);
+  const [achievements, setAchievements] = useState(mockData.achievements);
   const [error, setError] = useState("");
-  const [clickBubbles, setClickBubbles] = useState([]);
-  const [activityFilters, setActivityFilters] = useState({
-    search: '',
-    type: '',
-    club: ''
-  });
   const [isLoading, setIsLoading] = useState(true);
-  
+  const [activityFilters, setActivityFilters] = useState({
+    search: "",
+    type: "",
+    club: "",
+  });
   const navigate = useNavigate();
   const { scrollY } = useScroll();
-  const opacity = useTransform(scrollY, [0, 200], [1, 0.7]);
-  const scale = useTransform(scrollY, [0, 200], [1, 0.95]);
-  const bgY = useTransform(scrollY, [0, 200], [0, -50]);
+  const heroOpacity = useTransform(scrollY, [0, 300], [1, 0.8]);
+  const heroScale = useTransform(scrollY, [0, 300], [1, 0.95]);
 
-  // Handle click bubble effect
-  const handleClick = useCallback((e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    const newBubble = {
-      id: Date.now() + Math.random(),
-      x,
-      y
-    };
-    
-    setClickBubbles(prev => [...prev, newBubble]);
-    
-    setTimeout(() => {
-      setClickBubbles(prev => prev.filter(bubble => bubble.id !== newBubble.id));
-    }, 600);
-  }, []);
-
+  // Fetch data from backend
   useEffect(() => {
-    let isMounted = true;
-
-    const fetchData = async () => {
+    const loadData = async () => {
       try {
         setIsLoading(true);
         const token = localStorage.getItem("token");
-        if (!token) {
-          navigate("/login");
-          return;
-        }
 
-        const config = { headers: { Authorization: `Bearer ${token}` } };
-        const [userResponse, clubsResponse, activitiesResponse, notificationsResponse] = await Promise.all([
-          axios.get("http://localhost:5000/api/auth/user", config),
-          axios.get("http://localhost:5000/api/clubs", config),
-          axios.get("http://localhost:5000/api/activities", config),
-          axios.get("http://localhost:5000/api/notifications", config).catch(() => ({ data: [] })),
-        ]);
+        // Fetch user data
+        const userResponse = await axios.get("http://localhost:5000/api/auth/user", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setUser({
+          ...userResponse.data,
+          clubs: userResponse.data.clubName.map((name) =>
+            clubs.find((club) => club.name === name)?._id
+          ),
+          eventsAttended: [], // Static, no backend support
+          achievements: mockData.achievements.map((a) => a.id), // Static
+          overallRank: 5, // Static
+          attendanceRate: 92, // Static
+          batch: "2021-2025", // Static
+        });
 
-        if (isMounted) {
-          setUser(userResponse.data);
-          setClubs(clubsResponse.data);
-          setActivities(activitiesResponse.data);
-          setNotifications(notificationsResponse.data.slice(0, 5));
-        }
+        // Fetch clubs
+        const clubsResponse = await axios.get("http://localhost:5000/api/clubs", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setClubs(clubsResponse.data);
+
+        // Fetch activities
+        const activitiesResponse = await axios.get("http://localhost:5000/api/activities", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setActivities(
+          activitiesResponse.data.map((activity, index) => ({
+            ...activity,
+            id: index + 1, // Assign ID for mapping to mockData.activityExtras
+          }))
+        );
+
+        // Fetch pending membership requests
+        const membershipResponse = await axios.get("http://localhost:5000/api/membership-requests", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const pendingClubs = membershipResponse.data
+          .filter((req) => req.status === "pending")
+          .map((req) => clubs.find((club) => club.name === req.clubName)?._id)
+          .filter(Boolean);
+        setUser((prev) => ({ ...prev, pendingClubs }));
       } catch (err) {
-        console.error("Error fetching data:", err);
-        if (isMounted) {
-          if (err.response?.status === 401 || err.response?.status === 403) {
-            localStorage.removeItem("token");
-            navigate("/login");
-          } else {
-            setError(err.response?.data?.error || "Failed to load data. Please try again.");
-          }
-        }
+        setError(err.response?.data?.error || "Failed to load dashboard data");
       } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        setIsLoading(false);
       }
     };
 
-    fetchData();
+    loadData();
+  }, []);
 
-    return () => {
-      isMounted = false;
-    };
-  }, [navigate]);
+  const handleJoinClub = useCallback(
+    async (clubId) => {
+      try {
+        const token = localStorage.getItem("token");
+        await axios.post(
+          `http://localhost:5000/api/clubs/${clubId}/join`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setUser((prev) => ({
+          ...prev,
+          pendingClubs: [...(prev?.pendingClubs || []), clubId],
+        }));
+        setError("Club join request sent successfully!");
+        setTimeout(() => setError(""), 3000);
+      } catch (err) {
+        setError(err.response?.data?.error || "Failed to send join request");
+      }
+    },
+    []
+  );
 
-  const handleJoinClub = async (clubId) => {
-    try {
-      const token = localStorage.getItem("token");
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      const response = await axios.post(
-        `http://localhost:5000/api/clubs/${clubId}/join`,
-        {},
-        config
-      );
-      setError(response.data.message);
-      setUser((prevUser) => ({
-        ...prevUser,
-        pendingClubs: [...(prevUser.pendingClubs || []), clubId],
-      }));
-    } catch (err) {
-      setError(err.response?.data?.error || "Failed to send membership request.");
-    }
-  };
+  // Calculate stats
+  const stats = [
+    {
+      icon: <FaUsers />,
+      label: "Clubs Joined",
+      value: user?.clubs?.length || 0,
+      color: "from-blue-500 to-blue-600",
+      change: 12,
+    },
+    {
+      icon: <FaCalendarAlt />,
+      label: "Events Attended",
+      value: user?.eventsAttended?.length || 0,
+      color: "from-green-500 to-green-600",
+      change: 8,
+    },
+    {
+      icon: <FaTrophy />,
+      label: "Achievements",
+      value: user?.achievements?.length || 0,
+      color: "from-yellow-500 to-yellow-600",
+      change: 0,
+    },
+    {
+      icon: <FaBell />,
+      label: "Notifications",
+      value: notifications.filter((n) => !n.read).length,
+      color: "from-red-500 to-red-600",
+      change: -25,
+    },
+  ];
 
   // Filter activities
-  const filteredActivities = activities.filter(activity => {
+  const filteredActivities = activities.filter((activity) => {
+    const extras = mockData.activityExtras[activity.id] || {};
     return (
       activity.title.toLowerCase().includes(activityFilters.search.toLowerCase()) &&
-      (activityFilters.type === '' || activity.type === activityFilters.type) &&
-      (activityFilters.club === '' || activity.club.toLowerCase().includes(activityFilters.club.toLowerCase()))
+      (activityFilters.type === "" || extras.type === activityFilters.type) &&
+      (activityFilters.club === "" || activity.club.toLowerCase().includes(activityFilters.club.toLowerCase()))
     );
   });
 
-  const bubbles = Array.from({ length: 10 }, (_, i) => ({
-    size: `${15 + Math.random() * 25}px`,
-    delay: i * 0.5,
-  }));
-
-  const featuredEvent = {
-    eventId: "1",
-    title: "Annual Tech Fest 2025",
-    date: "August 15, 2025",
-    image: "https://images.unsplash.com/photo-1516321318429-4b6b5f3b7f9e",
-    description: "Join us for a day of innovation and creativity!",
-  };
-
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-          className="w-16 h-16 border-4 border-teal-600 border-t-transparent rounded-full"
-          style={{ borderColor: theme.primary }}
-        />
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (
-    <ErrorBoundary>
-      <div className="min-h-screen bg-gray-50 text-gray-900 font-[Poppins]" onClick={handleClick}>
-        <Navbar user={user} role="user" />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 font-[Poppins]">
+      <Navbar />
+      {/* Hero Section */}
+      <motion.section
+        style={{ opacity: heroOpacity, scale: heroScale }}
+        className="relative min-h-[80vh] flex items-center justify-center overflow-hidden"
+      >
+        {/* Background */}
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#456882]/90 to-blue-600/90"></div>
+          <img
+            src="https://images.unsplash.com/photo-1523240795612-9a054b0db644"
+            alt="Campus Background"
+            className="w-full h-full object-cover"
+          />
+        </div>
 
-        {/* Click Bubble Effects */}
-        <AnimatePresence>
-          {clickBubbles.map(bubble => (
-            <ClickBubble key={bubble.id} x={bubble.x} y={bubble.y} id={bubble.id} />
-          ))}
-        </AnimatePresence>
-
-        {/* Hero Section */}
-        <motion.section
-          style={{ opacity, scale }}
-          className="min-h-[70vh] flex items-center justify-center bg-gradient-to-br from-teal-50 to-gray-50 pt-20 relative overflow-hidden"
-        >
-          <motion.div className="absolute inset-0 z-0" style={{ y: bgY }}>
-            <img
-              src="https://images.unsplash.com/photo-1516321497487-e288fb19713f"
-              alt="Campus Event Background"
-              className="w-full h-full object-cover opacity-20"
-              loading="lazy"
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          {[...Array(6)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute rounded-full bg-white/10"
+              style={{
+                width: Math.random() * 200 + 50,
+                height: Math.random() * 200 + 50,
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+              }}
+              animate={{
+                y: [0, -30, 0],
+                x: [0, Math.random() * 20 - 10, 0],
+                scale: [1, 1.1, 1],
+              }}
+              transition={{
+                duration: 6 + Math.random() * 4,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: i * 0.5,
+              }}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-teal-600/30 to-transparent"></div>
-          </motion.div>
-          {bubbles.map((bubble, index) => (
-            <Bubble key={index} size={bubble.size} delay={bubble.delay} />
           ))}
-          <div className="container mx-auto px-2 sm:px-4 text-center relative z-10">
-            <motion.div
-              className="mb-6"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 1, delay: 0.5 }}
-              whileHover={{ scale: 1.05, rotate: 5 }}
-            >
-              <FaUsers className="text-6xl sm:text-8xl text-teal-600 mx-auto" style={{ color: theme.primary }} />
-            </motion.div>
-            <div className="min-h-[100px] flex items-center justify-center">
-              <TypeAnimation
-                sequence={[`Welcome, ${user?.name || 'User'}!`, 2000, 'Explore Your Campus Journey', 2000]}
-                wrapper="h1"
-                repeat={Infinity}
-                className="text-4xl sm:text-5xl md:text-6xl font-bold text-teal-600 mb-4"
-                style={{ color: theme.primary }}
-              />
-            </div>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
+        </div>
+
+        {/* Content */}
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1 }}
+            className="text-white"
+          >
+            <motion.h1
+              className="text-5xl md:text-7xl font-bold mb-6"
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.8 }}
-              className="text-base sm:text-lg md:text-xl mb-6 text-gray-800"
+              transition={{ duration: 1, delay: 0.2 }}
             >
-              Discover vibrant communities and exciting events at ACEM.
+              Welcome Back,
+              <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">
+                {user?.name?.split(" ")[0]}
+              </span>
+            </motion.h1>
+
+            <motion.p
+              className="text-xl md:text-2xl mb-8 text-gray-200"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.4 }}
+            >
+              Continue your amazing journey at ACEM
             </motion.p>
+
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 1 }}
-              whileHover={{ scale: 1.05 }}
-              className="flex justify-center gap-4"
+              className="flex flex-col sm:flex-row gap-4 justify-center"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.6 }}
             >
-              <Link
-                to="/clubs"
-                className="px-6 py-3 bg-teal-600 text-white rounded-full font-semibold hover:bg-teal-700 transition-all"
-                style={{ backgroundColor: theme.primary }}
-                aria-label="Discover Clubs"
+              <motion.button
+                whileHover={{ scale: 1.05, boxShadow: "0 10px 30px rgba(0,0,0,0.3)" }}
+                whileTap={{ scale: 0.95 }}
+                className="px-8 py-4 bg-white text-[#456882] rounded-full font-bold text-lg shadow-lg hover:shadow-xl transition-all"
+                onClick={() => navigate("/clubs")}
               >
-                Discover Clubs
-              </Link>
-              <Link
-                to="/events"
-                className="px-6 py-3 border border-teal-600 text-teal-600 rounded-full font-semibold hover:bg-teal-50 transition-all"
-                style={{ borderColor: theme.primary, color: theme.primary }}
-                aria-label="Explore Events"
+                Explore Clubs
+                <FaArrowRight className="inline ml-2" />
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-8 py-4 border-2 border-white text-white rounded-full font-bold text-lg hover:bg-white hover:text-[#456882] transition-all"
               >
-                Explore Events
-              </Link>
+                View Events
+              </motion.button>
             </motion.div>
+          </motion.div>
+        </div>
+
+        {/* Scroll indicator */}
+        <motion.div
+          className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+          animate={{ y: [0, 10, 0] }}
+          transition={{ repeat: Infinity, duration: 2 }}
+        >
+          <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center">
+            <motion.div
+              className="w-1 h-3 bg-white rounded-full mt-2"
+              animate={{ opacity: [1, 0, 1] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+            />
           </div>
-        </motion.section>
+        </motion.div>
+      </motion.section>
 
-        {/* Quick Stats Section */}
-        {user && (
-          <section className="py-8 bg-white">
-            <div className="container mx-auto px-2 sm:px-4">
-              <QuickStats user={user} clubs={clubs} activities={activities} />
-            </div>
-          </section>
-        )}
+      {/* Quick Stats */}
+      <section className="py-12 -mt-20 relative z-10">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {stats.map((stat, index) => (
+              <StatsCard key={index} stat={stat} index={index} />
+            ))}
+          </div>
+        </div>
+      </section>
 
-        {/* User Profile and Progress */}
-        {user && (
-          <section className="py-12 bg-white">
-            <div className="container mx-auto px-2 sm:px-4 grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-6">
+      {/* User Profile and Quick Actions */}
+      <section className="py-12 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
               <UserProfileCard user={user} />
-              <ProgressTracker user={user} />
             </div>
-          </section>
-        )}
 
-        {/* Featured Event Banner */}
-        <section className="py-12 bg-gradient-to-br from-teal-50 to-gray-50">
-          <div className="container mx-auto px-2 sm:px-4">
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="relative rounded-xl overflow-hidden shadow-lg"
-            >
-              <img
-                src={featuredEvent.image}
-                alt={featuredEvent.title}
-                className="w-full h-64 object-cover"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
-                <div>
-                  <h3 className="text-2xl font-bold text-white mb-2">{featuredEvent.title}</h3>
-                  <p className="text-gray-200 text-sm">{featuredEvent.date}</p>
-                  <p className="text-gray-200 mb-4">{featuredEvent.description}</p>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="px-6 py-2 bg-teal-600 text-white rounded-full hover:bg-teal-700"
-                    style={{ backgroundColor: theme.primary }}
-                    aria-label="Learn More"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => navigate(`/events/${featuredEvent.eventId}`)}
-                    onKeyDown={(e) => e.key === 'Enter' && navigate(`/events/${featuredEvent.eventId}`)}
-                  >
-                    Learn More
-                  </motion.button>
+            {/* Quick Actions Panel */}
+            <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+              {/* Notifications */}
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-800">Recent Notifications</h3>
+                  <span className="text-sm text-gray-500">
+                    {notifications.filter((n) => !n.read).length} unread
+                  </span>
                 </div>
-              </div>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* Notifications Section */}
-        {notifications.length > 0 && (
-          <section className="py-12 bg-white">
-            <div className="container mx-auto px-2 sm:px-4">
-              <motion.h2
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8 }}
-                className="text-3xl font-bold text-center mb-8 text-teal-600"
-                style={{ color: theme.primary }}
-              >
-                Recent Notifications
-              </motion.h2>
-              <div className="space-y-2 max-w-md mx-auto">
-                {notifications.map((notification) => (
-                  <NotificationCard key={notification._id} notification={notification} />
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Clubs Section */}
-        <section className="py-12 bg-white">
-          <div className="container mx-auto px-2 sm:px-4">
-            <motion.h2
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="text-3xl font-bold text-center mb-8 text-teal-600"
-              style={{ color: theme.primary }}
-            >
-              Available Clubs
-            </motion.h2>
-            {clubs.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="text-center"
-              >
-                <img
-                  src="https://images.unsplash.com/photo-1518341497361-4b6b5f3b7f9e"
-                  alt="No Clubs Found"
-                  className="mx-auto mb-6 rounded-lg shadow-lg max-w-xs"
-                  loading="lazy"
-                />
-                <p className="text-gray-700 mb-4 text-lg">
-                  No clubs available yet. Check back soon!
-                </p>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-6 py-3 bg-teal-600 text-white rounded-full transition-all"
-                  style={{ backgroundColor: theme.primary }}
-                  onClick={() => window.location.reload()}
-                  aria-label="Refresh Page"
-                  role="button"
-                  tabIndex={0}
-                >
-                  Refresh Page
-                </motion.button>
-              </motion.div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-6">
-                {clubs.map((club) => (
-                  <ClubCard
-                    key={club._id}
-                    club={club}
-                    handleJoinClub={handleJoinClub}
-                    isPending={user?.pendingClubs?.includes(club._id)}
-                    isJoined={user?.clubs?.includes(club._id)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Activities Section */}
-        <section className="py-12 bg-gradient-to-br from-teal-50 to-gray-50">
-          <div className="container mx-auto px-2 sm:px-4">
-            <motion.h2
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="text-3xl font-bold text-center mb-8 text-teal-600"
-              style={{ color: theme.primary }}
-            >
-              Upcoming Activities
-            </motion.h2>
-            
-            {/* Activity Filters */}
-            <ActivityFilters filters={activityFilters} setFilters={setActivityFilters} clubs={clubs} />
-            
-            {filteredActivities.length === 0 ? (
-              <NoActivitiesFound />
-            ) : (
-              <>
-                <div className="columns-1 sm:columns-2 md:columns-3 gap-6">
-                  {filteredActivities.map((activity, index) => (
-                    <ActivityCard key={index} activity={activity} />
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {notifications.slice(0, 3).map((notification) => (
+                    <NotificationCard key={notification._id} notification={notification} />
                   ))}
                 </div>
-                <div className="text-center mt-8">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="px-6 py-3 bg-teal-600 text-white rounded-full transition-all"
-                    style={{ backgroundColor: theme.primary }}
-                    onClick={() => navigate('/events')}
-                    aria-label="Explore More Events"
-                    role="button"
-                    tabIndex={0}
-                  >
-                    Explore More
-                  </motion.button>
-                </div>
-              </>
-            )}
-          </div>
-        </section>
+                <button className="w-full mt-4 px-4 py-2 text-[#456882] hover:bg-[#456882]/10 rounded-lg transition text-sm font-medium">
+                  View All Notifications
+                </button>
+              </div>
 
-        {/* Footer */}
-        <footer className="py-8 bg-gradient-to-r from-teal-600 to-teal-800 text-white">
-          <div className="container mx-auto px-2 sm:px-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
-                <ul className="space-y-2">
-                  <li><Link to="/dashboard" className="hover:text-teal-200 transition-colors">Dashboard</Link></li>
-                  <li><Link to="/profile" className="hover:text-teal-200 transition-colors">Profile</Link></li>
-                  <li><Link to="/clubs" className="hover:text-teal-200 transition-colors">Clubs</Link></li>
-                  <li><Link to="/events" className="hover:text-teal-200 transition-colors">Events</Link></li>
-                  <li><Link to="/contact" className="hover:text-teal-200 transition-colors">Contact</Link></li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Follow Us</h3>
-                <div className="flex gap-4">
-                  <motion.a 
-                    whileHover={{ scale: 1.2, y: -2 }} 
-                    href="https://facebook.com" 
-                    className="text-2xl hover:text-teal-200 transition-colors"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Follow on Facebook"
-                  >
-                    <FaFacebook />
-                  </motion.a>
-                  <motion.a 
-                    whileHover={{ scale: 1.2, y: -2 }} 
-                    href="https://twitter.com" 
-                    className="text-2xl hover:text-teal-200 transition-colors"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Follow on Twitter"
-                  >
-                    <FaTwitter />
-                  </motion.a>
-                  <motion.a 
-                    whileHover={{ scale: 1.2, y: -2 }} 
-                    href="https://instagram.com" 
-                    className="text-2xl hover:text-teal-200 transition-colors"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Follow on Instagram"
-                  >
-                    <FaInstagram />
-                  </motion.a>
+              {/* Achievement Showcase */}
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Recent Achievements</h3>
+                <div className="space-y-3">
+                  {achievements.map((achievement) => (
+                    <motion.div
+                      key={achievement.id}
+                      whileHover={{ scale: 1.02 }}
+                      className="flex items-center gap-3 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg"
+                    >
+                      <div className="text-2xl">{achievement.icon}</div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm">{achievement.title}</p>
+                        <p className="text-xs text-gray-600">{achievement.description}</p>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Stay Updated</h3>
-                <div className="flex flex-col gap-2">
-                  <input
-                    type="email"
-                    placeholder="Enter your email"
-                    className="px-4 py-2 rounded-full text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400"
-                    aria-label="Email subscription"
-                  />
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="px-6 py-2 bg-white text-teal-600 rounded-full hover:bg-teal-100 transition-colors"
-                    style={{ color: theme.primary }}
-                    aria-label="Subscribe"
-                    role="button"
-                    tabIndex={0}
-                  >
-                    Subscribe
-                  </motion.button>
-                </div>
-              </div>
-            </div>
-            <div className="mt-8 text-center border-t border-teal-500 pt-4">
-              <p className="text-teal-200">© 2025 ACEM Club Management. Developed By SkillShastra</p>
-            </div>
-          </div>
-        </footer>
 
-        {/* Error Toast */}
-        <AnimatePresence>
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: 50, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 50, scale: 0.9 }}
-              className="fixed bottom-4 right-4 bg-white border border-teal-600 text-teal-600 rounded-lg p-4 shadow-lg max-w-sm z-50"
-              style={{ borderColor: theme.primary, color: theme.primary }}
-            >
-              <div className="flex items-start gap-3">
-                <FaBell className="text-lg mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Notification</p>
-                  <p className="text-xs text-gray-600 mt-1">{error}</p>
+              {/* Quick Links */}
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Quick Links</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { icon: <FaUsers />, label: "My Clubs", color: "blue" },
+                    { icon: <FaCalendarAlt />, label: "Events", color: "green" },
+                    { icon: <FaTrophy />, label: "Hall of Fame", color: "yellow" },
+                    { icon: <FaChartLine />, label: "Progress", color: "purple" },
+                  ].map((link, index) => (
+                    <motion.button
+                      key={index}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className={`p-3 bg-${link.color}-50 text-${link.color}-600 rounded-lg hover:bg-${link.color}-100 transition text-center`}
+                    >
+                      <div className="text-xl mb-1">{link.icon}</div>
+                      <div className="text-xs font-medium">{link.label}</div>
+                    </motion.button>
+                  ))}
                 </div>
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  className="text-gray-400 hover:text-gray-600 text-lg"
-                  onClick={() => setError("")}
-                  aria-label="Dismiss notification"
-                  role="button"
-                  tabIndex={0}
-                >
-                  ×
-                </motion.button>
               </div>
             </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Events */}
+      <section className="py-12 bg-gradient-to-br from-[#456882]/10 to-blue-50">
+        <div className="container mx-auto px-4">
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-800 mb-4">Featured Events</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Don't miss out on these amazing upcoming events and activities
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredActivities
+              .filter((activity) => mockData.activityExtras[activity.id]?.featured)
+              .map((activity) => (
+                <ActivityCard key={activity.id} activity={activity} />
+              ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Available Clubs */}
+      <section className="py-12 bg-white">
+        <div className="container mx-auto px-4">
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-800 mb-4">Discover Amazing Clubs</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Join vibrant communities and explore your interests with like-minded peers
+            </p>
+          </motion.div>
+
+          {/* Filter Controls */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-xl shadow-lg p-6 mb-8"
+          >
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="relative flex-1 min-w-64">
+                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                <input
+                  type="text"
+                  placeholder="Search clubs..."
+                  className="w-full pl-10 pr-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-[#456882] focus:ring-offset-2 text-gray-800 placeholder-gray-500"
+                  value={activityFilters.search}
+                  onChange={(e) => setActivityFilters({ ...activityFilters, search: e.target.value })}
+                  aria-label="Search clubs"
+                />
+              </div>
+
+              <select
+                className="px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-[#456882] focus:ring-offset-2 text-gray-800"
+                value={activityFilters.type}
+                onChange={(e) => setActivityFilters({ ...activityFilters, type: e.target.value })}
+                aria-label="Filter by category"
+              >
+                <option value="">All Categories</option>
+                <option value="Technical">Technical</option>
+                <option value="Cultural">Cultural</option>
+                <option value="Literary">Literary</option>
+                <option value="Entrepreneurial">Entrepreneurial</option>
+              </select>
+            </div>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {clubs.map((club) => (
+              <ClubCard key={club._id} club={club} user={user} handleJoinClub={handleJoinClub} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* All Activities */}
+      <section className="py-12 bg-gradient-to-br from-[#456882]/10 to-blue-50">
+        <div className="container mx-auto px-4">
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-800 mb-4">Upcoming Activities</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Stay updated with the latest events, workshops, and competitions
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredActivities.map((activity) => (
+              <ActivityCard key={activity.id} activity={activity} />
+            ))}
+          </div>
+
+          {filteredActivities.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center py-12"
+            >
+              <FaCalendarAlt className="text-6xl text-gray-300 mx-auto mb-4" />
+              <h3 className="text-2xl font-bold text-gray-600 mb-2">No Activities Found</h3>
+              <p className="text-gray-500 mb-6">
+                Try adjusting your filters or check back later for new activities
+              </p>
+              <button
+                onClick={() => setActivityFilters({ search: "", type: "", club: "" })}
+                className="px-6 py-3 bg-[#456882] text-white rounded-full hover:bg-[#3a536b] transition"
+              >
+                Clear Filters
+              </button>
+            </motion.div>
           )}
-        </AnimatePresence>
-      </div>
-    </ErrorBoundary>
+        </div>
+      </section>
+
+      {/* Call to Action */}
+      <section className="py-16 bg-gradient-to-r from-[#456882] to-blue-700 text-white">
+        <div className="container mx-auto px-4 text-center">
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}>
+            <h2 className="text-4xl font-bold mb-6">Ready to Get More Involved?</h2>
+            <p className="text-xl mb-8 text-gray-200 max-w-2xl mx-auto">
+              Join more clubs, attend exciting events, and build lasting connections with your peers
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-8 py-4 bg-white text-[#456882] rounded-full font-bold text-lg shadow-lg hover:shadow-xl transition-all"
+                onClick={() => navigate("/clubs")}
+              >
+                Explore All Clubs
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-8 py-4 border-2 border-white text-white rounded-full font-bold text-lg hover:bg-white hover:text-[#456882] transition-all"
+              >
+                View Hall of Fame
+              </motion.button>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Error/Success Toast */}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            className="fixed bottom-6 right-6 bg-white border-l-4 border-[#456882] rounded-lg shadow-xl p-4 max-w-sm z-50"
+          >
+            <div className="flex items-start gap-3">
+              <FaBell className="text-[#456882] text-lg mt-0.5" />
+              <div className="flex-1">
+                <p className="font-semibold text-gray-800">Notification</p>
+                <p className="text-sm text-gray-600">{error}</p>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="text-gray-400 hover:text-gray-600"
+                onClick={() => setError("")}
+              >
+                ×
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 

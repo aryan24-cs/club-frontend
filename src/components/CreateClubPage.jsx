@@ -1,7 +1,60 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import { FaImage, FaSpinner, FaHome, FaUsers, FaUserCircle, FaSignOutAlt } from 'react-icons/fa';
+
+const Navbar = () => {
+  const navigate = useNavigate();
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
+
+  return (
+    <nav className="bg-white shadow-md">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-16">
+          <div className="flex items-center">
+            <Link to="/" className="text-2xl font-bold text-[#456882]">
+              ACEM
+            </Link>
+          </div>
+          <div className="flex items-center space-x-4">
+            <Link
+              to="/"
+              className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+              <FaHome className="mr-2" />
+              Home
+            </Link>
+            <Link
+              to="/clubs"
+              className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+              <FaUsers className="mr-2" />
+              Clubs
+            </Link>
+            <Link
+              to="/dashboard"
+              className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+              <FaUserCircle className="mr-2" />
+              Dashboard
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+              <FaSignOutAlt className="mr-2" />
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+};
 
 const CreateClubPage = () => {
   const [name, setName] = useState('');
@@ -21,23 +74,35 @@ const CreateClubPage = () => {
   const [headCoordinatorsFocused, setHeadCoordinatorsFocused] = useState(false);
   const navigate = useNavigate();
 
+  // Character counter for description
+  const maxDescriptionLength = 500;
+  const descriptionLength = description.length;
+
+  // Validate head coordinators' emails
+  const validateEmails = (emails) => {
+    if (!emails) return true;
+    const emailArray = emails.split(',').map((email) => email.trim()).filter((email) => email);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailArray.every((email) => emailRegex.test(email));
+  };
+
   // Water ripple effect
   useEffect(() => {
     const createRipple = (e) => {
       const ripple = document.createElement('span');
-      const diameter = 15;
+      const diameter = 20;
       const radius = diameter / 2;
       ripple.style.width = ripple.style.height = `${diameter}px`;
       ripple.style.left = `${e.clientX - radius}px`;
       ripple.style.top = `${e.clientY - radius}px`;
       ripple.style.position = 'fixed';
       ripple.style.borderRadius = '50%';
-      ripple.style.backgroundColor = 'rgba(220, 20, 60, 0.3)';
+      ripple.style.backgroundColor = 'rgba(69, 104, 130, 0.2)';
       ripple.style.pointerEvents = 'none';
-      ripple.style.zIndex = '9999';
-      ripple.style.animation = 'ripple 0.6s ease-out';
+      ripple.style.zIndex = '10000';
+      ripple.style.animation = 'ripple 0.8s ease-out';
       document.body.appendChild(ripple);
-      setTimeout(() => ripple.remove(), 600);
+      setTimeout(() => ripple.remove(), 800);
     };
     document.addEventListener('click', createRipple);
     return () => document.removeEventListener('click', createRipple);
@@ -87,8 +152,8 @@ const CreateClubPage = () => {
   }, [iconPreview, bannerPreview]);
 
   const labelVariants = {
-    resting: { y: 8, fontSize: '0.875rem', color: '#4B5563' },
-    floating: { y: -8, fontSize: '0.75rem', color: '#DC143C' },
+    resting: { y: -28, fontSize: '0.75rem', color: '#6B7280' },
+    floating: { y: -28, fontSize: '0.75rem', color: '#456882' },
   };
 
   const handleSubmit = async (e) => {
@@ -96,8 +161,34 @@ const CreateClubPage = () => {
     setError('');
     setLoading(true);
 
+    // Client-side validation
+    if (!name) {
+      setError('Club name is required');
+      setLoading(false);
+      return;
+    }
     if (!icon) {
       setError('Club icon is required');
+      setLoading(false);
+      return;
+    }
+    if (description.length > maxDescriptionLength) {
+      setError(`Description must be ${maxDescriptionLength} characters or less`);
+      setLoading(false);
+      return;
+    }
+    if (!category) {
+      setError('Category is required');
+      setLoading(false);
+      return;
+    }
+    if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
+      setError('Invalid contact email');
+      setLoading(false);
+      return;
+    }
+    if (headCoordinators && !validateEmails(headCoordinators)) {
+      setError('Invalid head coordinator email(s)');
       setLoading(false);
       return;
     }
@@ -127,205 +218,242 @@ const CreateClubPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 sm:p-6">
+    <div className="min-h-screen bg-white">
       <style>
         {`
           @keyframes ripple {
             0% { transform: scale(0); opacity: 1; }
-            100% { transform: scale(4); opacity: 0; }
+            100% { transform: scale(5); opacity: 0; }
           }
           [style*="animation: ripple"] {
-            animation: ripple 0.6s ease-out;
+            animation: ripple 0.8s ease-out;
           }
         `}
       </style>
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, ease: 'easeInOut' }}
-        className="w-full max-w-sm sm:max-w-md md:max-w-lg p-4 sm:p-6 bg-white rounded-lg shadow-md sm:shadow-lg"
-      >
-        <h2 className="text-2xl sm:text-3xl font-semibold text-red-600 text-center mb-6 sm:mb-8">
-          Create a New Club
-        </h2>
-        <AnimatePresence>
-          {error && (
-            <motion.p
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
-              className="text-red-500 text-sm text-center mb-4"
-            >
-              {error}
-            </motion.p>
-          )}
-        </AnimatePresence>
-        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-          <div className="relative">
-            <motion.label
-              htmlFor="name"
-              className="absolute left-4 top-2 sm:top-3 text-gray-600 font-medium pointer-events-none"
-              animate={nameFocused || name ? 'floating' : 'resting'}
-              variants={labelVariants}
-              transition={{ duration: 0.2, ease: 'easeInOut' }}
-            >
-              Club Name
-            </motion.label>
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onFocus={() => setNameFocused(true)}
-              onBlur={() => setNameFocused(false)}
-              className="w-full px-4 py-2 sm:py-3 text-sm sm:text-base border-b-2 border-red-600 focus:outline-none focus:border-red-700"
-              required
-              aria-label="Club Name"
-            />
-          </div>
-          <div>
-            <label htmlFor="icon" className="block text-gray-600 font-medium">
-              Club Icon (JPEG/PNG, max 5MB)
-            </label>
-            <input
-              id="icon"
-              type="file"
-              accept="image/jpeg,image/png"
-              onChange={handleIconChange}
-              className="w-full px-4 py-2 sm:py-3 text-sm sm:text-base border-b-2 border-red-600 focus:outline-none focus:border-red-700"
-              required
-              aria-label="Club Icon"
-            />
-            {iconPreview && (
-              <motion.img
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                src={iconPreview}
-                alt="Icon preview"
-                className="mt-2 w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-full"
-              />
+      <Navbar />
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+          className="bg-white rounded-xl shadow-lg p-6 sm:p-8"
+        >
+          <h2 className="text-3xl font-bold text-[#456882] text-center mb-8">
+            Create a New Club
+          </h2>
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="bg-red-100 text-red-600 p-4 rounded-lg mb-6 flex items-center gap-2"
+              >
+                <span>⚠️</span>
+                <p className="text-sm">{error}</p>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setError('')}
+                  className="ml-auto text-red-600 font-bold"
+                  aria-label="Dismiss error"
+                >
+                  ×
+                </motion.button>
+              </motion.div>
             )}
-          </div>
-          <div>
-            <label htmlFor="banner" className="block text-gray-600 font-medium">
-              Club Banner (JPEG/PNG, max 5MB, Optional)
-            </label>
-            <input
-              id="banner"
-              type="file"
-              accept="image/jpeg,image/png"
-              onChange={handleBannerChange}
-              className="w-full px-4 py-2 sm:py-3 text-sm sm:text-base border-b-2 border-red-600 focus:outline-none focus:border-red-700"
-              aria-label="Club Banner"
-            />
-            {bannerPreview && (
-              <motion.img
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                src={bannerPreview}
-                alt="Banner preview"
-                className="mt-2 w-full h-32 sm:h-40 object-cover rounded-lg"
+          </AnimatePresence>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <div className="relative">
+                  <motion.label
+                    htmlFor="name"
+                    className="block text-gray-500 font-medium mb-1"
+                    animate={nameFocused || name ? 'floating' : 'resting'}
+                    variants={labelVariants}
+                    transition={{ duration: 0.2 }}
+                  >
+                    Club Name
+                  </motion.label>
+                  <input
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    onFocus={() => setNameFocused(true)}
+                    onBlur={() => setNameFocused(!!name)}
+                    className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#456882] focus:ring-offset-2"
+                    required
+                    aria-label="Club Name"
+                  />
+                </div>
+                <div className="relative mt-6">
+                  <motion.label
+                    htmlFor="description"
+                    className="block text-gray-500 font-medium mb-1"
+                    animate={descriptionFocused || description ? 'floating' : 'resting'}
+                    variants={labelVariants}
+                    transition={{ duration: 0.2 }}
+                  >
+                    Description
+                  </motion.label>
+                  <textarea
+                    id="description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value.slice(0, maxDescriptionLength))}
+                    onFocus={() => setDescriptionFocused(true)}
+                    onBlur={() => setDescriptionFocused(!!description)}
+                    className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#456882] focus:ring-offset-2 resize-none"
+                    rows="4"
+                    required
+                    aria-label="Club Description"
+                  />
+                  <div className="text-right text-sm text-gray-500 mt-1">
+                    {descriptionLength}/{maxDescriptionLength}
+                  </div>
+                </div>
+                <div className="relative mt-6">
+                  <motion.label
+                    htmlFor="category"
+                    className="block text-gray-500 font-medium mb-1"
+                    animate={category ? 'floating' : 'resting'}
+                    variants={labelVariants}
+                    transition={{ duration: 0.2 }}
+                  >
+                    Category
+                  </motion.label>
+                  <select
+                    id="category"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#456882] focus:ring-offset-2"
+                    required
+                    aria-label="Club Category"
+                  >
+                    <option value="" disabled>
+                      Select a category
+                    </option>
+                    <option value="Technical">Technical</option>
+                    <option value="Cultural">Cultural</option>
+                    <option value="Literary">Literary</option>
+                    <option value="Entrepreneurial">Entrepreneurial</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                  <label htmlFor="icon" className="block text-gray-600 font-medium mb-2">
+                    <FaImage className="inline-block mr-2 text-[#456882]" />
+                    Club Icon (JPEG/PNG, max 5MB)
+                  </label>
+                  <input
+                    id="icon"
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    onChange={handleIconChange}
+                    className="w-full p-2 text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-[#456882] file:text-white file:hover:bg-[#3a536b]"
+                    required
+                    aria-label="Club Icon"
+                  />
+                  {iconPreview && (
+                    <motion.img
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      src={iconPreview}
+                      alt="Club icon preview"
+                      className="mt-4 w-24 h-24 object-cover rounded-full mx-auto"
+                    />
+                  )}
+                </div>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center mt-6">
+                  <label htmlFor="banner" className="block text-gray-600 font-medium mb-2">
+                    <FaImage className="inline-block mr-2 text-[#456882]" />
+                    Club Banner (JPEG/PNG, max 5MB, Optional)
+                  </label>
+                  <input
+                    id="banner"
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    onChange={handleBannerChange}
+                    className="w-full p-2 text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-[#456882] file:text-white file:hover:bg-[#3a536b]"
+                    aria-label="Club Banner"
+                  />
+                  {bannerPreview && (
+                    <motion.img
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      src={bannerPreview}
+                      alt="Club banner preview"
+                      className="mt-4 w-full h-32 object-cover rounded-lg"
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="relative">
+              <motion.label
+                htmlFor="contactEmail"
+                className="block text-gray-500 font-medium mb-1"
+                animate={contactEmailFocused || contactEmail ? 'floating' : 'resting'}
+                variants={labelVariants}
+                transition={{ duration: 0.2 }}
+              >
+                Contact Email (Optional)
+              </motion.label>
+              <input
+                id="contactEmail"
+                type="email"
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+                onFocus={() => setContactEmailFocused(true)}
+                onBlur={() => setContactEmailFocused(!!contactEmail)}
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#456882] focus:ring-offset-2"
+                aria-label="Contact Email"
               />
-            )}
-          </div>
-          <div className="relative">
-            <motion.label
-              htmlFor="description"
-              className="absolute left-4 top-2 sm:top-3 text-gray-600 font-medium pointer-events-none"
-              animate={descriptionFocused || description ? 'floating' : 'resting'}
-              variants={labelVariants}
-              transition={{ duration: 0.2, ease: 'easeInOut' }}
+            </div>
+            <div className="relative">
+              <motion.label
+                htmlFor="headCoordinators"
+                className="block text-gray-500 font-medium mb-1"
+                animate={headCoordinatorsFocused || headCoordinators ? 'floating' : 'resting'}
+                variants={labelVariants}
+                transition={{ duration: 0.2 }}
+              >
+                Head Coordinators (Comma-separated emails, Optional)
+              </motion.label>
+              <input
+                id="headCoordinators"
+                type="text"
+                value={headCoordinators}
+                onChange={(e) => setHeadCoordinators(e.target.value)}
+                onFocus={() => setHeadCoordinatorsFocused(true)}
+                onBlur={() => setHeadCoordinatorsFocused(!!headCoordinators)}
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#456882] focus:ring-offset-2"
+                placeholder="email1@example.com, email2@example.com"
+                aria-label="Head Coordinators"
+              />
+            </div>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-[#456882] text-white rounded-full font-semibold text-base hover:bg-[#3a536b] disabled:bg-[#6b8299] disabled:cursor-not-allowed flex items-center justify-center"
+              aria-label="Create Club"
             >
-              Description
-            </motion.label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              onFocus={() => setDescriptionFocused(true)}
-              onBlur={() => setDescriptionFocused(false)}
-              className="w-full px-4 py-2 sm:py-3 text-sm sm:text-base border-b-2 border-red-600 focus:outline-none focus:border-red-700"
-              required
-              aria-label="Club Description"
-            />
-          </div>
-          <div>
-            <label htmlFor="category" className="block text-gray-600 font-medium">
-              Category
-            </label>
-            <select
-              id="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-4 py-2 sm:py-3 text-sm sm:text-base border-b-2 border-red-600 focus:outline-none focus:border-red-700"
-              required
-              aria-label="Club Category"
-            >
-              <option value="" disabled>
-                Select a category
-              </option>
-              <option value="Technical">Technical</option>
-              <option value="Cultural">Cultural</option>
-              <option value="Literary">Literary</option>
-              <option value="Entrepreneurial">Entrepreneurial</option>
-            </select>
-          </div>
-          <div className="relative">
-            <motion.label
-              htmlFor="contactEmail"
-              className="absolute left-4 top-2 sm:top-3 text-gray-600 font-medium pointer-events-none"
-              animate={contactEmailFocused || contactEmail ? 'floating' : 'resting'}
-              variants={labelVariants}
-              transition={{ duration: 0.2, ease: 'easeInOut' }}
-            >
-              Contact Email (Optional)
-            </motion.label>
-            <input
-              id="contactEmail"
-              type="email"
-              value={contactEmail}
-              onChange={(e) => setContactEmail(e.target.value)}
-              onFocus={() => setContactEmailFocused(true)}
-              onBlur={() => setContactEmailFocused(false)}
-              className="w-full px-4 py-2 sm:py-3 text-sm sm:text-base border-b-2 border-red-600 focus:outline-none focus:border-red-700"
-              aria-label="Contact Email"
-            />
-          </div>
-          <div className="relative">
-            <motion.label
-              htmlFor="headCoordinators"
-              className="absolute left-4 top-2 sm:top-3 text-gray-600 font-medium pointer-events-none"
-              animate={headCoordinatorsFocused || headCoordinators ? 'floating' : 'resting'}
-              variants={labelVariants}
-              transition={{ duration: 0.2, ease: 'easeInOut' }}
-            >
-              Head Coordinators (Comma-separated emails, Optional)
-            </motion.label>
-            <input
-              id="headCoordinators"
-              type="text"
-              value={headCoordinators}
-              onChange={(e) => setHeadCoordinators(e.target.value)}
-              onFocus={() => setHeadCoordinatorsFocused(true)}
-              onBlur={() => setHeadCoordinatorsFocused(false)}
-              className="w-full px-4 py-2 sm:py-3 text-sm sm:text-base border-b-2 border-red-600 focus:outline-none focus:border-red-700"
-              placeholder="email1@example.com, email2@example.com"
-              aria-label="Head Coordinators"
-            />
-          </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            type="submit"
-            disabled={loading}
-            className="w-full px-4 py-2 sm:py-3 bg-red-600 text-white rounded-full font-semibold text-sm sm:text-base hover:bg-red-700 disabled:opacity-50"
-            aria-label="Create Club"
-          >
-            {loading ? 'Creating...' : 'Create Club'}
-          </motion.button>
-        </form>
-      </motion.div>
+              {loading ? (
+                <>
+                  <FaSpinner className="animate-spin mr-2" />
+                  Creating...
+                </>
+              ) : (
+                'Create Club'
+              )}
+            </motion.button>
+          </form>
+        </motion.div>
+      </div>
     </div>
   );
 };
