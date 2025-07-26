@@ -29,6 +29,7 @@ import ContactPage from "./components/ContactPage";
 import ProfilePage from "./components/ProfilePage";
 import ManageClubsPage from "./components/ManageClubsPage";
 import AttendanceTracker from "./components/Admin/AttendanceTracker";
+import AdminContactPanel from "./components/Admin/AdminContactPanel";
 import axios from "axios";
 import { useEffect, useState } from "react";
 
@@ -302,6 +303,16 @@ const AnimatedRoutes = () => {
               <RoleBasedRoute roles={["super-admin", "admin"]}>
                 <Layout>
                   <AttendanceTracker />
+                </Layout>
+              </RoleBasedRoute>
+            }
+          />
+          <Route
+            path="/satyam"
+            element={
+              <RoleBasedRoute roles={["super-admin", "admin"]}>
+                <Layout>
+                  <AdminContactPanel />
                 </Layout>
               </RoleBasedRoute>
             }
