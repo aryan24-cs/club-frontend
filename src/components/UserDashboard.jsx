@@ -1,9 +1,6 @@
-<<<<<<< Updated upstream
 
-import React, { memo, useEffect, useState } from "react";
-=======
 import React, { memo, useEffect, useState, useCallback } from "react";
->>>>>>> Stashed changes
+
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { TypeAnimation } from "react-type-animation";
 import {
