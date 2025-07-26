@@ -19,11 +19,11 @@ const AirplaneMenu = ({ isOpen, onClose, navLinks, user, handleLogout }) => {
             aria-label="Close menu overlay"
           />
           <motion.div
-            initial={{ x: '-100%', opacity: 0 }}
+            initial={{ x: "-100%", opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            exit={{ x: '-100%', opacity: 0 }}
+            exit={{ x: "-100%", opacity: 0 }}
             transition={{
-              type: 'spring',
+              type: "spring",
               stiffness: 300,
               damping: 30,
             }}
@@ -35,18 +35,18 @@ const AirplaneMenu = ({ isOpen, onClose, navLinks, user, handleLogout }) => {
               exit={{ x: -100, y: 20 }}
               transition={{
                 duration: 1,
-                ease: 'easeInOut',
+                ease: "easeInOut",
                 delay: 0.2,
               }}
               className="absolute top-4 text-2xl text-teal-600"
-              style={{ color: '#456882' }}
+              style={{ color: "#456882" }}
             >
               ✈️
             </motion.div>
             <button
               onClick={onClose}
               className="absolute top-4 right-4 text-2xl text-gray-600 hover:text-teal-600 transition-colors"
-              style={{ color: '#456882' }}
+              style={{ color: "#456882" }}
               aria-label="Close menu"
             >
               <FaTimes />
@@ -57,9 +57,9 @@ const AirplaneMenu = ({ isOpen, onClose, navLinks, user, handleLogout }) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
                 className="text-2xl font-bold text-teal-600 mb-8"
-                style={{ color: '#456882' }}
+                style={{ color: "#456882" }}
               >
-                {user?.name || 'User'}
+                {user?.name || "User"}
               </motion.h2>
               <div className="space-y-4">
                 {navLinks.map((link, index) => (
@@ -72,7 +72,7 @@ const AirplaneMenu = ({ isOpen, onClose, navLinks, user, handleLogout }) => {
                     <Link
                       to={link.to}
                       className="block py-3 px-4 text-lg text-gray-700 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-all"
-                      style={{ color: '#456882' }}
+                      style={{ color: "#456882" }}
                       onClick={onClose}
                       aria-label={`Navigate to ${link.label}`}
                     >
@@ -84,8 +84,10 @@ const AirplaneMenu = ({ isOpen, onClose, navLinks, user, handleLogout }) => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 + navLinks.length * 0.1 }}
-                  className="w-full py-3 px-4 text-lg text-left text-gray-700 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-all"
-                  style={{ color: '#456882' }}
+                  className="w-full py-3ქ
+
+System: 3 py-3 px-4 text-lg text-left text-gray-700 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-all"
+                  style={{ color: "#456882" }}
                   onClick={() => {
                     handleLogout();
                     onClose();
@@ -124,18 +126,20 @@ const Navbar = memo(({ user, role }) => {
     ],
     admin: [
       { to: "/admin-dashboard", label: "Admin Dashboard" },
+      { to: "/admin/events", label: "Events" },
+      { to: "/admin/activities", label: "Activities" },
+      { to: "/admin/users", label: "Users" },
+      { to: "/manage-clubs", label: "Manage Clubs" },
       { to: "/profile", label: "Profile" },
       { to: "/clubs", label: "Clubs" },
-      { to: "/manage-clubs", label: "Manage Clubs" },
-      { to: "/events", label: "Events" },
       { to: "/contact", label: "Contact" },
     ],
     superadmin: [
       { to: "/super-admin-dashboard", label: "Super Admin Dashboard" },
-      { to: "/profile", label: "Profile" },
-      { to: "/clubs", label: "Clubs" },
       { to: "/create-club", label: "Create Club" },
       { to: "/manage-clubs", label: "Manage Clubs" },
+      { to: "/profile", label: "Profile" },
+      { to: "/clubs", label: "Clubs" },
       { to: "/events", label: "Events" },
       { to: "/contact", label: "Contact" },
     ],
@@ -148,11 +152,12 @@ const Navbar = memo(({ user, role }) => {
   ];
 
   // Define home route based on role
-  const homeRoute = {
-    user: "/dashboard",
-    admin: "/admin-dashboard",
-    superadmin: "/super-admin-dashboard",
-  }[role] || "/dashboard";
+  const homeRoute =
+    {
+      user: "/dashboard",
+      admin: "/admin-dashboard",
+      superadmin: "/super-admin-dashboard",
+    }[role] || "/dashboard";
 
   return (
     <>
@@ -166,7 +171,7 @@ const Navbar = memo(({ user, role }) => {
           <Link
             to={homeRoute}
             className="text-3xl font-bold text-teal-600 cursor-pointer"
-            style={{ color: '#456882' }}
+            style={{ color: "#456882" }}
             aria-label="ACEM Home"
           >
             ACEM
@@ -176,23 +181,28 @@ const Navbar = memo(({ user, role }) => {
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
               className="text-2xl text-teal-600"
-              style={{ color: '#456882' }}
-              onClick={() => navigate('/notifications')} // Navigate to notifications page
+              style={{ color: "#456882" }}
+              onClick={() => navigate("/notifications")}
               aria-label="View Notifications"
             >
               <FaBell />
             </motion.button>
             <div className="hidden md:flex items-center gap-4">
               {navLinks.map((link) => (
-                <Link
+                <motion.div
                   key={link.to}
-                  to={link.to}
-                  className="text-teal-600 font-semibold hover:text-teal-700 transition-all duration-300"
-                  style={{ color: '#456882' }}
-                  aria-label={`Navigate to ${link.label}`}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  {link.label}
-                </Link>
+                  <Link
+                    to={link.to}
+                    className="text-teal-600 font-semibold hover:text-teal-700 transition-all duration-300"
+                    style={{ color: "#456882" }}
+                    aria-label={`Navigate to ${link.label}`}
+                  >
+                    {link.label}
+                  </Link>
+                </motion.div>
               ))}
               <div className="relative group">
                 <motion.div
@@ -200,8 +210,13 @@ const Navbar = memo(({ user, role }) => {
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
                   className="flex items-center gap-2 cursor-pointer"
                 >
-                  <FaUserCircle className="text-2xl text-teal-600" style={{ color: '#456882' }} />
-                  <span className="text-teal-600 font-semibold">{user?.name || 'User'}</span>
+                  <FaUserCircle
+                    className="text-2xl text-teal-600"
+                    style={{ color: "#456882" }}
+                  />
+                  <span className="text-teal-600 font-semibold">
+                    {user?.name || "User"}
+                  </span>
                 </motion.div>
                 {isProfileOpen && (
                   <motion.div
@@ -210,18 +225,21 @@ const Navbar = memo(({ user, role }) => {
                     exit={{ opacity: 0, y: 10 }}
                     className="absolute right-0 top-full mt-2 bg-white shadow-2xl p-4 rounded-lg min-w-[200px]"
                   >
-                    <p className="px-4 py-2 text-sm text-gray-600">{user?.email || 'user@acem.edu'}</p>
+                    <p className="px-4 py-2 text-sm text-gray-600">
+                      {user?.email || "user@acem.edu"}
+                    </p>
                     <Link
                       to="/profile"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-600 rounded-md"
-                      style={{ color: '#456882' }}
+                      style={{ color: "#456882" }}
+                      onClick={() => setIsProfileOpen(false)}
                       aria-label="Navigate to Profile"
                     >
                       Profile
                     </Link>
                     <button
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-600 rounded-md"
-                      style={{ color: '#456882' }}
+                      style={{ color: "#456882" }}
                       onClick={handleLogout}
                       aria-label="Logout"
                     >
@@ -235,7 +253,7 @@ const Navbar = memo(({ user, role }) => {
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
               className="md:hidden text-2xl text-teal-600"
-              style={{ color: '#456882' }}
+              style={{ color: "#456882" }}
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               aria-label="Toggle Menu"
             >

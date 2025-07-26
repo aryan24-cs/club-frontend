@@ -1,21 +1,58 @@
-import React, { memo, useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useEffect, useState } from "react";
 import {
+  motion,
+  AnimatePresence,
+  useScroll,
+  useTransform,
+} from "framer-motion";
+import { TypeAnimation } from "react-type-animation";
+import {
+  FaUser,
+  FaSpinner,
   FaCode,
   FaMusic,
   FaBook,
   FaRunning,
   FaHandsHelping,
   FaTrophy,
-  FaFacebook,
-  FaTwitter,
-  FaInstagram,
-  FaCalendarAlt,
-  FaUser,
 } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Navbar from "./Navbar";
+
+// Floating Bubble Component
+const Bubble = ({ size, delay }) => {
+  const randomXOffset = Math.random() * 100 - 50;
+
+  return (
+    <motion.div
+      className="absolute rounded-full bg-mint opacity-50"
+      style={{
+        width: size,
+        height: size,
+        backgroundColor: "#CFFFE2",
+        willChange: "transform, opacity",
+      }}
+      initial={{ x: `${randomXOffset}vw`, y: "100vh", opacity: 0.5 }}
+      animate={{
+        x: [
+          `${randomXOffset}vw`,
+          `${randomXOffset + (Math.random() * 20 - 10)}vw`,
+        ],
+        y: "-10vh",
+        opacity: [0.5, 0.7, 0],
+      }}
+      transition={{
+        duration: 8 + Math.random() * 4,
+        repeat: Infinity,
+        repeatType: "loop",
+        ease: "easeOut",
+        delay: delay,
+      }}
+      whileHover={{ scale: 1.3, opacity: 0.8 }}
+    />
+  );
+};
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -28,9 +65,18 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="text-center p-8 text-red-600">
+        <div className="text-center p-8 text-teal-600">
           <h2 className="text-2xl font-bold">Something went wrong.</h2>
           <p>Please try refreshing the page or contact support.</p>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="mt-4 px-6 py-2 bg-teal-600 text-white rounded-full"
+            style={{ backgroundColor: "#456882" }}
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </motion.button>
         </div>
       );
     }
@@ -38,17 +84,22 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// Memoized ClubCard component
-const ClubCard = memo(({ club }) => (
+// Memoized ClubCard Component
+const ClubCard = ({ club }) => (
   <motion.div
-    initial={{ opacity: 0, y: 20 }}
+    initial={{ opacity: 0, y: 50 }}
     whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true }}
-    transition={{ duration: 0.5 }}
+    transition={{ type: "spring", stiffness: 100, damping: 15 }}
     whileHover={{ scale: 1.05, boxShadow: "0 10px 20px rgba(0,0,0,0.1)" }}
-    className="p-6 bg-white rounded-xl shadow-md text-center border border-gray-200"
+    className="relative flex flex-col items-center p-6 bg-gradient-to-br from-teal-200 to-teal-400 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden"
   >
-    <div className="p-4 rounded-full bg-red-100 text-red-600 text-3xl mb-4">
+    <div className="absolute inset-0 bg-white opacity-10 transform skew-y-6"></div>
+    <motion.div
+      className="p-4 rounded-full bg-white bg-opacity-20 text-white text-3xl mb-4 z-10"
+      whileHover={{ scale: 1.1, y: -5 }}
+      transition={{ duration: 0.3 }}
+    >
       {club.icon === "FaCode" ? (
         <FaCode />
       ) : club.icon === "FaMusic" ? (
@@ -62,69 +113,40 @@ const ClubCard = memo(({ club }) => (
       ) : (
         <FaTrophy />
       )}
-    </div>
-    <h3 className="text-lg font-semibold text-gray-900">{club.name}</h3>
+    </motion.div>
+    <h3 className="text-lg font-semibold text-gray-900 z-10">{club.name}</h3>
+    <p className="text-sm text-gray-700 mt-2 text-center z-10">
+      {club.description}
+    </p>
+    <p className="text-sm text-gray-700 mt-2 z-10">
+      Members: {club.memberCount || 0}
+    </p>
     <Link
-      to={`/clubs/${club.name}/edit`}
-      className="mt-2 inline-block text-red-600 hover:text-red-700 font-medium transition"
+      to={`/clubs/${club._id}/edit`}
+      className="mt-2 text-teal-600 hover:text-teal-700 font-medium transition z-10"
+      style={{ color: "#456882" }}
+      aria-label={`Edit ${club.name}`}
     >
       Edit Club
     </Link>
   </motion.div>
-));
-
-// Memoized MembershipRequestCard component
-const MembershipRequestCard = memo(
-  ({ request, handleApprove, handleReject }) => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5 }}
-      whileHover={{ scale: 1.03, boxShadow: "0 8px 16px rgba(0,0,0,0.1)" }}
-      className="p-6 bg-white rounded-xl shadow-md border border-gray-200"
-    >
-      <div className="flex items-center gap-3 mb-3">
-        <FaUser className="text-red-600 text-xl" />
-        <h4 className="text-lg font-semibold text-gray-900">
-          {request.userId.name}
-        </h4>
-      </div>
-      <p className="text-gray-600 text-sm mb-2">
-        Email: {request.userId.email}
-      </p>
-      <p className="text-gray-600 text-sm mb-2">Club: {request.clubName}</p>
-      <p className="text-gray-600 text-sm mb-2">Status: {request.status}</p>
-      <div className="flex gap-2">
-        <button
-          onClick={() => handleApprove(request._id)}
-          className="px-4 py-1 bg-green-600 text-white rounded-full font-semibold hover:bg-green-700 transition"
-          disabled={request.status !== "pending"}
-        >
-          Approve
-        </button>
-        <button
-          onClick={() => handleReject(request._id)}
-          className="px-4 py-1 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 transition"
-          disabled={request.status !== "pending"}
-        >
-          Reject
-        </button>
-      </div>
-    </motion.div>
-  )
 );
 
 const AdminDashboard = () => {
   const [user, setUser] = useState(null);
   const [clubs, setClubs] = useState([]);
-  const [membershipRequests, setMembershipRequests] = useState([]);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const { scrollY } = useScroll();
+  const opacity = useTransform(scrollY, [0, 200], [1, 0.7]);
+  const scale = useTransform(scrollY, [0, 200], [1, 0.95]);
+  const bgY = useTransform(scrollY, [0, 200], [0, -50]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setIsLoading(true);
         const token = localStorage.getItem("token");
         if (!token) {
           navigate("/login");
@@ -132,30 +154,29 @@ const AdminDashboard = () => {
         }
 
         const config = { headers: { Authorization: `Bearer ${token}` } };
+        const [userResponse, clubsResponse] = await Promise.all([
+          axios.get("http://localhost:5000/api/auth/user", config),
+          axios.get("http://localhost:5000/api/clubs", config),
+        ]);
 
-        // Fetch user data
-        const userResponse = await axios.get(
-          "http://localhost:5000/api/auth/user",
-          config
-        );
         setUser(userResponse.data);
-
-        // Fetch clubs where user is head coordinator
-        const clubsResponse = await axios.get(
-          "http://localhost:5000/api/clubs",
-          config
-        );
-        const filteredClubs = clubsResponse.data.filter((club) =>
-          userResponse.data.headCoordinatorClubs.includes(club.name)
-        );
-        setClubs(filteredClubs);
-
-        // Fetch membership requests
-        const requestsResponse = await axios.get(
-          "http://localhost:5000/api/membership-requests",
-          config
-        );
-        setMembershipRequests(requestsResponse.data);
+        const filteredClubs = clubsResponse.data
+          .filter((club) =>
+            userResponse.data.headCoordinatorClubs?.includes(club.name)
+          )
+          .map(async (club) => {
+            try {
+              const membersResponse = await axios.get(
+                `http://localhost:5000/api/clubs/${club._id}/members`,
+                config
+              );
+              return { ...club, memberCount: membersResponse.data.length };
+            } catch (err) {
+              return { ...club, memberCount: 0 };
+            }
+          });
+        const clubsWithMembers = await Promise.all(filteredClubs);
+        setClubs(clubsWithMembers);
       } catch (err) {
         console.error("Error fetching data:", err);
         if (err.response?.status === 401 || err.response?.status === 403) {
@@ -167,144 +188,186 @@ const AdminDashboard = () => {
               "Failed to load data. Please try again."
           );
         }
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchData();
   }, [navigate]);
 
-  const handleApprove = async (requestId) => {
-    try {
-      const token = localStorage.getItem("token");
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      const response = await axios.patch(
-        `http://localhost:5000/api/membership-requests/${requestId}`,
-        { status: "approved" },
-        config
-      );
-      setMembershipRequests((prev) =>
-        prev.map((req) =>
-          req._id === requestId ? { ...req, status: "approved" } : req
-        )
-      );
-      setError(response.data.message);
-    } catch (err) {
-      setError(err.response?.data?.error || "Failed to approve request.");
-    }
-  };
-
-  const handleReject = async (requestId) => {
-    try {
-      const token = localStorage.getItem("token");
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      const response = await axios.patch(
-        `http://localhost:5000/api/membership-requests/${requestId}`,
-        { status: "rejected" },
-        config
-      );
-      setMembershipRequests((prev) =>
-        prev.map((req) =>
-          req._id === requestId ? { ...req, status: "rejected" } : req
-        )
-      );
-      setError(response.data.message);
-    } catch (err) {
-      setError(err.response?.data?.error || "Failed to reject request.");
-    }
-  };
+  const bubbles = Array.from({ length: 10 }, (_, i) => ({
+    size: `${15 + Math.random() * 25}px`,
+    delay: i * 0.5,
+  }));
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
-        <style>
-          {`
-            @keyframes gradientShift {
-              0% { background-position: 0% 50%; }
-              50% { background-position: 100% 50%; }
-              100% { background-position: 0% 50%; }
-            }
-            .hero-bg {
-              background: linear-gradient(45deg, #FEE2E2, #FFFFFF, #E5E7EB, #FEE2E2);
-              background-size: 200% 200%;
-              animation: gradientShift 15s ease infinite;
-            }
-          `}
-        </style>
-
-        {/* Navbar */}
-        <Navbar user={user} />
-
-        {/* Hero Section */}
-        <section className="pt-24 pb-16 hero-bg relative overflow-hidden">
-          <div className="absolute inset-0 bg-white opacity-70" />
-          <div className="container mx-auto px-4 text-center relative z-10">
-            <motion.h1
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              className="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6"
+      <div className="min-h-screen bg-gray-50 text-gray-900 font-[Poppins]">
+        {isLoading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50"
+          >
+            <FaSpinner
+              className="text-4xl text-teal-60026 animate-spin"
+              style={{ color: "#456882" }}
+            />
+          </motion.div>
+        )}
+        <Navbar user={user} role="admin" />
+        <motion.section
+          style={{ opacity, scale }}
+          className="min-h-[70vh] flex items-center justify-center bg-gradient-to-br from-teal-50 to-gray-50 pt-20 relative overflow-hidden"
+        >
+          <motion.div className="absolute inset-0 z-0" style={{ y: bgY }}>
+            <img
+              src="https://images.unsplash.com/photo-1516321497487-e288fb19713f"
+              alt="Campus Event Background"
+              className="w-full h-full object-cover opacity-20"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-teal-600/30 to-transparent"></div>
+          </motion.div>
+          {bubbles.map((bubble, index) => (
+            <Bubble key={index} size={bubble.size} delay={bubble.delay} />
+          ))}
+          <div className="container mx-auto px-2 sm:px-4 text-center relative z-10">
+            <motion.div
+              className="mb-6"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 1, delay: 0.5 }}
             >
-              Admin Dashboard,{" "}
-              <motion.span
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{
-                  duration: 1,
-                  repeat: Infinity,
-                  repeatType: "reverse",
-                }}
-                className="text-red-600"
-              >
-                {user?.name || "Admin"}
-              </motion.span>
-              !
-            </motion.h1>
+              <FaUser
+                className="text-6xl sm:text-8xl text-teal-600 mx-auto"
+                style={{ color: "#456882" }}
+              />
+            </motion.div>
+            <div className="min-h-[100px] flex items-center justify-center">
+              <TypeAnimation
+                sequence={[
+                  `Welcome, ${user?.name || "Admin"}!`,
+                  2000,
+                  "Manage Your Campus Clubs",
+                  2000,
+                ]}
+                wrapper="h1"
+                repeat={Infinity}
+                className="text-4xl sm:text-5xl md:text-6xl font-bold text-teal-600 mb-4"
+                style={{ color: "#456882" }}
+              />
+            </div>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="text-xl md:text-2xl text-gray-700 max-w-3xl mx-auto mb-8"
+              transition={{ duration: 0.8, delay: 0.8 }}
+              className="text-base sm:text-lg md:text-xl mb-6 text-gray-800"
             >
-              Manage your clubs and membership requests
+              Oversee clubs, events, activities, and user management at ACEM.
             </motion.p>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 1 }}
+              className="flex flex-wrap justify-center gap-4"
+            >
+              <Link
+                to="/admin/events"
+                className="px-6 py-3 bg-teal-600 text-white rounded-full font-semibold hover:bg-teal-700 transition-all"
+                style={{ backgroundColor: "#456882" }}
+                aria-label="Manage Events"
+              >
+                Manage Events
+              </Link>
+              <Link
+                to="/admin/activities"
+                className="px-6 py-3 border border-teal-600 text-teal-600 rounded-full font-semibold hover:bg-teal-50 transition-all"
+                style={{ borderColor: "#456882", color: "#456882" }}
+                aria-label="Manage Activities"
+              >
+                Manage Activities
+              </Link>
+              <Link
+                to="/admin/users"
+                className="px-6 py-3 border border-teal-600 text-teal-600 rounded-full font-semibold hover:bg-teal-50 transition-all"
+                style={{ borderColor: "#456882", color: "#456882" }}
+                aria-label="Manage Users"
+              >
+                Manage Users
+              </Link>
+              <Link
+                to="/manage-clubs"
+                className="px-6 py-3 border border-teal-600 text-teal-600 rounded-full font-semibold hover:bg-teal-50 transition-all"
+                style={{ borderColor: "#456882", color: "#456882" }}
+                aria-label="Manage Clubs"
+              >
+                Manage Clubs
+              </Link>
+            </motion.div>
           </div>
-        </section>
-
-        {/* Error Display */}
+        </motion.section>
         {error && (
-          <motion.p
+          <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="text-red-600 text-center text-sm mt-4"
+            className="fixed bottom-4 right-4 bg-teal-600 text-white rounded-lg p-4 shadow-lg"
+            style={{ backgroundColor: "#456882" }}
           >
-            {error}
-          </motion.p>
+            <p className="text-sm">{error}</p>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="mt-2 text-white underline"
+              onClick={() => setError("")}
+              aria-label="Dismiss error"
+            >
+              Dismiss
+            </motion.button>
+          </motion.div>
         )}
-
-        {/* Managed Clubs Section */}
         <section className="py-12 bg-white">
-          <div className="container mx-auto px-4">
+          <div className="container mx-auto px-2 sm:px-4">
             <motion.h2
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
-              className="text-3xl font-bold text-gray-900 mb-8 text-center"
+              className="text-3xl font-bold text-center mb-8 text-teal-600"
+              style={{ color: "#456882" }}
             >
               Your Managed Clubs
             </motion.h2>
             {clubs.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
                 className="text-center"
               >
+                <img
+                  src="https://images.unsplash.com/photo-1518341497361-4b6b5f3b7f9e"
+                  alt="No Clubs Found"
+                  className="mx-auto mb-6 rounded-lg shadow-lg max-w-xs"
+                  loading="lazy"
+                />
                 <p className="text-gray-700 mb-4 text-lg">
                   You are not assigned to any clubs.
                 </p>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-6 py-3 bg-teal-600 text-white rounded-full transition-all"
+                  style={{ backgroundColor: "#456882" }}
+                  onClick={() => navigate("/manage-clubs")}
+                  aria-label="Manage Clubs"
+                >
+                  Manage Clubs
+                </motion.button>
               </motion.div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-6">
                 {clubs.map((club) => (
                   <ClubCard key={club._id} club={club} />
                 ))}
@@ -312,99 +375,6 @@ const AdminDashboard = () => {
             )}
           </div>
         </section>
-
-        {/* Membership Requests Section */}
-        <section className="py-12 bg-gray-50">
-          <div className="container mx-auto px-4">
-            <motion.h2
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="text-3xl font-bold text-gray-900 mb-8 text-center"
-            >
-              Membership Requests
-            </motion.h2>
-            {membershipRequests.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="text-center"
-              >
-                <p className="text-gray-700 mb-4 text-lg">
-                  No pending membership requests.
-                </p>
-              </motion.div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {membershipRequests.map((request) => (
-                  <MembershipRequestCard
-                    key={request._id}
-                    request={request}
-                    handleApprove={handleApprove}
-                    handleReject={handleReject}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Footer */}
-        <footer className="py-8 bg-gray-800 text-white">
-          <div className="container mx-auto px-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
-                <ul className="space-y-2">
-                  <li>
-                    <Link to="/admin-dashboard" className="hover:text-red-200">
-                      Dashboard
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/profile" className="hover:text-red-200">
-                      Profile
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/clubs" className="hover:text-red-200">
-                      Clubs
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/events" className="hover:text-red-200">
-                      Events
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/contact" className="hover:text-red-200">
-                      Contact
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Follow Us</h3>
-                <div className="flex gap-4">
-                  <a href="#" className="text-2xl hover:text-red-200">
-                    <FaFacebook />
-                  </a>
-                  <a href="#" className="text-2xl hover:text-red-200">
-                    <FaTwitter />
-                  </a>
-                  <a href="#" className="text-2xl hover:text-red-200">
-                    <FaInstagram />
-                  </a>
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Credits</h3>
-                <p>Developed By SkillShastra</p>
-              </div>
-            </div>
-          </div>
-        </footer>
       </div>
     </ErrorBoundary>
   );

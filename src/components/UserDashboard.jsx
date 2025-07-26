@@ -1,3 +1,4 @@
+
 import React, { memo, useEffect, useState } from "react";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { TypeAnimation } from "react-type-animation";
