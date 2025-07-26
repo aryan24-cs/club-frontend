@@ -1,72 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
-import { FaImage, FaSpinner, FaHome, FaUsers, FaUserCircle, FaSignOutAlt } from 'react-icons/fa';
-
-const Navbar = () => {
-  const navigate = useNavigate();
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
-  };
-
-  return (
-    <nav className="bg-white shadow-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center">
-            <Link to="/" className="text-2xl font-bold text-[#456882]">
-              ACEM
-            </Link>
-          </div>
-          <div className="flex items-center space-x-4">
-            <Link
-              to="/"
-              className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              <FaHome className="mr-2" />
-              Home
-            </Link>
-            <Link
-              to="/clubs"
-              className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              <FaUsers className="mr-2" />
-              Clubs
-            </Link>
-            <Link
-              to="/dashboard"
-              className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              <FaUserCircle className="mr-2" />
-              Dashboard
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              <FaSignOutAlt className="mr-2" />
-              Logout
-            </button>
-          </div>
-        </div>
-      </div>
-    </nav>
-  );
-};
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { FaImage, FaSpinner } from "react-icons/fa";
 
 const CreateClubPage = () => {
-  const [name, setName] = useState('');
+  const [name, setName] = useState("");
   const [icon, setIcon] = useState(null);
   const [banner, setBanner] = useState(null);
-  const [iconPreview, setIconPreview] = useState('');
-  const [bannerPreview, setBannerPreview] = useState('');
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
-  const [contactEmail, setContactEmail] = useState('');
-  const [headCoordinators, setHeadCoordinators] = useState('');
-  const [error, setError] = useState('');
+  const [iconPreview, setIconPreview] = useState("");
+  const [bannerPreview, setBannerPreview] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [headCoordinators, setHeadCoordinators] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [nameFocused, setNameFocused] = useState(false);
   const [descriptionFocused, setDescriptionFocused] = useState(false);
@@ -81,7 +29,10 @@ const CreateClubPage = () => {
   // Validate head coordinators' emails
   const validateEmails = (emails) => {
     if (!emails) return true;
-    const emailArray = emails.split(',').map((email) => email.trim()).filter((email) => email);
+    const emailArray = emails
+      .split(",")
+      .map((email) => email.trim())
+      .filter((email) => email);
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailArray.every((email) => emailRegex.test(email));
   };
@@ -89,57 +40,57 @@ const CreateClubPage = () => {
   // Water ripple effect
   useEffect(() => {
     const createRipple = (e) => {
-      const ripple = document.createElement('span');
+      const ripple = document.createElement("span");
       const diameter = 20;
       const radius = diameter / 2;
       ripple.style.width = ripple.style.height = `${diameter}px`;
       ripple.style.left = `${e.clientX - radius}px`;
       ripple.style.top = `${e.clientY - radius}px`;
-      ripple.style.position = 'fixed';
-      ripple.style.borderRadius = '50%';
-      ripple.style.backgroundColor = 'rgba(69, 104, 130, 0.2)';
-      ripple.style.pointerEvents = 'none';
-      ripple.style.zIndex = '10000';
-      ripple.style.animation = 'ripple 0.8s ease-out';
+      ripple.style.position = "fixed";
+      ripple.style.borderRadius = "50%";
+      ripple.style.backgroundColor = "rgba(69, 104, 130, 0.2)";
+      ripple.style.pointerEvents = "none";
+      ripple.style.zIndex = "10000";
+      ripple.style.animation = "ripple 0.8s ease-out";
       document.body.appendChild(ripple);
       setTimeout(() => ripple.remove(), 800);
     };
-    document.addEventListener('click', createRipple);
-    return () => document.removeEventListener('click', createRipple);
+    document.addEventListener("click", createRipple);
+    return () => document.removeEventListener("click", createRipple);
   }, []);
 
   // Handle file input changes
   const handleIconChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (!['image/jpeg', 'image/png'].includes(file.type)) {
-        setError('Icon must be a JPEG or PNG image');
+      if (!["image/jpeg", "image/png"].includes(file.type)) {
+        setError("Icon must be a JPEG or PNG image");
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        setError('Icon file size must be less than 5MB');
+        setError("Icon file size must be less than 5MB");
         return;
       }
       setIcon(file);
       setIconPreview(URL.createObjectURL(file));
-      setError('');
+      setError("");
     }
   };
 
   const handleBannerChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (!['image/jpeg', 'image/png'].includes(file.type)) {
-        setError('Banner must be a JPEG or PNG image');
+      if (!["image/jpeg", "image/png"].includes(file.type)) {
+        setError("Banner must be a JPEG or PNG image");
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        setError('Banner file size must be less than 5MB');
+        setError("Banner file size must be less than 5MB");
         return;
       }
       setBanner(file);
       setBannerPreview(URL.createObjectURL(file));
-      setError('');
+      setError("");
     }
   };
 
@@ -152,73 +103,75 @@ const CreateClubPage = () => {
   }, [iconPreview, bannerPreview]);
 
   const labelVariants = {
-    resting: { y: -28, fontSize: '0.75rem', color: '#6B7280' },
-    floating: { y: -28, fontSize: '0.75rem', color: '#456882' },
+    resting: { y: -28, fontSize: "0.75rem", color: "#6B7280" },
+    floating: { y: -28, fontSize: "0.75rem", color: "#456882" },
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     // Client-side validation
     if (!name) {
-      setError('Club name is required');
+      setError("Club name is required");
       setLoading(false);
       return;
     }
     if (!icon) {
-      setError('Club icon is required');
+      setError("Club icon is required");
       setLoading(false);
       return;
     }
     if (description.length > maxDescriptionLength) {
-      setError(`Description must be ${maxDescriptionLength} characters or less`);
+      setError(
+        `Description must be ${maxDescriptionLength} characters or less`
+      );
       setLoading(false);
       return;
     }
     if (!category) {
-      setError('Category is required');
+      setError("Category is required");
       setLoading(false);
       return;
     }
     if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
-      setError('Invalid contact email');
+      setError("Invalid contact email");
       setLoading(false);
       return;
     }
     if (headCoordinators && !validateEmails(headCoordinators)) {
-      setError('Invalid head coordinator email(s)');
+      setError("Invalid head coordinator email(s)");
       setLoading(false);
       return;
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const formData = new FormData();
-      formData.append('name', name);
-      formData.append('icon', icon);
-      if (banner) formData.append('banner', banner);
-      formData.append('description', description);
-      formData.append('category', category);
-      formData.append('contactEmail', contactEmail);
-      formData.append('headCoordinators', headCoordinators);
+      formData.append("name", name);
+      formData.append("icon", icon);
+      if (banner) formData.append("banner", banner);
+      formData.append("description", description);
+      formData.append("category", category);
+      formData.append("contactEmail", contactEmail);
+      formData.append("headCoordinators", headCoordinators);
 
-      await axios.post('http://localhost:5000/api/clubs', formData, {
+      await axios.post("http://localhost:5000/api/clubs", formData, {
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
       });
-      navigate('/clubs');
+      navigate("/clubs");
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to create club.');
+      setError(err.response?.data?.error || "Failed to create club.");
     }
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white pt-16">
       <style>
         {`
           @keyframes ripple {
@@ -230,12 +183,11 @@ const CreateClubPage = () => {
           }
         `}
       </style>
-      <Navbar />
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           className="bg-white rounded-xl shadow-lg p-6 sm:p-8"
         >
           <h2 className="text-3xl font-bold text-[#456882] text-center mb-8">
@@ -254,7 +206,7 @@ const CreateClubPage = () => {
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => setError('')}
+                  onClick={() => setError("")}
                   className="ml-auto text-red-600 font-bold"
                   aria-label="Dismiss error"
                 >
@@ -270,7 +222,7 @@ const CreateClubPage = () => {
                   <motion.label
                     htmlFor="name"
                     className="block text-gray-500 font-medium mb-1"
-                    animate={nameFocused || name ? 'floating' : 'resting'}
+                    animate={nameFocused || name ? "floating" : "resting"}
                     variants={labelVariants}
                     transition={{ duration: 0.2 }}
                   >
@@ -292,7 +244,9 @@ const CreateClubPage = () => {
                   <motion.label
                     htmlFor="description"
                     className="block text-gray-500 font-medium mb-1"
-                    animate={descriptionFocused || description ? 'floating' : 'resting'}
+                    animate={
+                      descriptionFocused || description ? "floating" : "resting"
+                    }
                     variants={labelVariants}
                     transition={{ duration: 0.2 }}
                   >
@@ -301,7 +255,11 @@ const CreateClubPage = () => {
                   <textarea
                     id="description"
                     value={description}
-                    onChange={(e) => setDescription(e.target.value.slice(0, maxDescriptionLength))}
+                    onChange={(e) =>
+                      setDescription(
+                        e.target.value.slice(0, maxDescriptionLength)
+                      )
+                    }
                     onFocus={() => setDescriptionFocused(true)}
                     onBlur={() => setDescriptionFocused(!!description)}
                     className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#456882] focus:ring-offset-2 resize-none"
@@ -317,7 +275,7 @@ const CreateClubPage = () => {
                   <motion.label
                     htmlFor="category"
                     className="block text-gray-500 font-medium mb-1"
-                    animate={category ? 'floating' : 'resting'}
+                    animate={category ? "floating" : "resting"}
                     variants={labelVariants}
                     transition={{ duration: 0.2 }}
                   >
@@ -343,7 +301,10 @@ const CreateClubPage = () => {
               </div>
               <div>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                  <label htmlFor="icon" className="block text-gray-600 font-medium mb-2">
+                  <label
+                    htmlFor="icon"
+                    className="block text-gray-600 font-medium mb-2"
+                  >
                     <FaImage className="inline-block mr-2 text-[#456882]" />
                     Club Icon (JPEG/PNG, max 5MB)
                   </label>
@@ -367,7 +328,10 @@ const CreateClubPage = () => {
                   )}
                 </div>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center mt-6">
-                  <label htmlFor="banner" className="block text-gray-600 font-medium mb-2">
+                  <label
+                    htmlFor="banner"
+                    className="block text-gray-600 font-medium mb-2"
+                  >
                     <FaImage className="inline-block mr-2 text-[#456882]" />
                     Club Banner (JPEG/PNG, max 5MB, Optional)
                   </label>
@@ -395,7 +359,9 @@ const CreateClubPage = () => {
               <motion.label
                 htmlFor="contactEmail"
                 className="block text-gray-500 font-medium mb-1"
-                animate={contactEmailFocused || contactEmail ? 'floating' : 'resting'}
+                animate={
+                  contactEmailFocused || contactEmail ? "floating" : "resting"
+                }
                 variants={labelVariants}
                 transition={{ duration: 0.2 }}
               >
@@ -416,7 +382,11 @@ const CreateClubPage = () => {
               <motion.label
                 htmlFor="headCoordinators"
                 className="block text-gray-500 font-medium mb-1"
-                animate={headCoordinatorsFocused || headCoordinators ? 'floating' : 'resting'}
+                animate={
+                  headCoordinatorsFocused || headCoordinators
+                    ? "floating"
+                    : "resting"
+                }
                 variants={labelVariants}
                 transition={{ duration: 0.2 }}
               >
@@ -448,7 +418,7 @@ const CreateClubPage = () => {
                   Creating...
                 </>
               ) : (
-                'Create Club'
+                "Create Club"
               )}
             </motion.button>
           </form>

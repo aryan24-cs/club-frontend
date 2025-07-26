@@ -32,7 +32,9 @@ class ErrorBoundary extends React.Component {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="bg-red-50 border border-red-200 rounded-xl p-8 max-w-md mx-auto text-center">
             <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-red-700 mb-2">Something went wrong</h2>
+            <h2 className="text-xl font-semibold text-red-700 mb-2">
+              Something went wrong
+            </h2>
             <p className="text-red-600 mb-4">Please try refreshing the page.</p>
             <button
               onClick={() => window.location.reload()}
@@ -75,7 +77,11 @@ const ClubCard = memo(({ club, onEdit, onDelete, onView }) => (
   >
     <div className="relative h-24 bg-gradient-to-r from-[#456882] to-[#5a7a98]">
       <img
-        src={club.banner || "https://via.placeholder.com/400x96"}
+        src={
+          club.banner
+            ? `http://localhost:5000${club.banner}`
+            : "https://via.placeholder.com/400x96"
+        }
         alt={club.name || "Club Banner"}
         className="w-full h-full object-cover opacity-30"
       />
@@ -103,12 +109,18 @@ const ClubCard = memo(({ club, onEdit, onDelete, onView }) => (
     <div className="p-4">
       <div className="flex items-center gap-2 mb-2">
         <img
-          src={club.icon || "https://via.placeholder.com/40x40"}
+          src={
+            club.icon
+              ? `http://localhost:5000${club.icon}`
+              : "https://via.placeholder.com/40x40"
+          }
           alt={club.name || "Club Icon"}
           className="w-10 h-10 rounded-lg object-cover border border-[#456882]"
         />
         <div>
-          <h3 className="text-base font-semibold text-[#456882]">{club.name || "Unnamed Club"}</h3>
+          <h3 className="text-base font-semibold text-[#456882]">
+            {club.name || "Unnamed Club"}
+          </h3>
           <p className="text-xs text-gray-500">{club.category || "General"}</p>
         </div>
       </div>
@@ -139,22 +151,26 @@ const MembershipRequestCard = memo(({ request, onApprove, onReject }) => (
     <div className="flex items-center justify-between mb-2">
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 bg-[#456882] rounded-lg flex items-center justify-center text-white text-sm font-semibold">
-          {request.userId?.name?.charAt(0).toUpperCase() || 'U'}
+          {request.userId?.name?.charAt(0).toUpperCase() || "U"}
         </div>
         <div>
-          <h4 className="text-sm font-semibold text-gray-900">{request.userId?.name}</h4>
+          <h4 className="text-sm font-semibold text-gray-900">
+            {request.userId?.name}
+          </h4>
           <p className="text-xs text-gray-500">{request.clubName}</p>
         </div>
       </div>
       <span
         className={`px-2 py-1 rounded-full text-xs ${
-          request.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'
+          request.status === "pending"
+            ? "bg-yellow-100 text-yellow-700"
+            : "bg-green-100 text-green-700"
         }`}
       >
         {request.status}
       </span>
     </div>
-    {request.status === 'pending' && (
+    {request.status === "pending" && (
       <div className="flex gap-2 mt-2">
         <button
           onClick={() => onApprove(request._id)}
@@ -178,53 +194,61 @@ const MembershipRequestCard = memo(({ request, onApprove, onReject }) => (
 // Host Event Form Component
 const HostEventForm = memo(({ user, clubs, onSuccess, onError }) => {
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    date: '',
-    time: '',
-    location: '',
-    club: '',
+    title: "",
+    description: "",
+    date: "",
+    time: "",
+    location: "",
+    club: "",
     banner: null,
   });
   const [submitting, setSubmitting] = useState(false);
 
   const eligibleClubs = clubs.filter((club) =>
-    club.superAdmins?.some((admin) => admin._id === user._id)
+    club.superAdmins?.some((admin) => admin?._id === user._id)
   );
+
+  console.log("Clubs in HostEventForm:", clubs);
+  console.log("Eligible clubs:", eligibleClubs);
+  console.log("User ID:", user._id);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const formPayload = new FormData();
       Object.entries(formData).forEach(([key, value]) => {
-        if (key === 'banner' && value) {
+        if (key === "banner" && value) {
           formPayload.append(key, value);
         } else if (value) {
           formPayload.append(key, value);
         }
       });
 
-      const response = await axios.post('http://localhost:5000/api/events', formPayload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await axios.post(
+        "http://localhost:5000/api/events",
+        formPayload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       setFormData({
-        title: '',
-        description: '',
-        date: '',
-        time: '',
-        location: '',
-        club: '',
+        title: "",
+        description: "",
+        date: "",
+        time: "",
+        location: "",
+        club: "",
         banner: null,
       });
-      onSuccess('Event created successfully!');
+      onSuccess("Event created successfully!");
     } catch (err) {
-      onError(err.response?.data?.error || 'Failed to create event.');
+      onError(err.response?.data?.error || "Failed to create event.");
     } finally {
       setSubmitting(false);
     }
@@ -244,13 +268,19 @@ const HostEventForm = memo(({ user, clubs, onSuccess, onError }) => {
       animate={{ opacity: 1, y: 0 }}
       className="bg-white rounded-xl shadow-sm p-4"
     >
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Host an Event</h3>
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        Host an Event
+      </h3>
       {eligibleClubs.length === 0 ? (
-        <p className="text-sm text-gray-500">You are not a super admin for any club.</p>
+        <p className="text-sm text-gray-500">
+          You are not a super admin for any club.
+        </p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Event Title</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Event Title
+            </label>
             <input
               type="text"
               name="title"
@@ -262,7 +292,9 @@ const HostEventForm = memo(({ user, clubs, onSuccess, onError }) => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Description</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Description
+            </label>
             <textarea
               name="description"
               value={formData.description}
@@ -275,7 +307,9 @@ const HostEventForm = memo(({ user, clubs, onSuccess, onError }) => {
           </div>
           <div className="flex gap-2">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700">Date</label>
+              <label className="block text-sm font-medium text-gray-700">
+                Date
+              </label>
               <input
                 type="date"
                 name="date"
@@ -286,7 +320,9 @@ const HostEventForm = memo(({ user, clubs, onSuccess, onError }) => {
               />
             </div>
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700">Time</label>
+              <label className="block text-sm font-medium text-gray-700">
+                Time
+              </label>
               <input
                 type="time"
                 name="time"
@@ -298,7 +334,9 @@ const HostEventForm = memo(({ user, clubs, onSuccess, onError }) => {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Location</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Location
+            </label>
             <input
               type="text"
               name="location"
@@ -310,7 +348,9 @@ const HostEventForm = memo(({ user, clubs, onSuccess, onError }) => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Club</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Club
+            </label>
             <select
               name="club"
               value={formData.club}
@@ -327,7 +367,9 @@ const HostEventForm = memo(({ user, clubs, onSuccess, onError }) => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Banner Image</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Banner Image
+            </label>
             <input
               type="file"
               name="banner"
@@ -341,7 +383,7 @@ const HostEventForm = memo(({ user, clubs, onSuccess, onError }) => {
             disabled={submitting}
             className="w-full px-4 py-2 bg-[#456882] text-white rounded-lg hover:bg-[#334d5e] disabled:bg-gray-400 transition-colors"
           >
-            {submitting ? 'Creating...' : 'Create Event'}
+            {submitting ? "Creating..." : "Create Event"}
           </button>
         </form>
       )}
@@ -353,60 +395,82 @@ const SuperAdminDashboard = () => {
   const [user, setUser] = useState(null);
   const [clubs, setClubs] = useState([]);
   const [membershipRequests, setMembershipRequests] = useState([]);
-  const [categories, setCategories] = useState(['all']);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [categories, setCategories] = useState(["all"]);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedFilter, setSelectedFilter] = useState("all");
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         if (!token) {
-          setError('No authentication token found. Please log in.');
-          navigate('/login');
+          setError("No authentication token found. Please log in.");
+          navigate("/login");
           return;
         }
 
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
         // Fetch user data
-        const userResponse = await axios.get('http://localhost:5000/api/auth/user', config);
+        const userResponse = await axios.get(
+          "http://localhost:5000/api/auth/user",
+          config
+        );
         setUser(userResponse.data);
 
         // Fetch clubs
-        const clubsResponse = await axios.get('http://localhost:5000/api/clubs', config);
+        const clubsResponse = await axios.get(
+          "http://localhost:5000/api/clubs",
+          config
+        );
         setClubs(clubsResponse.data);
+        console.log("User data:", userResponse.data);
+        console.log("Clubs data:", clubsResponse.data);
 
         // Check if user is a super admin
-        const isSuperAdmin = userResponse.data.isAdmin || clubsResponse.data.some(
-          (club) => club.superAdmins?.some((admin) => admin._id === userResponse.data._id)
-        );
+        const isSuperAdmin =
+          userResponse.data.isAdmin ||
+          clubsResponse.data.some((club) =>
+            club.superAdmins?.some(
+              (admin) => admin?._id === userResponse.data._id
+            )
+          );
+        console.log("Is super admin:", isSuperAdmin);
 
         if (!isSuperAdmin) {
-          setError('You do not have super admin access.');
-          navigate('/dashboard');
+          setError("You do not have super admin access.");
+          navigate("/dashboard");
           return;
         }
 
         // Fetch membership requests
-        const requestsResponse = await axios.get('http://localhost:5000/api/membership-requests', config);
+        const requestsResponse = await axios.get(
+          "http://localhost:5000/api/membership-requests",
+          config
+        );
         setMembershipRequests(requestsResponse.data);
 
         // Set categories
-        setCategories(['all', ...new Set(clubsResponse.data.map((club) => club.category.toLowerCase()))]);
+        setCategories([
+          "all",
+          ...new Set(
+            clubsResponse.data.map((club) => club.category.toLowerCase())
+          ),
+        ]);
 
         setLoading(false);
       } catch (err) {
+        console.error("Fetch error:", err);
         if (err.response?.status === 401 || err.response?.status === 403) {
-          localStorage.removeItem('token');
-          setError('Session expired or unauthorized. Please log in again.');
-          navigate('/login');
+          localStorage.removeItem("token");
+          setError("Session expired or unauthorized. Please log in again.");
+          navigate("/login");
         } else {
-          setError(err.response?.data?.error || 'Failed to load data.');
+          setError(err.response?.data?.error || "Failed to load data.");
         }
         setLoading(false);
       }
@@ -416,49 +480,53 @@ const SuperAdminDashboard = () => {
 
   const handleApprove = async (requestId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       await axios.patch(
         `http://localhost:5000/api/membership-requests/${requestId}`,
-        { status: 'approved' },
+        { status: "approved" },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMembershipRequests((prev) =>
-        prev.map((req) => (req._id === requestId ? { ...req, status: 'approved' } : req))
+        prev.map((req) =>
+          req._id === requestId ? { ...req, status: "approved" } : req
+        )
       );
-      setSuccess('Membership request approved successfully.');
+      setSuccess("Membership request approved successfully.");
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to approve request.');
+      setError(err.response?.data?.error || "Failed to approve request.");
     }
   };
 
   const handleReject = async (requestId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       await axios.patch(
         `http://localhost:5000/api/membership-requests/${requestId}`,
-        { status: 'rejected' },
+        { status: "rejected" },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMembershipRequests((prev) =>
-        prev.map((req) => (req._id === requestId ? { ...req, status: 'rejected' } : req))
+        prev.map((req) =>
+          req._id === requestId ? { ...req, status: "rejected" } : req
+        )
       );
-      setSuccess('Membership request rejected successfully.');
+      setSuccess("Membership request rejected successfully.");
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to reject request.');
+      setError(err.response?.data?.error || "Failed to reject request.");
     }
   };
 
   const handleDeleteClub = async (club) => {
     if (!window.confirm(`Delete ${club.name}? This cannot be undone.`)) return;
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       await axios.delete(`http://localhost:5000/api/clubs/${club._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setClubs((prev) => prev.filter((c) => c._id !== club._id));
       setSuccess(`Club ${club.name} deleted successfully.`);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to delete club.');
+      setError(err.response?.data?.error || "Failed to delete club.");
     }
   };
 
@@ -467,7 +535,8 @@ const SuperAdminDashboard = () => {
       clubs.filter(
         (club) =>
           club.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-          (selectedFilter === 'all' || club.category?.toLowerCase() === selectedFilter.toLowerCase())
+          (selectedFilter === "all" ||
+            club.category?.toLowerCase() === selectedFilter.toLowerCase())
       ),
     [clubs, searchTerm, selectedFilter]
   );
@@ -476,7 +545,9 @@ const SuperAdminDashboard = () => {
     () =>
       membershipRequests.filter(
         (request) =>
-          request.userId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          request.userId?.name
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
           request.clubName.toLowerCase().includes(searchTerm.toLowerCase())
       ),
     [membershipRequests, searchTerm]
@@ -529,13 +600,14 @@ const SuperAdminDashboard = () => {
             animate={{ opacity: 1, y: 0 }}
             className="mb-6"
           >
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-18">
               <div>
                 <h1 className="text-2xl sm:text-3xl font-semibold text-[#456882]">
                   Super Admin Dashboard
                 </h1>
                 <p className="text-sm text-gray-600">
-                  Welcome, {user?.name || 'Super Admin'}! Manage clubs and events.
+                  Welcome, {user?.name || "Super Admin"}! Manage clubs and
+                  events.
                 </p>
               </div>
               <Link
@@ -560,7 +632,7 @@ const SuperAdminDashboard = () => {
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-red-600" />
                   <p className="text-sm text-red-700">{error}</p>
-                  <button onClick={() => setError('')} className="ml-auto">
+                  <button onClick={() => setError("")} className="ml-auto">
                     <XCircle className="w-4 h-4 text-red-600" />
                   </button>
                 </div>
@@ -576,7 +648,7 @@ const SuperAdminDashboard = () => {
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-green-600" />
                   <p className="text-sm text-green-700">{success}</p>
-                  <button onClick={() => setSuccess('')} className="ml-auto">
+                  <button onClick={() => setSuccess("")} className="ml-auto">
                     <XCircle className="w-4 h-4 text-green-600" />
                   </button>
                 </div>
@@ -586,24 +658,29 @@ const SuperAdminDashboard = () => {
 
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <StatsCard
-              title="Total Clubs"
-              value={clubs.length}
-              icon={Users}
-            />
+            <StatsCard title="Total Clubs" value={clubs.length} icon={Users} />
             <StatsCard
               title="Total Members"
-              value={clubs.reduce((sum, club) => sum + (club.memberCount || 0), 0)}
+              value={clubs.reduce(
+                (sum, club) => sum + (club.memberCount || 0),
+                0
+              )}
               icon={Users}
             />
             <StatsCard
               title="Pending Requests"
-              value={membershipRequests.filter((req) => req.status === 'pending').length}
+              value={
+                membershipRequests.filter((req) => req.status === "pending")
+                  .length
+              }
               icon={Clock}
             />
             <StatsCard
               title="Active Events"
-              value={clubs.reduce((sum, club) => sum + (club.eventsCount || 0), 0)}
+              value={clubs.reduce(
+                (sum, club) => sum + (club.eventsCount || 0),
+                0
+              )}
               icon={Calendar}
             />
           </div>
@@ -642,7 +719,10 @@ const SuperAdminDashboard = () => {
                       >
                         {categories.map((category) => (
                           <option key={category} value={category}>
-                            {category === 'all' ? 'All Categories' : category.charAt(0).toUpperCase() + category.slice(1)}
+                            {category === "all"
+                              ? "All Categories"
+                              : category.charAt(0).toUpperCase() +
+                                category.slice(1)}
                           </option>
                         ))}
                       </select>
@@ -654,7 +734,9 @@ const SuperAdminDashboard = () => {
                   <div className="bg-white rounded-xl shadow-sm p-6 text-center">
                     <Users className="w-12 h-12 text-gray-300 mx-auto mb-2" />
                     <p className="text-sm text-gray-500">
-                      {searchTerm ? 'No clubs found.' : 'No clubs available. Create one to get started.'}
+                      {searchTerm
+                        ? "No clubs found."
+                        : "No clubs available. Create one to get started."}
                     </p>
                   </div>
                 ) : (
@@ -676,16 +758,24 @@ const SuperAdminDashboard = () => {
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">
                   Membership Requests
-                  {filteredRequests.filter((req) => req.status === 'pending').length > 0 && (
+                  {filteredRequests.filter((req) => req.status === "pending")
+                    .length > 0 && (
                     <span className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">
-                      {filteredRequests.filter((req) => req.status === 'pending').length} pending
+                      {
+                        filteredRequests.filter(
+                          (req) => req.status === "pending"
+                        ).length
+                      }{" "}
+                      pending
                     </span>
                   )}
                 </h2>
                 {filteredRequests.length === 0 ? (
                   <div className="bg-white rounded-xl shadow-sm p-6 text-center">
                     <Users className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500">No membership requests.</p>
+                    <p className="text-sm text-gray-500">
+                      No membership requests.
+                    </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

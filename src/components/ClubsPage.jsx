@@ -1,131 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { Search, Users, Calendar, Award, ChevronRight, Menu, X } from 'lucide-react';
-
-const Navbar = () => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
-    setIsMobileMenuOpen(false);
-  };
-
-  const navLinks = [
-    { to: '/', label: 'Home', icon: <Users className="w-5 h-5 mr-2" /> },
-    { to: '/clubs', label: 'Clubs', icon: <Users className="w-5 h-5 mr-2" /> },
-    { to: '/dashboard', label: 'Dashboard', icon: <Users className="w-5 h-5 mr-2" /> },
-  ];
-
-  return (
-    <nav className="bg-white shadow-md sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="flex justify-between items-center h-16">
-          <Link to="/" className="text-2xl font-bold text-[#456882]">
-            ACEM
-          </Link>
-
-          {/* Desktop Menu */}
-          <div className="hidden md:flex items-center space-x-4">
-            {navLinks.map((link) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                {link.icon}
-                {link.label}
-              </Link>
-            ))}
-            <button
-              onClick={handleLogout}
-              className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              <X className="w-5 h-5 mr-2" />
-              Logout
-            </button>
-          </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden text-[#456882] hover:text-[#334d5e]"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Toggle mobile menu"
-          >
-            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-        </div>
-
-        {/* Mobile Menu */}
-        <AnimatePresence>
-          {isMobileMenuOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="md:hidden bg-white shadow-md overflow-hidden"
-            >
-              <div className="flex flex-col space-y-2 px-6 py-4">
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.to}
-                    to={link.to}
-                    className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {link.icon}
-                    {link.label}
-                  </Link>
-                ))}
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors text-left"
-                >
-                  <X className="w-5 h-5 mr-2" />
-                  Logout
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </nav>
-  );
-};
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "react-router-dom";
+import axios from "axios";
+import { Search, Users, Calendar, Award, ChevronRight } from "lucide-react";
 
 const ClubsPage = () => {
   const [clubs, setClubs] = useState([]);
   const [filteredClubs, setFilteredClubs] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [categories, setCategories] = useState(['all']);
+  const [error, setError] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [categories, setCategories] = useState(["all"]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
 
         // Fetch clubs
-        const clubsResponse = await axios.get('http://localhost:5000/api/clubs', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const clubsResponse = await axios.get(
+          "http://localhost:5000/api/clubs",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
 
         // Fetch activities to derive eventsCount
-        const activitiesResponse = await axios.get('http://localhost:5000/api/activities', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const activitiesResponse = await axios.get(
+          "http://localhost:5000/api/activities",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
 
         // Process clubs with eventsCount
         const processedClubs = clubsResponse.data.map((club) => {
           const eventsCount = activitiesResponse.data.filter(
-            (activity) => activity.club.toLowerCase() === club.name.toLowerCase()
+            (activity) =>
+              activity.club.toLowerCase() === club.name.toLowerCase()
           ).length;
           return {
             ...club,
@@ -139,14 +53,18 @@ const ClubsPage = () => {
 
         // Extract unique categories
         const uniqueCategories = [
-          'all',
-          ...new Set(clubsResponse.data.map((club) => club.category.toLowerCase())),
+          "all",
+          ...new Set(
+            clubsResponse.data.map((club) => club.category.toLowerCase())
+          ),
         ];
         setCategories(uniqueCategories);
 
         setLoading(false);
       } catch (err) {
-        setError(err.response?.data?.error || 'Failed to load clubs. Please try again.');
+        setError(
+          err.response?.data?.error || "Failed to load clubs. Please try again."
+        );
         setLoading(false);
       }
     };
@@ -159,9 +77,10 @@ const ClubsPage = () => {
       club.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter((club) =>
-        club.category?.toLowerCase() === selectedCategory.toLowerCase()
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter(
+        (club) =>
+          club.category?.toLowerCase() === selectedCategory.toLowerCase()
       );
     }
 
@@ -191,8 +110,7 @@ const ClubsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
-      <Navbar />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white pt-16">
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-r from-[#456882] to-[#5a7a98] py-16">
         <div className="absolute inset-0 bg-black opacity-10"></div>
@@ -206,7 +124,8 @@ const ClubsPage = () => {
             Explore Our <span className="text-yellow-300">Clubs</span>
           </h1>
           <p className="text-xl text-gray-100 mb-8 max-w-2xl mx-auto">
-            Discover vibrant communities, build connections, and unlock your potential at ACEM!
+            Discover vibrant communities, build connections, and unlock your
+            potential at ACEM!
           </p>
 
           {/* Search Bar */}
@@ -233,7 +152,10 @@ const ClubsPage = () => {
           className="mb-8"
         >
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
-            <label htmlFor="category-filter" className="text-gray-700 font-medium text-sm">
+            <label
+              htmlFor="category-filter"
+              className="text-gray-700 font-medium text-sm"
+            >
               Filter by Category
             </label>
             <select
@@ -256,7 +178,10 @@ const ClubsPage = () => {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-white rounded-2xl shadow-lg overflow-hidden">
+              <div
+                key={i}
+                className="bg-white rounded-2xl shadow-lg overflow-hidden"
+              >
                 <div className="h-48 bg-gray-200 animate-pulse"></div>
                 <div className="p-6">
                   <div className="h-6 bg-gray-200 rounded animate-pulse mb-3"></div>
@@ -303,7 +228,7 @@ const ClubsPage = () => {
                 >
                   <div className="relative overflow-hidden">
                     <img
-                      src={club.icon || 'https://via.placeholder.com/400x200'}
+                      src={club.icon || "https://via.placeholder.com/400x200"}
                       alt={club.name}
                       className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
                     />
@@ -320,7 +245,8 @@ const ClubsPage = () => {
                       {club.name}
                     </h3>
                     <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                      {club.description || 'Discover amazing opportunities and connect with like-minded students.'}
+                      {club.description ||
+                        "Discover amazing opportunities and connect with like-minded students."}
                     </p>
 
                     {/* Club Stats */}
@@ -362,14 +288,16 @@ const ClubsPage = () => {
           >
             <div className="bg-gray-100 rounded-2xl p-12 max-w-md mx-auto">
               <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">No clubs found</h3>
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                No clubs found
+              </h3>
               <p className="text-gray-500 mb-6">
                 Try adjusting your search terms or category filter.
               </p>
               <button
                 onClick={() => {
-                  setSearchTerm('');
-                  setSelectedCategory('all');
+                  setSearchTerm("");
+                  setSelectedCategory("all");
                 }}
                 className="px-4 py-3 bg-[#456882] text-white rounded-full hover:bg-[#334d5e] transition-colors"
               >
