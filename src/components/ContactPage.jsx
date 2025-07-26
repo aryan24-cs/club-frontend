@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import { motion } from "framer-motion";
 import { FaEnvelope, FaSpinner } from "react-icons/fa";
 import axios from "axios";

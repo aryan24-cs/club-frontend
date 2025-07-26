@@ -21,40 +21,6 @@ import {
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-// Mock data for demonstration - replace with actual API calls
-const mockProfileData = {
-  user: {
-    id: 1,
-    name: 'Alex Johnson',
-    email: 'alex.johnson@college.edu',
-    phone: '+91 9876543210',
-    rollNumber: 'CS21B1234',
-    batch: '2021-2025',
-    department: 'Computer Science',
-    isAdmin: false,
-    isHeadCoordinator: true,
-    profilePicture: null,
-    joinedAt: '2021-08-15'
-  },
-  clubs: [
-    { id: 1, name: 'Tech Club', role: 'Head Coordinator', joinedAt: '2021-09-01', badge: '🚀' },
-    { id: 2, name: 'Photography Club', role: 'Member', joinedAt: '2022-01-15', badge: '📸' },
-    { id: 3, name: 'Drama Society', role: 'Coordinator', joinedAt: '2021-10-01', badge: '🎭' }
-  ],
-  achievements: [
-    { id: 1, title: 'Event Organizer', description: 'Organized 5+ events', icon: '🏆', earnedAt: '2023-05-01' },
-    { id: 2, title: 'Active Member', description: '90%+ attendance', icon: '⭐', earnedAt: '2023-03-15' },
-    { id: 3, title: 'Leadership Excellence', description: 'Head Coordinator for 2+ years', icon: '👑', earnedAt: '2023-08-01' }
-  ],
-  stats: {
-    totalEvents: 28,
-    attendanceRate: 92,
-    eventsOrganized: 12,
-    overallRank: 5,
-    totalMembers: 156
-  }
-};
-
 const ProfilePage = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -62,11 +28,21 @@ const ProfilePage = () => {
     name: '', 
     email: '', 
     phone: '', 
-    rollNumber: '',
-    department: '',
-    batch: ''
+    semester: '',
+    course: '',
+    specialization: ''
   });
-  const [profileData, setProfileData] = useState(null);
+  const [profileData, setProfileData] = useState({
+    clubs: [],
+    achievements: [],
+    stats: {
+      totalEvents: 0,
+      attendanceRate: 0,
+      eventsOrganized: 0,
+      overallRank: 0,
+      totalMembers: 0
+    }
+  });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -74,46 +50,161 @@ const ProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
 
+  // Get token from localStorage
+  const token = localStorage.getItem('token');
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         setIsLoading(true);
-        // In real implementation, replace with actual API calls
-        setTimeout(() => {
-          setUser(mockProfileData.user);
-          setProfile({
-            name: mockProfileData.user.name,
-            email: mockProfileData.user.email,
-            phone: mockProfileData.user.phone,
-            rollNumber: mockProfileData.user.rollNumber,
-            department: mockProfileData.user.department,
-            batch: mockProfileData.user.batch
-          });
-          setProfileData(mockProfileData);
-          setIsLoading(false);
-        }, 1000);
+        
+        // Fetch user data
+        const userResponse = await axios.get('http://localhost:5000/api/auth/user', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        // Fetch clubs
+        const clubsResponse = await axios.get('http://localhost:5000/api/clubs', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        // Fetch events (for stats)
+        const eventsResponse = await axios.get('http://localhost:5000/api/events', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        // Fetch activities (for achievements)
+        const activitiesResponse = await axios.get('http://localhost:5000/api/activities', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const userData = userResponse.data;
+        setUser(userData);
+        setProfile({
+          name: userData.name,
+          email: userData.email,
+          phone: userData.phone || '',
+          semester: userData.semester || '',
+          course: userData.course || '',
+          specialization: userData.specialization || ''
+        });
+
+        // Transform clubs data
+        const formattedClubs = clubsResponse.data
+          .filter(club => userData.clubName.includes(club.name))
+          .map(club => ({
+            id: club._id,
+            name: club.name,
+            role: userData.isHeadCoordinator && userData.headCoordinatorClubs.includes(club.name) 
+              ? 'Head Coordinator' 
+              : userData.isAdmin 
+                ? 'Admin' 
+                : 'Member',
+            joinedAt: userData.createdAt,
+            badge: club.category === 'Technical' ? '🚀' : 
+                   club.category === 'Cultural' ? '🎭' : 
+                   club.category === 'Literary' ? '📚' : '💡'
+          }));
+
+        // Calculate stats
+        const stats = {
+          totalEvents: eventsResponse.data.filter(event => 
+            userData.clubName.includes(event.club.name)).length,
+          attendanceRate: 100, // You might need to implement actual attendance tracking
+          eventsOrganized: eventsResponse.data.filter(event => 
+            event.createdBy._id === userData._id).length,
+          overallRank: 0, // Implement ranking logic if needed
+          totalMembers: clubsResponse.data.reduce((sum, club) => 
+            sum + (userData.clubName.includes(club.name) ? club.memberCount : 0), 0)
+        };
+
+        // Format achievements based on activities and events
+        const achievements = [
+          ...eventsResponse.data
+            .filter(event => event.createdBy._id === userData._id)
+            .map(event => ({
+              id: event._id,
+              title: 'Event Organizer',
+              description: `Organized ${event.title}`,
+              icon: '🏆',
+              earnedAt: event.createdAt
+            })),
+          ...activitiesResponse.data
+            .filter(activity => activity.createdBy._id === userData._id)
+            .map(activity => ({
+              id: activity._id,
+              title: 'Activity Contributor',
+              description: `Contributed to ${activity.title}`,
+              icon: '⭐',
+              earnedAt: activity.createdAt
+            }))
+        ];
+
+        setProfileData({
+          clubs: formattedClubs,
+          achievements,
+          stats
+        });
+
+        setIsLoading(false);
       } catch (err) {
         console.error('Error fetching user:', err);
+        if (err.response?.status === 401) {
+          localStorage.removeItem('token');
+          navigate('/login');
+        }
         setError('Failed to load profile.');
         setIsLoading(false);
       }
     };
-    fetchUserData();
-  }, []);
+
+    if (token) {
+      fetchUserData();
+    } else {
+      navigate('/login');
+    }
+  }, [token, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       setIsSubmitting(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
       
+      // Update user profile
+      await axios.put('http://localhost:5000/api/auth/user', {
+        name: profile.name,
+        email: profile.email,
+        phone: profile.phone
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // Update user details
+      await axios.post('http://localhost:5000/api/auth/user-details', {
+        semester: profile.semester,
+        course: profile.course,
+        specialization: profile.specialization,
+        isClubMember: user.isClubMember,
+        clubName: user.clubName
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
       setSuccess('Profile updated successfully!');
-      setUser(prev => ({ ...prev, ...profile }));
+      setUser(prev => ({ 
+        ...prev, 
+        name: profile.name,
+        email: profile.email,
+        phone: profile.phone,
+        semester: profile.semester,
+        course: profile.course,
+        specialization: profile.specialization
+      }));
       setIsEditing(false);
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError('Failed to update profile.');
+      console.error('Error updating profile:', err);
+      setError(err.response?.data?.error || 'Failed to update profile.');
     } finally {
       setIsSubmitting(false);
     }
@@ -171,7 +262,7 @@ const ProfilePage = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-800">{user?.name}</h1>
-                <p className="text-gray-600">{user?.department} • {user?.batch}</p>
+                <p className="text-gray-600">{user?.course} • {user?.semester}</p>
                 <div className="flex items-center space-x-2 mt-1">
                   <span className={`px-2 py-1 rounded-full text-xs text-white ${getRoleBadge().color}`}>
                     {getRoleBadge().text}
@@ -249,11 +340,11 @@ const ProfilePage = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-gray-700 text-sm font-semibold mb-2">Roll Number</label>
+                      <label className="block text-gray-700 text-sm font-semibold mb-2">Email</label>
                       <input
-                        type="text"
-                        value={profile.rollNumber}
-                        onChange={(e) => setProfile({ ...profile, rollNumber: e.target.value })}
+                        type="email"
+                        value={profile.email}
+                        onChange={(e) => setProfile({ ...profile, email: e.target.value })}
                         disabled={!isEditing}
                         className={`w-full px-4 py-2 rounded-lg border ${
                           isEditing ? 'border-gray-300 focus:ring-2 focus:ring-teal-600' : 'border-gray-200 bg-gray-50'
@@ -261,20 +352,6 @@ const ProfilePage = () => {
                         required
                       />
                     </div>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-gray-700 text-sm font-semibold mb-2">Email</label>
-                    <input
-                      type="email"
-                      value={profile.email}
-                      onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                      disabled={!isEditing}
-                      className={`w-full px-4 py-2 rounded-lg border ${
-                        isEditing ? 'border-gray-300 focus:ring-2 focus:ring-teal-600' : 'border-gray-200 bg-gray-50'
-                      } focus:outline-none`}
-                      required
-                    />
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -291,30 +368,46 @@ const ProfilePage = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-gray-700 text-sm font-semibold mb-2">Department</label>
+                      <label className="block text-gray-700 text-sm font-semibold mb-2">Semester</label>
+                      <input
+                        type="number"
+                        value={profile.semester}
+                        onChange={(e) => setProfile({ ...profile, semester: e.target.value })}
+                        disabled={!isEditing}
+                        className={`w-full px-4 py-2 rounded-lg border ${
+                          isEditing ? 'border-gray-300 focus:ring-2 focus:ring-teal-600' : 'border-gray-200 bg-gray-50'
+                        } focus:outline-none`}
+                        min="1"
+                        max="8"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-gray-700 text-sm font-semibold mb-2">Course</label>
                       <input
                         type="text"
-                        value={profile.department}
-                        onChange={(e) => setProfile({ ...profile, department: e.target.value })}
+                        value={profile.course}
+                        onChange={(e) => setProfile({ ...profile, course: e.target.value })}
                         disabled={!isEditing}
                         className={`w-full px-4 py-2 rounded-lg border ${
                           isEditing ? 'border-gray-300 focus:ring-2 focus:ring-teal-600' : 'border-gray-200 bg-gray-50'
                         } focus:outline-none`}
                       />
                     </div>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-gray-700 text-sm font-semibold mb-2">Batch</label>
-                    <input
-                      type="text"
-                      value={profile.batch}
-                      onChange={(e) => setProfile({ ...profile, batch: e.target.value })}
-                      disabled={!isEditing}
-                      className={`w-full px-4 py-2 rounded-lg border ${
-                        isEditing ? 'border-gray-300 focus:ring-2 focus:ring-teal-600' : 'border-gray-200 bg-gray-50'
-                      } focus:outline-none`}
-                    />
+                    <div>
+                      <label className="block text-gray-700 text-sm font-semibold mb-2">Specialization</label>
+                      <input
+                        type="text"
+                        value={profile.specialization}
+                        onChange={(e) => setProfile({ ...profile, specialization: e.target.value })}
+                        disabled={!isEditing}
+                        className={`w-full px-4 py-2 rounded-lg border ${
+                          isEditing ? 'border-gray-300 focus:ring-2 focus:ring-teal-600' : 'border-gray-200 bg-gray-50'
+                        } focus:outline-none`}
+                      />
+                    </div>
                   </div>
 
                   {isEditing && (
@@ -364,8 +457,14 @@ const ProfilePage = () => {
                         </div>
                       </div>
                       <div className="flex space-x-2">
-                        <FaWhatsapp className="text-green-500 text-xl cursor-pointer hover:scale-110 transition" />
-                        <FaEnvelope className="text-blue-500 text-xl cursor-pointer hover:scale-110 transition" />
+                        <FaWhatsapp 
+                          className="text-green-500 text-xl cursor-pointer hover:scale-110 transition" 
+                          onClick={() => window.open(`https://wa.me/${user.phone}`)}
+                        />
+                        <FaEnvelope 
+                          className="text-blue-500 text-xl cursor-pointer hover:scale-110 transition"
+                          onClick={() => window.location.href = `mailto:${user.email}`}
+                        />
                       </div>
                     </div>
                   </div>
@@ -453,7 +552,7 @@ const ProfilePage = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Member Since</span>
                   <span className="font-semibold text-teal-600">
-                    {user?.joinedAt ? new Date(user.joinedAt).getFullYear() : '2021'}
+                    {user?.createdAt ? new Date(user.createdAt).getFullYear() : 'N/A'}
                   </span>
                 </div>
               </div>
@@ -468,18 +567,12 @@ const ProfilePage = () => {
             >
               <h3 className="text-lg font-semibold mb-4 text-gray-800">Recent Activity</h3>
               <div className="space-y-3">
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600">Attended Tech Talk event</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600">Updated profile information</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600">Earned new achievement</span>
-                </div>
+                {profileData.achievements.slice(0, 3).map(activity => (
+                  <div key={activity.id} className="flex items-center space-x-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">{activity.description}</span>
+                  </div>
+                ))}
               </div>
             </motion.div>
           </div>
