@@ -219,8 +219,8 @@ const LandingPage = () => {
     { src: 'https://media.istockphoto.com/id/517188688/photo/mountain-landscape.jpg?s=612x612&w=0&k=20&c=A63koPKaCyIwQWOTFBRWXj_PwCrR4cEoOw2S9Q7yVl8=', alt: 'Technical Club Hackathon' },
     { src: 'https://images.unsplash.com/photo-1517457373958-b4d6b2b1e6f8', alt: 'Cultural Club Dance Performance' },
     { src: 'https://images.unsplash.com/photo-1515169067868-5387ec356754', alt: 'Literary Society Book Reading' },
-    { src: 'https://images.unsplash.com/photo-1552673469-8a267462b48c', alt: 'Sports Club Marathon' },
-    { src: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c', alt: 'Social Service Community Outreach' },
+    { src: 'https://loveincorporated.blob.core.windows.net/contentimages/gallery/03211459-0607-4d07-8a6c-9966e3820a7d-Mount-Kirkjufell-Iceland.jpg', alt: 'Sports Club Marathon' },
+    { src: 'https://content3.jdmagicbox.com/v2/comp/faridabad/c2/011pxx11.xx11.180720042429.n1c2/catalogue/aravali-college-of-engineering-and-management-jasana-faridabad-colleges-5hhqg5d110.jpg', alt: 'Social Service Community Outreach' },
   ];
 
   // Generate 10 bubbles for a livelier effect
