@@ -1,7 +1,8 @@
 import React, { memo, useState } from 'react';
-import { FaCode, FaMusic, FaBook, FaRunning, FaHandsHelping, FaBars, FaFacebook, FaTwitter, FaInstagram, FaUsers, FaTimes } from 'react-icons/fa';
+import { FaCode, FaMusic, FaBook, FaRunning, FaHandsHelping, FaBars, FaFacebook, FaTwitter, FaInstagram, FaUsers } from 'react-icons/fa';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { TypeAnimation } from 'react-type-animation';
+import { useNavigate } from 'react-router-dom';
 
 // Floating Bubble Component (Fragrance-like animation)
 const Bubble = ({ size, delay }) => {
@@ -34,8 +35,10 @@ const Bubble = ({ size, delay }) => {
   );
 };
 
-// Airplane Animation Component
+// Airplane Menu Component
 const AirplaneMenu = ({ isOpen, onClose }) => {
+  const navigate = useNavigate();
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -59,7 +62,7 @@ const AirplaneMenu = ({ isOpen, onClose }) => {
               type: 'spring',
               stiffness: 300,
               damping: 30,
-              duration: 0.5
+              duration: 0.5,
             }}
             className="fixed top-0 left-0 h-full w-80 bg-white shadow-2xl z-50 overflow-hidden"
           >
@@ -71,7 +74,7 @@ const AirplaneMenu = ({ isOpen, onClose }) => {
               transition={{
                 duration: 1,
                 ease: 'easeInOut',
-                delay: 0.2
+                delay: 0.2,
               }}
               className="absolute top-4 text-2xl text-teal-600"
               style={{ color: '#456882' }}
@@ -140,9 +143,10 @@ const AirplaneMenu = ({ isOpen, onClose }) => {
                     className="w-full py-3 px-6 text-teal-600 border border-teal-600 rounded-full hover:bg-teal-50 transition-all font-semibold"
                     style={{ borderColor: '#456882', color: '#456882' }}
                     onClick={() => {
-                      // Handle login navigation
+                      navigate('/login');
                       onClose();
                     }}
+                    aria-label="Login"
                   >
                     Login
                   </motion.button>
@@ -153,9 +157,10 @@ const AirplaneMenu = ({ isOpen, onClose }) => {
                     className="w-full py-3 px-6 bg-teal-600 text-white rounded-full hover:bg-teal-700 transition-all font-semibold"
                     style={{ backgroundColor: '#456882' }}
                     onClick={() => {
-                      // Handle signup navigation
+                      navigate('/signup');
                       onClose();
                     }}
+                    aria-label="Sign Up"
                   >
                     Sign Up
                   </motion.button>
@@ -166,125 +171,6 @@ const AirplaneMenu = ({ isOpen, onClose }) => {
         </>
       )}
     </AnimatePresence>
-  );
-};
-
-// Enhanced Input Component
-const EnhancedInput = ({ type, placeholder, ...props }) => {
-  const [isFocused, setIsFocused] = useState(false);
-  const [hasValue, setHasValue] = useState(false);
-
-  return (
-    <div className="relative mb-8">
-      <motion.input
-        type={type}
-        placeholder=" "
-        className="w-full py-4 px-0 text-lg bg-transparent border-0 border-b-2 border-gray-300 focus:border-teal-600 focus:outline-none transition-all duration-300 peer"
-        style={{ 
-          borderBottomColor: isFocused ? '#456882' : '#d1d5db',
-          caretColor: '#456882'
-        }}
-        onFocus={() => setIsFocused(true)}
-        onBlur={(e) => {
-          setIsFocused(false);
-          setHasValue(e.target.value.length > 0);
-        }}
-        {...props}
-      />
-      <motion.label
-        className={`absolute left-0 text-gray-500 transition-all duration-300 pointer-events-none ${
-          isFocused || hasValue 
-            ? 'text-sm -top-6 text-teal-600' 
-            : 'text-lg top-4'
-        }`}
-        style={{ color: isFocused ? '#456882' : '#6b7280' }}
-        animate={{
-          y: isFocused || hasValue ? -24 : 16,
-          scale: isFocused || hasValue ? 0.875 : 1,
-          color: isFocused ? '#456882' : '#6b7280'
-        }}
-        transition={{ duration: 0.3 }}
-      >
-        {placeholder}
-      </motion.label>
-    </div>
-  );
-};
-
-// Login/Signup Forms
-const AuthForm = ({ isLogin }) => {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 via-white to-blue-50 py-12 px-4 sm:px-6 lg:px-8">
-      <motion.div
-        initial={{ opacity: 0, y: 50, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
-        className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl backdrop-blur-sm"
-      >
-        <div className="text-center">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-            className="mx-auto h-16 w-16 flex items-center justify-center rounded-full bg-gradient-to-r from-teal-500 to-blue-500 text-white mb-4"
-          >
-            <FaUsers className="text-2xl" />
-          </motion.div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            {isLogin ? 'Welcome Back' : 'Join ACEM'}
-          </h2>
-          <p className="text-gray-600">
-            {isLogin ? 'Sign in to your account' : 'Create your account to get started'}
-          </p>
-        </div>
-
-        <form className="mt-8 space-y-6">
-          {!isLogin && (
-            <EnhancedInput
-              type="text"
-              placeholder="Full Name"
-            />
-          )}
-          <EnhancedInput
-            type="email"
-            placeholder="Email Address"
-          />
-          <EnhancedInput
-            type="password"
-            placeholder="Password"
-          />
-          {!isLogin && (
-            <EnhancedInput
-              type="password"
-              placeholder="Confirm Password"
-            />
-          )}
-
-          <motion.button
-            whileHover={{ scale: 1.02, boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
-            whileTap={{ scale: 0.98 }}
-            type="submit"
-            className="w-full flex justify-center py-4 px-4 border border-transparent rounded-full text-lg font-medium text-white bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-all duration-300"
-            style={{ background: 'linear-gradient(to right, #456882, #5a7a95)' }}
-          >
-            {isLogin ? 'Sign In' : 'Create Account'}
-          </motion.button>
-
-          <div className="text-center">
-            <p className="text-gray-600">
-              {isLogin ? "Don't have an account? " : "Already have an account? "}
-              <button
-                type="button"
-                className="font-medium text-teal-600 hover:text-teal-500 transition-colors"
-                style={{ color: '#456882' }}
-              >
-                {isLogin ? 'Sign up' : 'Sign in'}
-              </button>
-            </p>
-          </div>
-        </form>
-      </motion.div>
-    </div>
   );
 };
 
@@ -319,6 +205,7 @@ const LandingPage = () => {
   const scale = useTransform(scrollY, [0, 200], [1, 0.95]);
   const bgY = useTransform(scrollY, [0, 200], [0, -50]); // Parallax effect for background
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   const categories = [
     { name: 'Technical Clubs', icon: <FaCode />, color: 'from-blue-200 to-blue-400' },
@@ -329,7 +216,7 @@ const LandingPage = () => {
   ];
 
   const eventImages = [
-    { src: 'https://images.unsplash.com/photo-1516321318429-4b6b5f3b7f9e', alt: 'Technical Club Hackathon' },
+    { src: 'https://media.istockphoto.com/id/517188688/photo/mountain-landscape.jpg?s=612x612&w=0&k=20&c=A63koPKaCyIwQWOTFBRWXj_PwCrR4cEoOw2S9Q7yVl8=', alt: 'Technical Club Hackathon' },
     { src: 'https://images.unsplash.com/photo-1517457373958-b4d6b2b1e6f8', alt: 'Cultural Club Dance Performance' },
     { src: 'https://images.unsplash.com/photo-1515169067868-5387ec356754', alt: 'Literary Society Book Reading' },
     { src: 'https://images.unsplash.com/photo-1552673469-8a267462b48c', alt: 'Sports Club Marathon' },
@@ -359,6 +246,7 @@ const LandingPage = () => {
             whileHover={{ scale: 1.05 }}
             className="text-3xl font-bold text-teal-600 cursor-pointer"
             style={{ color: '#456882' }}
+            onClick={() => navigate('/')}
           >
             ACEM
           </motion.h1>
@@ -370,6 +258,7 @@ const LandingPage = () => {
             className="md:hidden text-2xl text-teal-600 relative z-50"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             style={{ color: '#456882' }}
+            aria-label="Toggle Menu"
           >
             <motion.div
               animate={{ rotate: isMenuOpen ? 180 : 0 }}
@@ -386,6 +275,8 @@ const LandingPage = () => {
               whileTap={{ scale: 0.95 }}
               className="px-6 py-2 text-teal-600 border border-teal-600 rounded-full hover:bg-teal-50 transition-all duration-300 font-medium"
               style={{ borderColor: '#456882', color: '#456882' }}
+              onClick={() => navigate('/login')}
+              aria-label="Login"
             >
               Login
             </motion.button>
@@ -394,6 +285,8 @@ const LandingPage = () => {
               whileTap={{ scale: 0.95 }}
               className="px-6 py-2 bg-teal-600 text-white rounded-full hover:bg-teal-700 transition-all duration-300 font-medium"
               style={{ backgroundColor: '#456882' }}
+              onClick={() => navigate('/signup')}
+              aria-label="Sign Up"
             >
               Signup
             </motion.button>
@@ -532,16 +425,16 @@ const LandingPage = () => {
                     className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-110"
                     loading="lazy"
                   />
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity duration-300 flex items-center justify-center">
+                  <div className="absolute inset-0  bg-opacity-0 group-hover:bg-opacity-30 transition-opacity duration-300 flex items-center justify-center">
                     <p className="text-white text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       {image.alt}
                     </p>
                   </div>
-                  <div className="p-4">
+                  {/* <div className="p-4">
                     <p className="text-sm font-semibold text-gray-800 group-hover:text-teal-600 transition-colors duration-300" style={{ color: '#456882' }}>
                       {image.alt}
                     </p>
-                  </div>
+                  </div> */}
                 </div>
               </motion.div>
             ))}
