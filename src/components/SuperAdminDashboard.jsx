@@ -1,19 +1,21 @@
-import React, { memo, useEffect, useState } from "react";
+import React, { memo, useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  FaCode,
-  FaMusic,
-  FaBook,
-  FaRunning,
-  FaHandsHelping,
-  FaTrophy,
-  FaFacebook,
-  FaTwitter,
-  FaInstagram,
-  FaUser,
-} from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import {
+  Users,
+  Calendar,
+  Clock,
+  Search,
+  ChevronDown,
+  Plus,
+  AlertTriangle,
+  XCircle,
+  CheckCircle,
+  Edit3,
+  Trash2,
+  Eye,
+} from "lucide-react";
 import Navbar from "./Navbar";
 
 // Error Boundary Component
@@ -27,9 +29,18 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="text-center p-8 text-red-600">
-          <h2 className="text-2xl font-bold">Something went wrong.</h2>
-          <p>Please try refreshing the page or contact support.</p>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-8 max-w-md mx-auto text-center">
+            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-red-700 mb-2">Something went wrong</h2>
+            <p className="text-red-600 mb-4">Please try refreshing the page.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
+            >
+              Refresh Page
+            </button>
+          </div>
         </div>
       );
     }
@@ -37,132 +48,367 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// Memoized ClubCard component
-const ClubCard = memo(({ club }) => (
+// Stats Card Component
+const StatsCard = memo(({ title, value, icon: Icon }) => (
   <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true }}
-    transition={{ duration: 0.5 }}
-    whileHover={{ scale: 1.05, boxShadow: "0 10px 20px rgba(0,0,0,0.1)" }}
-    className="p-6 bg-white rounded-xl shadow-md text-center border border-gray-200"
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="bg-white rounded-xl shadow-sm p-4 border border-gray-100"
   >
-    <div className="p-4 rounded-full bg-red-100 text-red-600 text-3xl mb-4">
-      {club.icon === "FaCode" ? (
-        <FaCode />
-      ) : club.icon === "FaMusic" ? (
-        <FaMusic />
-      ) : club.icon === "FaBook" ? (
-        <FaBook />
-      ) : club.icon === "FaRunning" ? (
-        <FaRunning />
-      ) : club.icon === "FaHandsHelping" ? (
-        <FaHandsHelping />
-      ) : (
-        <FaTrophy />
-      )}
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-sm text-gray-600">{title}</p>
+        <h3 className="text-lg font-semibold text-gray-900">{value}</h3>
+      </div>
+      <Icon className="w-6 h-6 text-[#456882]" />
     </div>
-    <h3 className="text-lg font-semibold text-gray-900">{club.name}</h3>
-    <Link
-      to={`/clubs/${club.name}/edit`}
-      className="mt-2 inline-block text-red-600 hover:text-red-700 font-medium transition"
-    >
-      > Edit Club
-    </Link>
   </motion.div>
 ));
 
-// Memoized MembershipRequestCard component
-const MembershipRequestCard = memo(
-  ({ request, handleApprove, handleReject }) => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5 }}
-      whileHover={{ scale: 1.03, boxShadow: "0 8px 16px rgba(0,0,0,0.1)" }}
-      className="p-6 bg-white rounded-xl shadow-md border border-gray-200"
-    >
-      <div className="flex items-center gap-3 mb-3">
-        <FaUser className="text-red-600 text-xl" />
-        <h4 className="text-lg font-semibold text-gray-900">
-          {request.userId.name}
-        </h4>
-      </div>
-      <p className="text-gray-600 text-sm mb-2">
-        Email: {request.userId.email}
-      </p>
-      <p className="text-gray-600 text-sm mb-2">Club: {request.clubName}</p>
-      <p className="text-gray-600 text-sm mb-2">Status: {request.status}</p>
-      <div className="flex gap-2">
+// Club Card Component
+const ClubCard = memo(({ club, onEdit, onDelete, onView }) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.98 }}
+    animate={{ opacity: 1, scale: 1 }}
+    whileHover={{ y: -4 }}
+    className="bg-white rounded-xl shadow-sm border border-gray-100 group"
+  >
+    <div className="relative h-24 bg-gradient-to-r from-[#456882] to-[#5a7a98]">
+      <img
+        src={club.banner || "https://via.placeholder.com/400x96"}
+        alt={club.name || "Club Banner"}
+        className="w-full h-full object-cover opacity-30"
+      />
+      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
-          onClick={() => handleApprove(request._id)}
-          className="px-4 py-1 bg-green-600 text-white rounded-full font-semibold hover:bg-green-700 transition"
-          disabled={request.status !== "pending"}
+          onClick={() => onView(club)}
+          className="p-1 bg-white/20 rounded-full hover:bg-white/30"
         >
+          <Eye className="w-4 h-4 text-white" />
+        </button>
+        <button
+          onClick={() => onEdit(club)}
+          className="p-1 bg-white/20 rounded-full hover:bg-white/30"
+        >
+          <Edit3 className="w-4 h-4 text-white" />
+        </button>
+        <button
+          onClick={() => onDelete(club)}
+          className="p-1 bg-white/20 rounded-full hover:bg-red-500/50"
+        >
+          <Trash2 className="w-4 h-4 text-white" />
+        </button>
+      </div>
+    </div>
+    <div className="p-4">
+      <div className="flex items-center gap-2 mb-2">
+        <img
+          src={club.icon || "https://via.placeholder.com/40x40"}
+          alt={club.name || "Club Icon"}
+          className="w-10 h-10 rounded-lg object-cover border border-[#456882]"
+        />
+        <div>
+          <h3 className="text-base font-semibold text-[#456882]">{club.name || "Unnamed Club"}</h3>
+          <p className="text-xs text-gray-500">{club.category || "General"}</p>
+        </div>
+      </div>
+      <p className="text-xs text-gray-600 line-clamp-2 mb-3">
+        {club.description || "No description available"}
+      </p>
+      <div className="flex items-center justify-between text-xs text-gray-500">
+        <div className="flex items-center gap-1">
+          <Users className="w-3 h-3" />
+          <span>{club.memberCount || 0} members</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Calendar className="w-3 h-3" />
+          <span>{club.eventsCount || 0} events</span>
+        </div>
+      </div>
+    </div>
+  </motion.div>
+));
+
+// Membership Request Card Component
+const MembershipRequestCard = memo(({ request, onApprove, onReject }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="bg-white rounded-xl shadow-sm p-4 border border-gray-100"
+  >
+    <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 bg-[#456882] rounded-lg flex items-center justify-center text-white text-sm font-semibold">
+          {request.userId?.name?.charAt(0).toUpperCase() || 'U'}
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-gray-900">{request.userId?.name}</h4>
+          <p className="text-xs text-gray-500">{request.clubName}</p>
+        </div>
+      </div>
+      <span
+        className={`px-2 py-1 rounded-full text-xs ${
+          request.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'
+        }`}
+      >
+        {request.status}
+      </span>
+    </div>
+    {request.status === 'pending' && (
+      <div className="flex gap-2 mt-2">
+        <button
+          onClick={() => onApprove(request._id)}
+          className="flex-1 flex items-center justify-center gap-1 px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 text-xs"
+        >
+          <CheckCircle className="w-3 h-3" />
           Approve
         </button>
         <button
-          onClick={() => handleReject(request._id)}
-          className="px-4 py-1 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 transition"
-          disabled={request.status !== "pending"}
+          onClick={() => onReject(request._id)}
+          className="flex-1 flex items-center justify-center gap-1 px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-xs"
         >
+          <XCircle className="w-3 h-3" />
           Reject
         </button>
       </div>
+    )}
+  </motion.div>
+));
+
+// Host Event Form Component
+const HostEventForm = memo(({ user, clubs, onSuccess, onError }) => {
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    date: '',
+    time: '',
+    location: '',
+    club: '',
+    banner: null,
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const eligibleClubs = clubs.filter((club) =>
+    club.superAdmins?.some((admin) => admin._id === user._id)
+  );
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const formPayload = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        if (key === 'banner' && value) {
+          formPayload.append(key, value);
+        } else if (value) {
+          formPayload.append(key, value);
+        }
+      });
+
+      const response = await axios.post('http://localhost:5000/api/events', formPayload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      setFormData({
+        title: '',
+        description: '',
+        date: '',
+        time: '',
+        location: '',
+        club: '',
+        banner: null,
+      });
+      onSuccess('Event created successfully!');
+    } catch (err) {
+      onError(err.response?.data?.error || 'Failed to create event.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value, files } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: files ? files[0] : value,
+    }));
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-xl shadow-sm p-4"
+    >
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">Host an Event</h3>
+      {eligibleClubs.length === 0 ? (
+        <p className="text-sm text-gray-500">You are not a super admin for any club.</p>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Event Title</label>
+            <input
+              type="text"
+              name="title"
+              value={formData.title}
+              onChange={handleInputChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
+              placeholder="Enter event title"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Description</label>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleInputChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
+              placeholder="Describe the event"
+              rows="3"
+            />
+          </div>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700">Date</label>
+              <input
+                type="date"
+                name="date"
+                value={formData.date}
+                onChange={handleInputChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700">Time</label>
+              <input
+                type="time"
+                name="time"
+                value={formData.time}
+                onChange={handleInputChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Location</label>
+            <input
+              type="text"
+              name="location"
+              value={formData.location}
+              onChange={handleInputChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
+              placeholder="Enter event location"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Club</label>
+            <select
+              name="club"
+              value={formData.club}
+              onChange={handleInputChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
+            >
+              <option value="">Select a club</option>
+              {eligibleClubs.map((club) => (
+                <option key={club._id} value={club._id}>
+                  {club.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Banner Image</label>
+            <input
+              type="file"
+              name="banner"
+              onChange={handleInputChange}
+              accept="image/*"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full px-4 py-2 bg-[#456882] text-white rounded-lg hover:bg-[#334d5e] disabled:bg-gray-400 transition-colors"
+          >
+            {submitting ? 'Creating...' : 'Create Event'}
+          </button>
+        </form>
+      )}
     </motion.div>
-  )
-);
+  );
+});
 
 const SuperAdminDashboard = () => {
   const [user, setUser] = useState(null);
   const [clubs, setClubs] = useState([]);
   const [membershipRequests, setMembershipRequests] = useState([]);
-  const [error, setError] = useState("");
+  const [categories, setCategories] = useState(['all']);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState('all');
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem('token');
         if (!token) {
-          navigate("/login");
+          setError('No authentication token found. Please log in.');
+          navigate('/login');
           return;
         }
 
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
         // Fetch user data
-        const userResponse = await axios.get(
-          "http://localhost:5000/api/auth/user",
-          config
-        );
+        const userResponse = await axios.get('http://localhost:5000/api/auth/user', config);
         setUser(userResponse.data);
 
-        // Fetch all clubs
-        const clubsResponse = await axios.get(
-          "http://localhost:5000/api/clubs",
-          config
-        );
+        // Fetch clubs
+        const clubsResponse = await axios.get('http://localhost:5000/api/clubs', config);
         setClubs(clubsResponse.data);
 
-        // Fetch all membership requests
-        const requestsResponse = await axios.get(
-          "http://localhost:5000/api/membership-requests",
-          config
+        // Check if user is a super admin
+        const isSuperAdmin = userResponse.data.isAdmin || clubsResponse.data.some(
+          (club) => club.superAdmins?.some((admin) => admin._id === userResponse.data._id)
         );
-        setMembershipRequests(requestsResponse.data);
-      } catch (err) {
-        console.error("Error fetching data:", err);
-        if (err.response?.status === 401 || err.response?.status === 403) {
-          localStorage.removeItem("token");
-          navigate("/login");
-        } else {
-          setError(
-            err.response?.data?.error ||
-              "Failed to load data. Please try again."
-          );
+
+        if (!isSuperAdmin) {
+          setError('You do not have super admin access.');
+          navigate('/dashboard');
+          return;
         }
+
+        // Fetch membership requests
+        const requestsResponse = await axios.get('http://localhost:5000/api/membership-requests', config);
+        setMembershipRequests(requestsResponse.data);
+
+        // Set categories
+        setCategories(['all', ...new Set(clubsResponse.data.map((club) => club.category.toLowerCase()))]);
+
+        setLoading(false);
+      } catch (err) {
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          localStorage.removeItem('token');
+          setError('Session expired or unauthorized. Please log in again.');
+          navigate('/login');
+        } else {
+          setError(err.response?.data?.error || 'Failed to load data.');
+        }
+        setLoading(false);
       }
     };
     fetchData();
@@ -170,276 +416,293 @@ const SuperAdminDashboard = () => {
 
   const handleApprove = async (requestId) => {
     try {
-      const token = localStorage.getItem("token");
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      const response = await axios.patch(
+      const token = localStorage.getItem('token');
+      await axios.patch(
         `http://localhost:5000/api/membership-requests/${requestId}`,
-        { status: "approved" },
-        config
+        { status: 'approved' },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       setMembershipRequests((prev) =>
-        prev.map((req) =>
-          req._id === requestId ? { ...req, status: "approved" } : req
-        )
+        prev.map((req) => (req._id === requestId ? { ...req, status: 'approved' } : req))
       );
-      setError(response.data.message);
+      setSuccess('Membership request approved successfully.');
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to approve request.");
+      setError(err.response?.data?.error || 'Failed to approve request.');
     }
   };
 
   const handleReject = async (requestId) => {
     try {
-      const token = localStorage.getItem("token");
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      const response = await axios.patch(
+      const token = localStorage.getItem('token');
+      await axios.patch(
         `http://localhost:5000/api/membership-requests/${requestId}`,
-        { status: "rejected" },
-        config
+        { status: 'rejected' },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       setMembershipRequests((prev) =>
-        prev.map((req) =>
-          req._id === requestId ? { ...req, status: "rejected" } : req
-        )
+        prev.map((req) => (req._id === requestId ? { ...req, status: 'rejected' } : req))
       );
-      setError(response.data.message);
+      setSuccess('Membership request rejected successfully.');
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to reject request.");
+      setError(err.response?.data?.error || 'Failed to reject request.');
     }
   };
 
-  return (
-    <ErrorBoundary>
-      <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
-        <style>
-          {`
-            @keyframes gradientShift {
-              0% { background-position: 0% 50%; }
-              50% { background-position: 100% 50%; }
-              100% { background-position: 0% 50%; }
-            }
-            .hero-bg {
-              background: linear-gradient(45deg, #FEE2E2, #FFFFFF, #E5E7EB, #FEE2E2);
-              background-size: 200% 200%;
-              animation: gradientShift 15s ease infinite;
-            }
-          `}
-        </style>
+  const handleDeleteClub = async (club) => {
+    if (!window.confirm(`Delete ${club.name}? This cannot be undone.`)) return;
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://localhost:5000/api/clubs/${club._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setClubs((prev) => prev.filter((c) => c._id !== club._id));
+      setSuccess(`Club ${club.name} deleted successfully.`);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to delete club.');
+    }
+  };
 
-        {/* Navbar */}
-        <Navbar user={user} />
+  const filteredClubs = useMemo(
+    () =>
+      clubs.filter(
+        (club) =>
+          club.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+          (selectedFilter === 'all' || club.category?.toLowerCase() === selectedFilter.toLowerCase())
+      ),
+    [clubs, searchTerm, selectedFilter]
+  );
 
-        {/* Hero Section */}
-        <section className="pt-24 pb-16 hero-bg relative overflow-hidden">
-          <div className="absolute inset-0 bg-white opacity-70" />
-          <div className="container mx-auto px-4 text-center relative z-10">
-            <motion.h1
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              className="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6"
-            >
-              Super Admin Dashboard,{" "}
-              <motion.span
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{
-                  duration: 1,
-                  repeat: Infinity,
-                  repeatType: "reverse",
-                }}
-                className="text-red-600"
-              >
-                {user?.name || "Super Admin"}
-              </motion.span>
-              !
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="text-xl md:text-2xl text-gray-700 max-w-3xl mx-auto mb-8"
-            >
-              Manage all clubs and membership requests
-            </motion.p>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              whileHover={{
-                scale: 1.1,
-                boxShadow: "0 12px 24px rgba(220,20,60,0.1)",
-                transition: { duration: 0.3 },
-              }}
-              whileTap={{ scale: 0.95 }}
-              className="mt-6 w-fit m-auto rounded-full"
-            >
-              <Link
-                to="/create-club"
-                className="inline-block px-10 py-4 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 transition-all duration-300 shadow-lg"
-              >
-                Create New Club
-              </Link>
-            </motion.div>
-          </div>
-        </section>
+  const filteredRequests = useMemo(
+    () =>
+      membershipRequests.filter(
+        (request) =>
+          request.userId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          request.clubName.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+    [membershipRequests, searchTerm]
+  );
 
-        {/* Error Display */}
-        {error && (
-          <motion.p
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="text-red-600 text-center text-sm mt-4"
-          >
-            {error}
-          </motion.p>
-        )}
-
-        {/* All Clubs Section */}
-        <section className="py-12 bg-white">
-          <div className="container mx-auto px-4">
-            <motion.h2
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="text-3xl font-bold text-gray-900 mb-8 text-center"
-            >
-              All Clubs
-            </motion.h2>
-            {clubs.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="text-center"
-              >
-                <p className="text-gray-700 mb-4 text-lg">
-                  No clubs available.
-                </p>
-                <motion.div
-                  whileHover={{
-                    scale: 1.1,
-                    boxShadow: "0 10px 20px rgba(220,20,60,0.2)",
-                    backgroundColor: "#B91C1C",
-                  }}
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ duration: 0.3 }}
-                  className="w-fit m-auto rounded-full"
-                >
-                  <Link
-                    to="/create-club"
-                    className="inline-block px-6 py-3 bg-red-600 text-white rounded-full font-semibold transition-all duration-300"
-                  >
-                    Create Club
-                  </Link>
-                </motion.div>
-              </motion.div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {clubs.map((club) => (
-                  <ClubCard key={club._id} club={club} />
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Membership Requests Section */}
-        <section className="py-12 bg-gray-50">
-          <div className="container mx-auto px-4">
-            <motion.h2
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="text-3xl font-bold text-gray-900 mb-8 text-center"
-            >
-              Membership Requests
-            </motion.h2>
-            {membershipRequests.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="text-center"
-              >
-                <p className="text-gray-700 mb-4 text-lg">
-                  No pending membership requests.
-                </p>
-              </motion.div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {membershipRequests.map((request) => (
-                  <MembershipRequestCard
-                    key={request._id}
-                    request={request}
-                    handleApprove={handleApprove}
-                    handleReject={handleReject}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Footer */}
-        <footer className="py-8 bg-gray-800 text-white">
-          <div className="container mx-auto px-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
-                <ul className="space-y-2">
-                  <li>
-                    <Link
-                      to="/super-admin-dashboard"
-                      className="hover:text-red-200"
-                    >
-                      Dashboard
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/profile" className="hover:text-red-200">
-                      Profile
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/clubs" className="hover:text-red-200">
-                      Clubs
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/events" className="hover:text-red-200">
-                      Events
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/contact" className="hover:text-red-200">
-                      Contact
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Follow Us</h3>
-                <div className="flex gap-4">
-                  <a href="#" className="text-2xl hover:text-red-200">
-                    <FaFacebook />
-                  </a>
-                  <a href="#" className="text-2xl hover:text-red-200">
-                    <FaTwitter />
-                  </a>
-                  <a href="#" className="text-2xl hover:text-red-200">
-                    <FaInstagram />
-                  </a>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="animate-pulse">
+          <div className="h-16 bg-white shadow-sm"></div>
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-20 bg-gray-200 rounded-xl"></div>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
+                <div className="h-8 bg-gray-200 rounded"></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="h-48 bg-gray-200 rounded-xl"></div>
+                  ))}
+                </div>
+                <div className="h-8 bg-gray-200 rounded"></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="h-32 bg-gray-200 rounded-xl"></div>
+                  ))}
                 </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Credits</h3>
-                <p>Developed By SkillShastra</p>
+              <div className="space-y-6">
+                <div className="h-48 bg-gray-200 rounded-xl"></div>
               </div>
             </div>
           </div>
-        </footer>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-50">
+        <Navbar user={user} />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-semibold text-[#456882]">
+                  Super Admin Dashboard
+                </h1>
+                <p className="text-sm text-gray-600">
+                  Welcome, {user?.name || 'Super Admin'}! Manage clubs and events.
+                </p>
+              </div>
+              <Link
+                to="/create-club"
+                className="flex items-center gap-2 px-4 py-2 bg-[#456882] text-white rounded-lg hover:bg-[#334d5e]"
+              >
+                <Plus className="w-4 h-4" />
+                Create Club
+              </Link>
+            </div>
+          </motion.div>
+
+          {/* Messages */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mb-4"
+              >
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-600" />
+                  <p className="text-sm text-red-700">{error}</p>
+                  <button onClick={() => setError('')} className="ml-auto">
+                    <XCircle className="w-4 h-4 text-red-600" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+            {success && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mb-4"
+              >
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <p className="text-sm text-green-700">{success}</p>
+                  <button onClick={() => setSuccess('')} className="ml-auto">
+                    <XCircle className="w-4 h-4 text-green-600" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <StatsCard
+              title="Total Clubs"
+              value={clubs.length}
+              icon={Users}
+            />
+            <StatsCard
+              title="Total Members"
+              value={clubs.reduce((sum, club) => sum + (club.memberCount || 0), 0)}
+              icon={Users}
+            />
+            <StatsCard
+              title="Pending Requests"
+              value={membershipRequests.filter((req) => req.status === 'pending').length}
+              icon={Clock}
+            />
+            <StatsCard
+              title="Active Events"
+              value={clubs.reduce((sum, club) => sum + (club.eventsCount || 0), 0)}
+              icon={Calendar}
+            />
+          </div>
+
+          {/* Main Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              {/* Host Event */}
+              <HostEventForm
+                user={user}
+                clubs={clubs}
+                onSuccess={setSuccess}
+                onError={setError}
+              />
+
+              {/* Clubs */}
+              <div>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">Clubs</h2>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <div className="relative flex-1 sm:flex-none">
+                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <input
+                        type="text"
+                        placeholder="Search clubs or requests..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full sm:w-64 pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
+                      />
+                    </div>
+                    <div className="relative">
+                      <select
+                        value={selectedFilter}
+                        onChange={(e) => setSelectedFilter(e.target.value)}
+                        className="w-full sm:w-48 pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
+                      >
+                        {categories.map((category) => (
+                          <option key={category} value={category}>
+                            {category === 'all' ? 'All Categories' : category.charAt(0).toUpperCase() + category.slice(1)}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    </div>
+                  </div>
+                </div>
+                {filteredClubs.length === 0 ? (
+                  <div className="bg-white rounded-xl shadow-sm p-6 text-center">
+                    <Users className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">
+                      {searchTerm ? 'No clubs found.' : 'No clubs available. Create one to get started.'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {filteredClubs.map((club) => (
+                      <ClubCard
+                        key={club._id}
+                        club={club}
+                        onEdit={() => navigate(`/clubs/${club._id}/edit`)}
+                        onDelete={handleDeleteClub}
+                        onView={() => navigate(`/clubs/${club._id}`)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Membership Requests */}
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Membership Requests
+                  {filteredRequests.filter((req) => req.status === 'pending').length > 0 && (
+                    <span className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">
+                      {filteredRequests.filter((req) => req.status === 'pending').length} pending
+                    </span>
+                  )}
+                </h2>
+                {filteredRequests.length === 0 ? (
+                  <div className="bg-white rounded-xl shadow-sm p-6 text-center">
+                    <Users className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">No membership requests.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {filteredRequests.map((request) => (
+                      <MembershipRequestCard
+                        key={request._id}
+                        request={request}
+                        onApprove={handleApprove}
+                        onReject={handleReject}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </ErrorBoundary>
   );
