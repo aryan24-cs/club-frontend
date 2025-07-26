@@ -32,6 +32,7 @@ import AttendanceTracker from "./components/Admin/AttendanceTracker";
 import AdminContactPanel from "./components/Admin/AdminContactPanel";
 import axios from "axios";
 import { useEffect, useState } from "react";
+import ClubPage from "./components/Admin/ClubPage";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -200,7 +201,7 @@ const AnimatedRoutes = () => {
           <Route
             path="/admin/events"
             element={
-              <RoleBasedRoute role="admin">
+              <RoleBasedRoute roles={["super-admin", "admin"]}>
                 <Layout>
                   <ManageEvents />
                 </Layout>
@@ -210,7 +211,7 @@ const AnimatedRoutes = () => {
           <Route
             path="/admin/activities"
             element={
-              <RoleBasedRoute role="admin">
+              <RoleBasedRoute roles={["super-admin", "admin"]}>
                 <Layout>
                   <ManageActivities />
                 </Layout>
@@ -220,7 +221,7 @@ const AnimatedRoutes = () => {
           <Route
             path="/admin/users"
             element={
-              <RoleBasedRoute role="admin">
+              <RoleBasedRoute roles={["super-admin", "admin"]}>
                 <Layout>
                   <ManageUsers />
                 </Layout>
@@ -230,7 +231,7 @@ const AnimatedRoutes = () => {
           <Route
             path="/events/:id/edit"
             element={
-              <RoleBasedRoute role="admin">
+              <RoleBasedRoute roles={["super-admin", "admin"]}>
                 <Layout>
                   <EventEditPage />
                 </Layout>
@@ -240,7 +241,7 @@ const AnimatedRoutes = () => {
           <Route
             path="/activities/:id/edit"
             element={
-              <RoleBasedRoute role="admin">
+              <RoleBasedRoute roles={["super-admin", "admin"]}>
                 <Layout>
                   <ActivityEditPage />
                 </Layout>
@@ -290,7 +291,7 @@ const AnimatedRoutes = () => {
           <Route
             path="/manage-clubs"
             element={
-              <RoleBasedRoute role="admin">
+              <RoleBasedRoute roles={["super-admin", "admin"]}>
                 <Layout>
                   <ManageClubsPage />
                 </Layout>
@@ -313,6 +314,16 @@ const AnimatedRoutes = () => {
               <RoleBasedRoute roles={["super-admin", "admin"]}>
                 <Layout>
                   <AdminContactPanel />
+                </Layout>
+              </RoleBasedRoute>
+            }
+          />
+          <Route
+            path="/clubpage"
+            element={
+              <RoleBasedRoute roles={["super-admin", "admin"]}>
+                <Layout>
+                  <ClubPage />
                 </Layout>
               </RoleBasedRoute>
             }
