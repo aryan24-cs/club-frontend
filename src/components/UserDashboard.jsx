@@ -1,5 +1,6 @@
 import React, { memo, useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
+import Navbar from "../components/Navbar";
 import {
   FaCode,
   FaMusic,
@@ -182,57 +183,57 @@ const iconMap = {
 };
 
 // Navbar Component (from CreateClubPage)
-const Navbar = () => {
-  const navigate = useNavigate();
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/login");
-  };
+// const Navbar = () => {
+//   const navigate = useNavigate();
+//   const handleLogout = () => {
+//     localStorage.removeItem("token");
+//     navigate("/login");
+//   };
 
-  return (
-    <nav className="bg-white shadow-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center">
-            <Link to="/" className="text-2xl font-bold text-[#456882]">
-              ACEM
-            </Link>
-          </div>
-          <div className="flex items-center space-x-4">
-            <Link
-              to="/"
-              className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              <FaHome className="mr-2" />
-              Home
-            </Link>
-            <Link
-              to="/clubs"
-              className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              <FaUsers className="mr-2" />
-              Clubs
-            </Link>
-            <Link
-              to="/dashboard"
-              className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              <FaUserCircle className="mr-2" />
-              Dashboard
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              <FaSignOutAlt className="mr-2" />
-              Logout
-            </button>
-          </div>
-        </div>
-      </div>
-    </nav>
-  );
-};
+//   return (
+//     <nav className="bg-white shadow-md">
+//       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+//         <div className="flex justify-between h-16">
+//           <div className="flex items-center">
+//             <Link to="/" className="text-2xl font-bold text-[#456882]">
+//               ACEM
+//             </Link>
+//           </div>
+//           <div className="flex items-center space-x-4">
+//             <Link
+//               to="/"
+//               className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+//             >
+//               <FaHome className="mr-2" />
+//               Home
+//             </Link>
+//             <Link
+//               to="/clubs"
+//               className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+//             >
+//               <FaUsers className="mr-2" />
+//               Clubs
+//             </Link>
+//             <Link
+//               to="/dashboard"
+//               className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+//             >
+//               <FaUserCircle className="mr-2" />
+//               Dashboard
+//             </Link>
+//             <button
+//               onClick={handleLogout}
+//               className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+//             >
+//               <FaSignOutAlt className="mr-2" />
+//               Logout
+//             </button>
+//           </div>
+//         </div>
+//       </div>
+//     </nav>
+//   );
+// };
 
 // Enhanced Loading Component
 const LoadingSpinner = () => (

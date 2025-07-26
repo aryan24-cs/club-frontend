@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FaImage, FaSpinner } from "react-icons/fa";
+import Navbar from "../components/Navbar";
 
 const CreateClubPage = () => {
   const [name, setName] = useState("");
@@ -171,7 +172,7 @@ const CreateClubPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white pt-16">
+    <div className="min-h-screen bg-white">
       <style>
         {`
           @keyframes ripple {
@@ -183,6 +184,7 @@ const CreateClubPage = () => {
           }
         `}
       </style>
+      <Navbar />
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

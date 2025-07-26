@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { Search, Users, Calendar, Award, ChevronRight } from "lucide-react";
+import Navbar from "../components/Navbar";
 
 const ClubsPage = () => {
   const [clubs, setClubs] = useState([]);
@@ -111,6 +112,7 @@ const ClubsPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white pt-16">
+      <Navbar />
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-r from-[#456882] to-[#5a7a98] py-16">
         <div className="absolute inset-0 bg-black opacity-10"></div>
