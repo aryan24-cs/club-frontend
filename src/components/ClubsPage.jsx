@@ -111,7 +111,7 @@ const ClubsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white pt-16">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
       <Navbar />
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-r from-[#456882] to-[#5a7a98] py-16">

@@ -1,29 +1,39 @@
-import React, { useEffect, useState } from "react";
+import React, { memo, useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaCalendarAlt, FaPlus, FaSpinner } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import {
+  Calendar,
+  Plus,
+  Trash2,
+  Edit3,
+  AlertTriangle,
+  XCircle,
+  CheckCircle,
+} from "lucide-react";
 import Navbar from "./Navbar";
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
-  state = { hasError: false };
+  state = { hasError: false, error: null };
 
-  static getDerivedStateFromError() {
-    return { hasError: true };
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
   }
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="text-center p-8 text-teal-600">
+        <div className="text-center p-8 text-[#456882]">
           <h2 className="text-2xl font-bold">Something went wrong.</h2>
-          <p>Please try refreshing the page or contact support.</p>
+          <p>
+            {this.state.error?.message ||
+              "Please try refreshing the page or contact support."}
+          </p>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="mt-4 px-6 py-2 bg-teal-600 text-white rounded-full"
-            style={{ backgroundColor: '#456882' }}
+            className="mt-4 px-6 py-2 bg-[#456882] text-white rounded-full"
             onClick={() => window.location.reload()}
           >
             Retry
@@ -36,225 +46,565 @@ class ErrorBoundary extends React.Component {
 }
 
 // Memoized EventCard Component
-const EventCard = ({ event }) => (
+const EventCard = memo(({ event, onDelete }) => (
   <motion.div
     initial={{ opacity: 0, y: 50 }}
     whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true }}
-    transition={{ type: 'spring', stiffness: 100, damping: 15 }}
-    whileHover={{ scale: 1.03, boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }}
+    transition={{ type: "spring", stiffness: 100, damping: 15 }}
+    whileHover={{ scale: 1.03, boxShadow: "0 8px 16px rgba(0,0,0,0.1)" }}
     className="p-6 bg-white rounded-xl shadow-md border border-gray-200"
   >
     <div className="flex items-center gap-3 mb-3">
-      <FaCalendarAlt className="text-teal-600 text-xl" style={{ color: '#456882' }} />
-      <h4 className="text-lg font-semibold text-gray-900">{event.title}</h4>
+      <Calendar className="text-[#456882] text-xl" />
+      <h4 className="text-lg font-semibold text-gray-900">
+        {event.title || "Untitled Event"}
+      </h4>
     </div>
-    <p className="text-gray-600 text-sm mb-2">{event.date}</p>
-    <p className="text-gray-700 mb-3">{event.description}</p>
-    <p className="text-gray-500 text-sm">Club: {event.clubName}</p>
-    <Link
-      to={`/events/${event._id}/edit`}
-      className="mt-2 inline-block text-teal-600 hover:text-teal-700 font-medium transition"
-      style={{ color: '#456882' }}
-      aria-label={`Edit ${event.title}`}
-    >
-      Edit Event
-    </Link>
+    <img
+      src={
+        event.banner
+          ? `http://localhost:5000${event.banner.startsWith("/") ? "" : "/"}${
+              event.banner
+            }`
+          : "https://via.placeholder.com/300x100"
+      }
+      alt={event.title || "Event Banner"}
+      className="w-full h-24 object-cover rounded-lg mb-3"
+      onError={(e) => {
+        e.target.src = "https://via.placeholder.com/300x100";
+        console.warn(
+          `Failed to load banner for event ${event.title || "Untitled"}: ${
+            event.banner || "No banner"
+          }`
+        );
+      }}
+    />
+    <p className="text-gray-600 text-sm mb-2">
+      {event.date ? new Date(event.date).toLocaleDateString() : "No date"} at{" "}
+      {event.time || "No time"}
+    </p>
+    <p className="text-gray-600 text-sm mb-2">
+      Location: {event.location || "No location"}
+    </p>
+    <p className="text-gray-700 mb-3 line-clamp-2">
+      {event.description || "No description"}
+    </p>
+    <p className="text-gray-500 text-sm mb-3">
+      Club: {event.clubName || "Unknown Club"}
+    </p>
+    <div className="flex gap-2">
+      <Link
+        to={`/events/${event._id}/edit`}
+        className="flex items-center gap-1 text-[#456882] hover:text-[#334d5e] font-medium transition text-sm"
+        aria-label={`Edit ${event.title || "event"}`}
+      >
+        <Edit3 className="w-4 h-4" />
+        Edit
+      </Link>
+      <button
+        onClick={() => onDelete(event._id, event.title)}
+        className="flex items-center gap-1 text-red-600 hover:text-red-700 font-medium transition text-sm"
+        aria-label={`Delete ${event.title || "event"}`}
+      >
+        <Trash2 className="w-4 h-4" />
+        Delete
+      </button>
+    </div>
   </motion.div>
-);
+));
+
+// Host Event Form Component
+const HostEventForm = memo(({ user, clubs, onSuccess, onError }) => {
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    date: "",
+    time: "",
+    location: "",
+    club: "",
+    banner: null,
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  // Skip rendering if user or clubs are not available
+  if (!user || !clubs) {
+    console.log(
+      "HostEventForm - Skipping render: user or clubs not available",
+      { user, clubs }
+    );
+    return null;
+  }
+
+  // Filter clubs where user is a super admin or admin (headCoordinatorClubs)
+  const eligibleClubs = clubs.filter((club) => {
+    if (!club) return false;
+    return (
+      club.superAdmins?.some(
+        (admin) => admin?._id?.toString() === user._id?.toString()
+      ) || user.headCoordinatorClubs?.includes(club.name)
+    );
+  });
+
+  // Debug logging
+  useEffect(() => {
+    console.log("HostEventForm - User:", {
+      _id: user._id || "null",
+      name: user.name || "null",
+      isAdmin: user.isAdmin || false,
+      headCoordinatorClubs: user.headCoordinatorClubs || [],
+    });
+    console.log("HostEventForm - All Clubs:", clubs);
+    console.log("HostEventForm - Eligible Clubs:", eligibleClubs);
+    eligibleClubs.forEach((club, index) => {
+      console.log(`Club ${index + 1}:`, {
+        name: club?.name || "null",
+        superAdmins:
+          club?.superAdmins?.map((admin) => ({
+            id: admin?._id?.toString() || "null",
+            name: admin?.name || "null",
+            email: admin?.email || "null",
+          })) || [],
+      });
+    });
+  }, [user, clubs, eligibleClubs]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("No authentication token found");
+      const formPayload = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        if (key === "banner" && value) {
+          formPayload.append("banner", value);
+        } else if (value) {
+          formPayload.append(key, value);
+        }
+      });
+
+      const response = await axios.post(
+        "http://localhost:5000/api/events",
+        formPayload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      setFormData({
+        title: "",
+        description: "",
+        date: "",
+        time: "",
+        location: "",
+        club: "",
+        banner: null,
+      });
+      onSuccess("Event created successfully!", response.data);
+    } catch (err) {
+      console.error("Event creation error:", err);
+      onError(
+        err.response?.data?.error || err.message || "Failed to create event."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value, files } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: files ? files[0] : value,
+    }));
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8 }}
+      className="max-w-xl mx-auto bg-white p-6 rounded-xl shadow-lg border border-gray-200"
+    >
+      <h2 className="text-2xl font-semibold text-[#456882] mb-4">
+        Host a New Event
+      </h2>
+      {eligibleClubs.length === 0 ? (
+        <p className="text-sm text-gray-600">
+          You are not authorized to host events for any club.
+        </p>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Event Title
+            </label>
+            <input
+              type="text"
+              name="title"
+              value={formData.title || ""}
+              onChange={handleInputChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-[#456882] focus:border-[#456882] bg-gray-50 text-sm"
+              placeholder="Enter event title"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Description
+            </label>
+            <textarea
+              name="description"
+              value={formData.description || ""}
+              onChange={handleInputChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-[#456882] focus:border-[#456882] bg-gray-50 text-sm"
+              placeholder="Describe the event"
+              rows="4"
+            />
+          </div>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700">
+                Date
+              </label>
+              <input
+                type="date"
+                name="date"
+                value={formData.date || ""}
+                onChange={handleInputChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-[#456882] focus:border-[#456882] bg-gray-50 text-sm"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700">
+                Time
+              </label>
+              <input
+                type="time"
+                name="time"
+                value={formData.time || ""}
+                onChange={handleInputChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-[#456882] focus:border-[#456882] bg-gray-50 text-sm"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Location
+            </label>
+            <input
+              type="text"
+              name="location"
+              value={formData.location || ""}
+              onChange={handleInputChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-[#456882] focus:border-[#456882] bg-gray-50 text-sm"
+              placeholder="Enter event location"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Club
+            </label>
+            <select
+              name="club"
+              value={formData.club || ""}
+              onChange={handleInputChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-[#456882] bg-gray-50 text-sm"
+            >
+              <option value="">Select a club</option>
+              {eligibleClubs.map((club, index) => (
+                <option key={club?._id || `club-${index}`} value={club?._id}>
+                  {club?.name || "Unknown Club"}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Banner Image
+            </label>
+            <input
+              type="file"
+              name="banner"
+              onChange={handleInputChange}
+              accept="image/*"
+              className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-gray-100 bg-gray-50 text-sm"
+            />
+          </div>
+          <motion.button
+            type="submit"
+            disabled={submitting}
+            whileHover={{ scale: submitting ? 1 : 1.05 }}
+            whileTap={{ scale: submitting ? 1 : 0.95 }}
+            className={`w-full px-4 py-2 rounded-sm text-sm font-semibold transition-colors ${
+              submitting
+                ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                : "bg-[#456882] text-white hover:bg-[#334d5e]"
+            }`}
+          >
+            {submitting ? "Creating..." : "Create Event"}
+          </motion.button>
+        </form>
+      )}
+    </motion.div>
+  );
+});
 
 const ManageEvents = () => {
   const [user, setUser] = useState(null);
   const [clubs, setClubs] = useState([]);
   const [events, setEvents] = useState([]);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState({});
-  const [newEvent, setNewEvent] = useState({ title: "", date: "", description: "", clubId: "" });
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const token = localStorage.getItem("token");
-        if (!token) {
-          navigate("/login");
-          return;
-        }
-
-        const config = { headers: { Authorization: `Bearer ${token}` } };
-        const [userResponse, clubsResponse, eventsResponse] = await Promise.all([
-          axios.get("http://localhost:5000/api/auth/user", config),
-          axios.get("http://localhost:5000/api/clubs", config),
-          axios.get("http://localhost:5000/api/events", config).catch(() => ({ data: [] })),
-        ]);
-
-        setUser(userResponse.data);
-        const filteredClubs = clubsResponse.data.filter((club) =>
-          userResponse.data.headCoordinatorClubs?.includes(club.name)
-        );
-        setClubs(filteredClubs);
-        setEvents(eventsResponse.data);
-      } catch (err) {
-        console.error("Error fetching data:", err);
-        if (err.response?.status === 401 || err.response?.status === 403) {
-          localStorage.removeItem("token");
-          navigate("/login");
-        } else {
-          setError(err.response?.data?.error || "Failed to load data. Please try again.");
-        }
-      } finally {
-        setIsLoading(false);
+  // Debounced fetchData to prevent race conditions
+  const fetchData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("No authentication token found. Please log in.");
+        navigate("/login");
+        return;
       }
-    };
-    fetchData();
+
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const [userResponse, clubsResponse, eventsResponse] = await Promise.all([
+        axios
+          .get("http://localhost:5000/api/auth/user", config)
+          .catch(() => ({ data: null })),
+        axios
+          .get("http://localhost:5000/api/clubs", config)
+          .catch(() => ({ data: [] })),
+        axios
+          .get("http://localhost:5000/api/events", config)
+          .catch(() => ({ data: [] })),
+      ]);
+
+      const userData = userResponse.data;
+      if (!userData || !userData._id) {
+        setError("Failed to load user data.");
+        navigate("/login");
+        return;
+      }
+      setUser(userData);
+
+      // Debug logging
+      console.log("ManageEvents - User:", {
+        _id: userData._id || "null",
+        name: userData.name || "null",
+        isAdmin: userData.isAdmin || false,
+        headCoordinatorClubs: userData.headCoordinatorClubs || [],
+      });
+      console.log("ManageEvents - All Clubs:", clubsResponse.data || []);
+      console.log("ManageEvents - All Events:", eventsResponse.data || []);
+
+      // Determine user role
+      const isGlobalAdmin = userData.isAdmin === true;
+      const isSuperAdmin = (clubsResponse.data || []).some((club) =>
+        club?.superAdmins?.some(
+          (admin) => admin?._id?.toString() === userData._id?.toString()
+        )
+      );
+      const isAdmin = (userData.headCoordinatorClubs || []).length > 0;
+
+      console.log("ManageEvents - Roles:", {
+        isGlobalAdmin,
+        isSuperAdmin,
+        isAdmin,
+      });
+
+      // Filter clubs
+      let filteredClubs = [];
+      if (isGlobalAdmin) {
+        filteredClubs = clubsResponse.data || [];
+        console.log("ManageEvents - Showing all clubs for global admin");
+      } else if (isSuperAdmin) {
+        filteredClubs = (clubsResponse.data || []).filter((club) =>
+          club?.superAdmins?.some(
+            (admin) => admin?._id?.toString() === userData._id?.toString()
+          )
+        );
+        console.log(
+          "ManageEvents - Filtered clubs for SuperAdmin:",
+          filteredClubs
+        );
+      } else if (isAdmin) {
+        filteredClubs = (clubsResponse.data || []).filter((club) =>
+          (userData.headCoordinatorClubs || []).includes(club?.name)
+        );
+        console.log("ManageEvents - Filtered clubs for Admin:", filteredClubs);
+      } else {
+        console.log("ManageEvents - No clubs for user");
+      }
+
+      setClubs(filteredClubs);
+
+      // Filter events
+      let filteredEvents = eventsResponse.data || [];
+      if (isGlobalAdmin) {
+        console.log("ManageEvents - Showing all events for global admin");
+      } else if (isSuperAdmin || isAdmin) {
+        const managedClubIds = filteredClubs
+          .map((club) => club?._id?.toString())
+          .filter(Boolean);
+        filteredEvents = filteredEvents.filter((event) => {
+          const clubId =
+            event.club?._id?.toString() || event.clubId?.toString();
+          return clubId && managedClubIds.includes(clubId);
+        });
+        console.log("ManageEvents - Filtered events:", filteredEvents);
+      } else {
+        filteredEvents = [];
+        console.log("ManageEvents - No events for user");
+      }
+
+      // Enhance events with club names
+      const eventsWithClubNames = filteredEvents.map((event, index) => {
+        const club = (clubsResponse.data || []).find((c) => {
+          const cId = c?._id?.toString();
+          const eId = event.club?._id?.toString() || event.clubId?.toString();
+          return cId === eId;
+        });
+        return {
+          ...event,
+          _id: event._id || `event-${index}`, // Fallback key
+          clubName: club?.name || "Unknown Club",
+          banner: event.banner || null,
+        };
+      });
+
+      setEvents(eventsWithClubNames);
+      console.log(
+        "ManageEvents - Filtered Events with Club Names:",
+        eventsWithClubNames
+      );
+
+      if (
+        filteredEvents.length === 0 &&
+        !isGlobalAdmin &&
+        !isSuperAdmin &&
+        !isAdmin
+      ) {
+        setError("No events found for your role.");
+      }
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        localStorage.removeItem("token");
+        setError("Session expired or unauthorized. Please log in again.");
+        navigate("/login");
+      } else {
+        setError(
+          err.response?.data?.error || err.message || "Failed to load data."
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
   }, [navigate]);
 
-  const handleCreateEvent = async (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleDelete = async (eventId, eventTitle) => {
+    if (
+      !window.confirm(
+        `Delete event "${eventTitle || "Untitled"}"? This cannot be undone.`
+      )
+    ) {
+      return;
+    }
     try {
-      setActionLoading((prev) => ({ ...prev, createEvent: true }));
       const token = localStorage.getItem("token");
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      const response = await axios.post("http://localhost:5000/api/events", newEvent, config);
-      setEvents((prev) => [...prev, response.data]);
-      setNewEvent({ title: "", date: "", description: "", clubId: "" });
-      setError("Event created successfully!");
+      if (!token) throw new Error("No authentication token found");
+      await axios.delete(`http://localhost:5000/api/events/${eventId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setEvents((prev) => prev.filter((event) => event._id !== eventId));
+      setSuccess("Event deleted successfully.");
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to create event.");
-    } finally {
-      setActionLoading((prev) => ({ ...prev, createEvent: false }));
+      console.error("Delete error:", err);
+      setError(
+        err.response?.data?.error || err.message || "Failed to delete event."
+      );
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-gray-100 flex items-center justify-center z-50">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="w-8 h-8 border-4 border-[#456882] border-t-transparent rounded-full"
+        />
+      </div>
+    );
+  }
+
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gray-50 text-gray-900 font-[Poppins]">
-        {isLoading && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50"
-          >
-            <FaSpinner className="text-4xl text-teal-600 animate-spin" style={{ color: '#456882' }} />
-          </motion.div>
-        )}
-        <Navbar user={user} role="admin" />
-        <section className="py-12 bg-gradient-to-br from-teal-50 to-gray-50">
-          <div className="container mx-auto px-2 sm:px-4">
-            <motion.h2
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="text-3xl font-bold text-center mb-8 text-teal-600"
-              style={{ color: '#456882' }}
-            >
-              Host a New Event
-            </motion.h2>
-            <motion.form
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="max-w-lg mx-auto bg-white p-6 rounded-xl shadow-lg border border-gray-200"
-              onSubmit={handleCreateEvent}
-            >
-              <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-semibold mb-2" htmlFor="event-title">
-                  Event Title
-                </label>
-                <input
-                  id="event-title"
-                  type="text"
-                  value={newEvent.title}
-                  onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-600"
-                  style={{ borderColor: '#456882' }}
-                  required
-                  aria-label="Event Title"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-semibold mb-2" htmlFor="event-date">
-                  Date
-                </label>
-                <input
-                  id="event-date"
-                  type="date"
-                  value={newEvent.date}
-                  onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-600"
-                  style={{ borderColor: '#456882' }}
-                  required
-                  aria-label="Event Date"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-semibold mb-2" htmlFor="event-description">
-                  Description
-                </label>
-                <textarea
-                  id="event-description"
-                  value={newEvent.description}
-                  onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-600"
-                  style={{ borderColor: '#456882' }}
-                  rows="4"
-                  required
-                  aria-label="Event Description"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-semibold mb-2" htmlFor="event-club">
-                  Club
-                </label>
-                <select
-                  id="event-club"
-                  value={newEvent.clubId}
-                  onChange={(e) => setNewEvent({ ...newEvent, clubId: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-600"
-                  style={{ borderColor: '#456882' }}
-                  required
-                  aria-label="Select Club"
-                >
-                  <option value="">Select a Club</option>
-                  {clubs.map((club) => (
-                    <option key={club._id} value={club._id}>
-                      {club.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <motion.button
-                type="submit"
-                disabled={actionLoading.createEvent}
-                whileHover={{ scale: actionLoading.createEvent ? 1 : 1.05 }}
-                whileTap={{ scale: actionLoading.createEvent ? 1 : 0.95 }}
-                className={`w-full px-6 py-3 rounded-full font-semibold transition ${
-                  actionLoading.createEvent ? 'bg-gray-400 text-gray-700 cursor-not-allowed' : 'bg-teal-600 text-white hover:bg-teal-700'
-                }`}
-                style={{ backgroundColor: actionLoading.createEvent ? '#d1d5db' : '#456882' }}
-                aria-label="Create Event"
-              >
-                {actionLoading.createEvent ? (
-                  <FaSpinner className="animate-spin inline-block mr-2" />
-                ) : (
-                  <FaPlus className="inline-block mr-2" />
-                )}
-                Create Event
-              </motion.button>
-            </motion.form>
+      <div className="min-h-screen bg-gray-100 text-gray-900 font-[Poppins]">
+        <Navbar
+          user={user}
+          role={
+            user?.isAdmin
+              ? "admin"
+              : user?.headCoordinatorClubs?.length > 0
+              ? "admin"
+              : "superAdmin"
+          }
+        />
+        <section className="py-12 bg-gray-100">
+          <div className="container mx-auto px-4 sm:px-6">
+            {user && clubs && (
+              <HostEventForm
+                user={user}
+                clubs={clubs}
+                onSuccess={(msg, newEvent) => {
+                  setSuccess(msg);
+                  setEvents((prev) => {
+                    const club = clubs.find(
+                      (c) =>
+                        c?._id?.toString() ===
+                        (newEvent.club?._id?.toString() ||
+                          newEvent.clubId?.toString())
+                    );
+                    return [
+                      {
+                        ...newEvent,
+                        clubName: club?.name || "Unknown Club",
+                        banner: newEvent.banner || null,
+                      },
+                      ...prev,
+                    ];
+                  });
+                }}
+                onError={setError}
+              />
+            )}
           </div>
         </section>
         <section className="py-12 bg-white">
-          <div className="container mx-auto px-2 sm:px-4">
+          <div className="container mx-auto px-4 sm:px-6">
             <motion.h2
-              initial={{ opacity: 0, y: 50 }}
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
-              className="text-3xl font-bold text-center mb-8 text-teal-600"
-              style={{ color: '#456882' }}
+              className="text-2xl font-semibold text-[#456882] text-center mb-6"
             >
               Manage Events
             </motion.h2>
@@ -265,47 +615,76 @@ const ManageEvents = () => {
                 transition={{ duration: 0.5 }}
                 className="text-center"
               >
-                <p className="text-gray-700 mb-4 text-lg">No events found.</p>
+                <p className="text-gray-600 text-sm sm:text-base mb-4">
+                  No events found.
+                </p>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-6 py-3 bg-teal-600 text-white rounded-full transition-all"
-                  style={{ backgroundColor: '#456882' }}
-                  onClick={() => document.getElementById('event-title').focus()}
+                  className="px-6 py-2 bg-[#456882] text-white rounded-lg hover:bg-[#334d5e] text-sm sm:text-sm"
+                  onClick={() =>
+                    document.querySelector('input[name="title"]')?.focus()
+                  }
                   aria-label="Create New Event"
                 >
                   Create New Event
                 </motion.button>
               </motion.div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-6">
-                {events.map((event) => (
-                  <EventCard key={event._id} event={event} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {events.map((event, index) => (
+                  <EventCard
+                    key={event._id || `event-${index}`}
+                    event={event}
+                    onDelete={handleDelete}
+                  />
                 ))}
               </div>
             )}
           </div>
         </section>
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="fixed bottom-4 right-4 bg-teal-600 text-white rounded-lg p-4 shadow-lg"
-            style={{ backgroundColor: '#456882' }}
-          >
-            <p className="text-sm">{error}</p>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="mt-2 text-white underline"
-              onClick={() => setError("")}
-              aria-label="Dismiss error"
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="fixed bottom-4 right-4 bg-red-600 text-white rounded-lg p-4 shadow-lg text-sm"
             >
-              Dismiss
-            </motion.button>
-          </motion.div>
-        )}
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                <p>{error}</p>
+              </div>
+              <button
+                onClick={() => setError("")}
+                className="absolute top-2 right-2"
+                aria-label="Dismiss error"
+              >
+                <XCircle className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+          {success && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="fixed bottom-4 right-4 bg-green-600 text-white rounded-lg p-4 shadow-lg text-sm"
+            >
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4" />
+                <p>{success}</p>
+              </div>
+              <button
+                onClick={() => setSuccess("")}
+                className="absolute top-2 right-2"
+                aria-label="Dismiss success"
+              >
+                <XCircle className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </ErrorBoundary>
   );

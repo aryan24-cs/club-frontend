@@ -15,6 +15,7 @@ import {
   Edit3,
   Trash2,
   Eye,
+  ChevronRight,
 } from "lucide-react";
 import Navbar from "./Navbar";
 
@@ -72,20 +73,23 @@ const ClubCard = memo(({ club, onEdit, onDelete, onView }) => (
   <motion.div
     initial={{ opacity: 0, scale: 0.98 }}
     animate={{ opacity: 1, scale: 1 }}
-    whileHover={{ y: -4 }}
-    className="bg-white rounded-xl shadow-sm border border-gray-100 group"
+    whileHover={{ y: -8, transition: { duration: 0.3 } }}
+    className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 group"
   >
-    <div className="relative h-24 bg-gradient-to-r from-[#456882] to-[#5a7a98]">
+    <div className="relative overflow-hidden">
       <img
-        src={
-          club.banner
-            ? `http://localhost:5000${club.banner}`
-            : "https://via.placeholder.com/400x96"
-        }
-        alt={club.name || "Club Banner"}
-        className="w-full h-full object-cover opacity-30"
+        src={club.icon || "https://via.placeholder.com/400x200"}
+        alt={club.name || "Club Icon"}
+        className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
+        onError={(e) => {
+          e.target.src = "https://via.placeholder.com/400x200";
+          console.warn(
+            `Failed to load icon for club ${club.name}: ${club.icon}`
+          );
+        }}
       />
-      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+      <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           onClick={() => onView(club)}
           className="p-1 bg-white/20 rounded-full hover:bg-white/30"
@@ -105,38 +109,36 @@ const ClubCard = memo(({ club, onEdit, onDelete, onView }) => (
           <Trash2 className="w-4 h-4 text-white" />
         </button>
       </div>
-    </div>
-    <div className="p-4">
-      <div className="flex items-center gap-2 mb-2">
-        <img
-          src={
-            club.icon
-              ? `http://localhost:5000${club.icon}`
-              : "https://via.placeholder.com/40x40"
-          }
-          alt={club.name || "Club Icon"}
-          className="w-10 h-10 rounded-lg object-cover border border-[#456882]"
-        />
-        <div>
-          <h3 className="text-base font-semibold text-[#456882]">
-            {club.name || "Unnamed Club"}
-          </h3>
-          <p className="text-xs text-gray-500">{club.category || "General"}</p>
-        </div>
+      <div className="absolute top-4 left-4">
+        <span className="bg-[#456882] text-white px-3 py-1 rounded-full text-sm font-medium">
+          {club.category || "General"}
+        </span>
       </div>
-      <p className="text-xs text-gray-600 line-clamp-2 mb-3">
+    </div>
+    <div className="p-6">
+      <h3 className="text-xl font-bold text-[#456882] mb-2 group-hover:text-[#334d5e] transition-colors">
+        {club.name || "Unnamed Club"}
+      </h3>
+      <p className="text-gray-600 text-sm mb-4 line-clamp-2">
         {club.description || "No description available"}
       </p>
-      <div className="flex items-center justify-between text-xs text-gray-500">
+      <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
         <div className="flex items-center gap-1">
-          <Users className="w-3 h-3" />
+          <Users className="w-4 h-4" />
           <span>{club.memberCount || 0} members</span>
         </div>
         <div className="flex items-center gap-1">
-          <Calendar className="w-3 h-3" />
+          <Calendar className="w-4 h-4" />
           <span>{club.eventsCount || 0} events</span>
         </div>
       </div>
+      <Link
+        to={`/clubs/${club._id}`}
+        className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#456882] to-[#5a7a98] text-white rounded-full hover:from-[#334d5e] hover:to-[#456882] transition-all duration-300 group-hover:shadow-lg transform group-hover:scale-105"
+      >
+        <span className="font-medium">View Club</span>
+        <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+      </Link>
     </div>
   </motion.div>
 ));
@@ -191,206 +193,6 @@ const MembershipRequestCard = memo(({ request, onApprove, onReject }) => (
   </motion.div>
 ));
 
-// Host Event Form Component
-const HostEventForm = memo(({ user, clubs, onSuccess, onError }) => {
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    date: "",
-    time: "",
-    location: "",
-    club: "",
-    banner: null,
-  });
-  const [submitting, setSubmitting] = useState(false);
-
-  const eligibleClubs = clubs.filter((club) =>
-    club.superAdmins?.some((admin) => admin?._id === user._id)
-  );
-
-  console.log("Clubs in HostEventForm:", clubs);
-  console.log("Eligible clubs:", eligibleClubs);
-  console.log("User ID:", user._id);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      const token = localStorage.getItem("token");
-      const formPayload = new FormData();
-      Object.entries(formData).forEach(([key, value]) => {
-        if (key === "banner" && value) {
-          formPayload.append(key, value);
-        } else if (value) {
-          formPayload.append(key, value);
-        }
-      });
-
-      const response = await axios.post(
-        "http://localhost:5000/api/events",
-        formPayload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      setFormData({
-        title: "",
-        description: "",
-        date: "",
-        time: "",
-        location: "",
-        club: "",
-        banner: null,
-      });
-      onSuccess("Event created successfully!");
-    } catch (err) {
-      onError(err.response?.data?.error || "Failed to create event.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value, files } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: files ? files[0] : value,
-    }));
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-xl shadow-sm p-4"
-    >
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        Host an Event
-      </h3>
-      {eligibleClubs.length === 0 ? (
-        <p className="text-sm text-gray-500">
-          You are not a super admin for any club.
-        </p>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Event Title
-            </label>
-            <input
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleInputChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
-              placeholder="Enter event title"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Description
-            </label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
-              placeholder="Describe the event"
-              rows="3"
-            />
-          </div>
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700">
-                Date
-              </label>
-              <input
-                type="date"
-                name="date"
-                value={formData.date}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
-              />
-            </div>
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700">
-                Time
-              </label>
-              <input
-                type="time"
-                name="time"
-                value={formData.time}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Location
-            </label>
-            <input
-              type="text"
-              name="location"
-              value={formData.location}
-              onChange={handleInputChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
-              placeholder="Enter event location"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Club
-            </label>
-            <select
-              name="club"
-              value={formData.club}
-              onChange={handleInputChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
-            >
-              <option value="">Select a club</option>
-              {eligibleClubs.map((club) => (
-                <option key={club._id} value={club._id}>
-                  {club.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Banner Image
-            </label>
-            <input
-              type="file"
-              name="banner"
-              onChange={handleInputChange}
-              accept="image/*"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full px-4 py-2 bg-[#456882] text-white rounded-lg hover:bg-[#334d5e] disabled:bg-gray-400 transition-colors"
-          >
-            {submitting ? "Creating..." : "Create Event"}
-          </button>
-        </form>
-      )}
-    </motion.div>
-  );
-});
-
 const SuperAdminDashboard = () => {
   const [user, setUser] = useState(null);
   const [clubs, setClubs] = useState([]);
@@ -427,19 +229,39 @@ const SuperAdminDashboard = () => {
           "http://localhost:5000/api/clubs",
           config
         );
-        setClubs(clubsResponse.data);
-        console.log("User data:", userResponse.data);
-        console.log("Clubs data:", clubsResponse.data);
+        const processedClubs = clubsResponse.data.map((club) => ({
+          ...club,
+          memberCount: club.memberCount || 0,
+          eventsCount: club.eventsCount || 0,
+        }));
+        setClubs(processedClubs);
+
+        // Debug logging for clubs
+        console.log("SuperAdminDashboard - User:", userResponse.data);
+        console.log("SuperAdminDashboard - Clubs:", processedClubs);
+        processedClubs.forEach((club, index) => {
+          console.log(`Club ${index + 1}:`, {
+            name: club.name,
+            icon: club.icon,
+            banner: club.banner,
+            superAdmins: club.superAdmins?.map((admin) => ({
+              id: admin._id?.toString(),
+              name: admin.name,
+              email: admin.email,
+            })),
+          });
+        });
 
         // Check if user is a super admin
         const isSuperAdmin =
           userResponse.data.isAdmin ||
           clubsResponse.data.some((club) =>
             club.superAdmins?.some(
-              (admin) => admin?._id === userResponse.data._id
+              (admin) =>
+                admin?._id?.toString() === userResponse.data._id?.toString()
             )
           );
-        console.log("Is super admin:", isSuperAdmin);
+        console.log("SuperAdminDashboard - Is super admin:", isSuperAdmin);
 
         if (!isSuperAdmin) {
           setError("You do not have super admin access.");
@@ -579,9 +401,6 @@ const SuperAdminDashboard = () => {
                   ))}
                 </div>
               </div>
-              <div className="space-y-6">
-                <div className="h-48 bg-gray-200 rounded-xl"></div>
-              </div>
             </div>
           </div>
         </div>
@@ -607,16 +426,25 @@ const SuperAdminDashboard = () => {
                 </h1>
                 <p className="text-sm text-gray-600">
                   Welcome, {user?.name || "Super Admin"}! Manage clubs and
-                  events.
+                  membership requests.
                 </p>
               </div>
-              <Link
-                to="/create-club"
-                className="flex items-center gap-2 px-4 py-2 bg-[#456882] text-white rounded-lg hover:bg-[#334d5e]"
-              >
-                <Plus className="w-4 h-4" />
-                Create Club
-              </Link>
+              <div className="flex gap-2">
+                <Link
+                  to="/create-club"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#456882] text-white rounded-lg hover:bg-[#334d5e]"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Club
+                </Link>
+                <Link
+                  to="/manage-events"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#456882] text-white rounded-lg hover:bg-[#334d5e]"
+                >
+                  <Calendar className="w-4 h-4" />
+                  Manage Events
+                </Link>
+              </div>
             </div>
           </motion.div>
 
@@ -688,14 +516,6 @@ const SuperAdminDashboard = () => {
           {/* Main Content */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
-              {/* Host Event */}
-              <HostEventForm
-                user={user}
-                clubs={clubs}
-                onSuccess={setSuccess}
-                onError={setError}
-              />
-
               {/* Clubs */}
               <div>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">

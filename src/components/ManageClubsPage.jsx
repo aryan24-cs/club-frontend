@@ -10,22 +10,39 @@ const ClubCard = ({ club, handleDelete }) => (
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.5 }}
-    className="p-6 bg-white rounded-lg shadow-md border border-gray-200"
+    className="p-6 bg-white rounded-2xl shadow-lg border border-gray-200 hover:shadow-2xl transition-all duration-300 group"
   >
-    <div className="flex items-center gap-3 mb-3">
-      <FaBuilding
-        className="text-teal-600 text-xl"
-        style={{ color: "#456882" }}
+    <div className="relative overflow-hidden mb-4">
+      <img
+        src={club.icon || "https://via.placeholder.com/400x200"}
+        alt={club.name || "Club Icon"}
+        className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
+        onError={(e) => {
+          e.target.src = "https://via.placeholder.com/400x200";
+          console.warn(
+            `Failed to load icon for club ${club.name}: ${club.icon}`
+          );
+        }}
       />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+      <div className="absolute top-4 left-4">
+        <span className="bg-[#456882] text-white px-3 py-1 rounded-full text-sm font-medium">
+          {club.category || "General"}
+        </span>
+      </div>
+    </div>
+    <div className="flex items-center gap-3 mb-3">
+      <FaBuilding className="text-[#456882] text-xl" />
       <h4 className="text-lg font-semibold text-gray-900">{club.name}</h4>
     </div>
-    <p className="text-gray-600 text-sm mb-2">{club.description}</p>
+    <p className="text-gray-600 text-sm mb-2 line-clamp-2">
+      {club.description}
+    </p>
     <p className="text-gray-500 text-sm">Members: {club.memberCount || 0}</p>
     <div className="flex gap-2 mt-3">
       <Link
-        to={`/clubs/${club.name}/edit`}
-        className="px-4 py-1 rounded-full font-semibold text-teal-600 hover:bg-teal-50 transition"
-        style={{ color: "#456882" }}
+        to={`/clubs/${club._id}/edit`} // Changed to use _id for consistency
+        className="px-4 py-1 rounded-full font-semibold text-[#456882] hover:bg-[#456882]/10 transition"
         aria-label={`Edit ${club.name}`}
       >
         <FaEdit className="inline-block mr-1" /> Edit
@@ -56,6 +73,7 @@ const ManageClubsPage = () => {
         setIsLoading(true);
         const token = localStorage.getItem("token");
         if (!token) {
+          setError("No authentication token found. Please log in.");
           navigate("/login");
           return;
         }
@@ -66,29 +84,86 @@ const ManageClubsPage = () => {
           axios.get("http://localhost:5000/api/clubs", config),
         ]);
 
-        setUser(userResponse.data);
-        const filteredClubs = clubsResponse.data
-          .filter((club) =>
-            userResponse.data.headCoordinatorClubs?.includes(club.name)
+        const userData = userResponse.data;
+        setUser(userData);
+
+        // Debug logging
+        console.log("ManageClubsPage - User:", {
+          _id: userData._id,
+          name: userData.name,
+          isAdmin: userData.isAdmin,
+          headCoordinatorClubs: userData.headCoordinatorClubs,
+        });
+        console.log("ManageClubsPage - All Clubs:", clubsResponse.data);
+
+        // Filter clubs based on user role
+        let filteredClubs = [];
+        if (userData.isAdmin) {
+          // Global admin sees all clubs
+          filteredClubs = clubsResponse.data;
+          console.log("ManageClubsPage - Showing all clubs for global admin");
+        } else if (
+          clubsResponse.data.some((club) =>
+            club.superAdmins?.some(
+              (admin) => admin?._id?.toString() === userData._id?.toString()
+            )
           )
-          .map(async (club) => {
+        ) {
+          // SuperAdmin sees clubs where they are listed in superAdmins
+          filteredClubs = clubsResponse.data.filter((club) =>
+            club.superAdmins?.some(
+              (admin) => admin?._id?.toString() === userData._id?.toString()
+            )
+          );
+          console.log(
+            "ManageClubsPage - Showing clubs for SuperAdmin based on superAdmins"
+          );
+        } else if (userData.headCoordinatorClubs?.length > 0) {
+          // Admin sees clubs in headCoordinatorClubs
+          filteredClubs = clubsResponse.data.filter((club) =>
+            userData.headCoordinatorClubs.includes(club.name)
+          );
+          console.log(
+            "ManageClubsPage - Showing clubs for Admin based on headCoordinatorClubs"
+          );
+        } else {
+          console.log("ManageClubsPage - No eligible clubs found for user");
+        }
+
+        // Fetch member counts for filtered clubs
+        const clubsWithMembers = await Promise.all(
+          filteredClubs.map(async (club) => {
             try {
               const membersResponse = await axios.get(
                 `http://localhost:5000/api/clubs/${club._id}/members`,
                 config
               );
               return { ...club, memberCount: membersResponse.data.length };
-            } catch {
+            } catch (err) {
+              console.warn(
+                `Failed to fetch members for club ${club.name}:`,
+                err
+              );
               return { ...club, memberCount: 0 };
             }
-          });
-        const clubsWithMembers = await Promise.all(filteredClubs);
+          })
+        );
+
         setClubs(clubsWithMembers);
+        console.log(
+          "ManageClubsPage - Filtered Clubs with Members:",
+          clubsWithMembers
+        );
+
+        if (clubsWithMembers.length === 0) {
+          setError("No clubs found for your role.");
+        }
       } catch (err) {
         console.error("Error fetching data:", err);
         setError(err.response?.data?.error || "Failed to load clubs.");
         if (err.response?.status === 401 || err.response?.status === 403) {
           localStorage.removeItem("token");
+          setError("Session expired or unauthorized. Please log in again.");
           navigate("/login");
         }
       } finally {
@@ -120,24 +195,18 @@ const ManageClubsPage = () => {
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50"
         >
-          <FaSpinner
-            className="text-4xl text-teal-600 animate-spin"
-            style={{ color: "#456882" }}
-          />
+          <FaSpinner className="text-4xl text-[#456882] animate-spin" />
         </motion.div>
       )}
-      <Navbar user={user} role="admin" />
+      <Navbar user={user} role={user?.isAdmin ? "admin" : "superAdmin"} />
       <motion.section
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="py-12 bg-gradient-to-br from-teal-50 to-gray-50"
+        className="py-12 bg-gradient-to-br from-[#456882]/10 to-gray-50"
       >
         <div className="container mx-auto px-4">
-          <h2
-            className="text-3xl font-bold text-center mb-8 text-teal-600"
-            style={{ color: "#456882" }}
-          >
+          <h2 className="text-3xl font-bold text-center mb-8 text-[#456882]">
             Manage Clubs
           </h2>
           {clubs.length === 0 ? (
@@ -146,7 +215,11 @@ const ManageClubsPage = () => {
               animate={{ opacity: 1 }}
               className="text-center"
             >
-              <p className="text-gray-700 text-lg">No clubs found.</p>
+              <p className="text-gray-700 text-lg">
+                {isLoading
+                  ? "Loading clubs..."
+                  : "No clubs found for your role."}
+              </p>
             </motion.div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -166,8 +239,7 @@ const ManageClubsPage = () => {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          className="fixed bottom-4 right-4 bg-teal-600 text-white rounded-lg p-4 shadow-lg"
-          style={{ backgroundColor: "#456882" }}
+          className="fixed bottom-4 right-4 bg-[#456882] text-white rounded-lg p-4 shadow-lg"
         >
           <p className="text-sm">{error}</p>
           <motion.button
