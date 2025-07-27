@@ -12,6 +12,8 @@ import {
   LogOut,
   Menu,
   X,
+  BookOpen,
+  MessageSquare,
 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
@@ -160,7 +162,7 @@ const Navbar = memo(() => {
         setUser(response.data);
         if (response.data.isAdmin) {
           setRole("superadmin");
-        } else if (response.data.isHeadCoordinator) {
+        } else if (response.data.headCoordinatorClubs?.length > 0) {
           setRole("admin");
         } else {
           setRole("user");
@@ -209,7 +211,11 @@ const Navbar = memo(() => {
         label: "Dashboard",
         icon: <Home className="w-5 h-5 mr-2" />,
       },
-      { to: "/clubs", label: "Clubs", icon: <User className="w-5 h-5 mr-2" /> },
+      {
+        to: "/clubs",
+        label: "Clubs",
+        icon: <Users className="w-5 h-5 mr-2" />,
+      },
       {
         to: "/events",
         label: "Events",
@@ -226,6 +232,11 @@ const Navbar = memo(() => {
         to: "/admin/events",
         label: "Events",
         icon: <Calendar className="w-5 h-5 mr-2" />,
+      },
+      {
+        to: "/attendance",
+        label: "Attendance",
+        icon: <BookOpen className="w-5 h-5 mr-2" />,
       },
       {
         to: "/admin/activities",
@@ -246,6 +257,11 @@ const Navbar = memo(() => {
         to: "/clubs",
         label: "Clubs",
         icon: <Users className="w-5 h-5 mr-2" />,
+      },
+      {
+        to: "/contact-manage",
+        label: "Messages",
+        icon: <MessageSquare className="w-5 h-5 mr-2" />,
       },
     ],
     superadmin: [
@@ -270,6 +286,11 @@ const Navbar = memo(() => {
         icon: <Calendar className="w-5 h-5 mr-2" />,
       },
       {
+        to: "/attendance",
+        label: "Attendance",
+        icon: <BookOpen className="w-5 h-5 mr-2" />,
+      },
+      {
         to: "/admin/activities",
         label: "Activities",
         icon: <Settings className="w-5 h-5 mr-2" />,
@@ -283,6 +304,11 @@ const Navbar = memo(() => {
         to: "/clubs",
         label: "Clubs",
         icon: <Users className="w-5 h-5 mr-2" />,
+      },
+      {
+        to: "/contact-manage",
+        label: "Messages",
+        icon: <MessageSquare className="w-5 h-5 mr-2" />,
       },
     ],
   }[role] || [

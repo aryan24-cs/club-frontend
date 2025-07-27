@@ -309,7 +309,7 @@ const AnimatedRoutes = () => {
             }
           />
           <Route
-            path="/satyam"
+            path="/contact-manage"
             element={
               <RoleBasedRoute roles={["super-admin", "admin"]}>
                 <Layout>

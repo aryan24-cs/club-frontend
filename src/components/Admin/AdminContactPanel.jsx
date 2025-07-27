@@ -27,6 +27,7 @@ import {
   Send,
   ArrowLeft,
 } from "lucide-react";
+import Navbar from "../Navbar";
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -586,6 +587,7 @@ const AdminContactPanel = () => {
 
   return (
     <ErrorBoundary>
+      <Navbar  />
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
           {/* Header */}

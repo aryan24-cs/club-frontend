@@ -21,13 +21,14 @@ import {
   BookOpen,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import Navbar from "../Navbar";
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
-  state = { hasError: false };
+  state = { hasError: false, error: null };
 
-  static getDerivedStateFromError() {
-    return { hasError: true };
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
   }
 
   render() {
@@ -36,8 +37,12 @@ class ErrorBoundary extends React.Component {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="bg-red-50 border border-red-200 rounded-xl p-8 max-w-md mx-auto text-center">
             <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-red-700 mb-2">Something went wrong</h2>
-            <p className="text-red-600 mb-4">Please try refreshing the page.</p>
+            <h2 className="text-xl font-semibold text-red-700 mb-2">
+              Something went wrong
+            </h2>
+            <p className="text-red-600 mb-4">
+              {this.state.error?.message || "Please try refreshing the page."}
+            </p>
             <button
               onClick={() => window.location.reload()}
               className="px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
@@ -53,21 +58,29 @@ class ErrorBoundary extends React.Component {
 }
 
 // Stats Card Component
-const StatsCard = memo(({ title, value, icon: Icon, color = "text-[#456882]", bgColor = "bg-white" }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    className={`${bgColor} rounded-xl shadow-sm p-4 border border-gray-100 transition-all duration-300 hover:shadow-md`}
-  >
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-sm text-gray-600">{title}</p>
-        <h3 className="text-lg font-semibold text-gray-900">{value}</h3>
+const StatsCard = memo(
+  ({
+    title,
+    value,
+    icon: Icon,
+    color = "text-[#456882]",
+    bgColor = "bg-white",
+  }) => (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`${bgColor} rounded-xl shadow-sm p-4 border border-gray-100 transition-all duration-300 hover:shadow-md`}
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-gray-600">{title}</p>
+          <h3 className="text-lg font-semibold text-gray-900">{value}</h3>
+        </div>
+        <Icon className={`w-6 h-6 ${color}`} />
       </div>
-      <Icon className={`w-6 h-6 ${color}`} />
-    </div>
-  </motion.div>
-));
+    </motion.div>
+  )
+);
 
 // Member Card Component
 const MemberCard = memo(({ member, attendance, onToggleAttendance, index }) => {
@@ -82,11 +95,12 @@ const MemberCard = memo(({ member, attendance, onToggleAttendance, index }) => {
       transition={{ delay: index * 0.05 }}
       className={`
         flex items-center justify-between p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer group
-        ${isPresent 
-          ? "bg-green-50 border-green-200 shadow-green-100/50" 
-          : isAbsent
-          ? "bg-red-50 border-red-200 shadow-red-100/50"
-          : "bg-white border-gray-200 hover:border-[#456882]/30 hover:shadow-lg"
+        ${
+          isPresent
+            ? "bg-green-50 border-green-200 shadow-green-100/50"
+            : isAbsent
+            ? "bg-red-50 border-red-200 shadow-red-100/50"
+            : "bg-white border-gray-200 hover:border-[#456882]/30 hover:shadow-lg"
         }
       `}
       onClick={() => onToggleAttendance(member.id)}
@@ -96,10 +110,14 @@ const MemberCard = memo(({ member, attendance, onToggleAttendance, index }) => {
       <div className="flex items-center gap-4">
         <div className="relative">
           <div className="w-12 h-12 bg-gradient-to-br from-[#456882] to-[#5a7a98] rounded-xl flex items-center justify-center text-white text-lg font-semibold shadow-md">
-            {member.name.charAt(0).toUpperCase()}
+            {member.name?.charAt(0).toUpperCase() || "?"}
           </div>
           {isMarked && (
-            <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center ${isPresent ? "bg-green-500" : "bg-red-500"}`}>
+            <div
+              className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center ${
+                isPresent ? "bg-green-500" : "bg-red-500"
+              }`}
+            >
               {isPresent ? (
                 <CheckCircle2 className="w-3 h-3 text-white" />
               ) : (
@@ -109,14 +127,16 @@ const MemberCard = memo(({ member, attendance, onToggleAttendance, index }) => {
           )}
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">{member.name}</h3>
+          <h3 className="text-sm font-semibold text-gray-900">
+            {member.name || "Unknown"}
+          </h3>
           <p className="text-xs text-gray-500 flex items-center gap-1">
             <Hash className="w-3 h-3" />
             {member.rollNo || "N/A"}
           </p>
           <p className="text-xs text-gray-500 flex items-center gap-1">
             <User className="w-3 h-3" />
-            {member.email}
+            {member.email || "N/A"}
           </p>
         </div>
       </div>
@@ -155,6 +175,7 @@ const MemberCard = memo(({ member, attendance, onToggleAttendance, index }) => {
 });
 
 const AttendanceTracker = () => {
+  const [user, setUser] = useState(null);
   const [clubs, setClubs] = useState([]);
   const [selectedClub, setSelectedClub] = useState("");
   const [members, setMembers] = useState([]);
@@ -169,22 +190,98 @@ const AttendanceTracker = () => {
   const [attendanceHistory, setAttendanceHistory] = useState([]);
   const navigate = useNavigate();
 
-  // Fetch clubs
+  // Fetch user and clubs
   useEffect(() => {
-    const fetchClubs = async () => {
+    const fetchData = async () => {
       try {
         setIsLoading(true);
         const token = localStorage.getItem("token");
-        const response = await axios.get("http://localhost:5000/api/clubs", {
-          headers: { Authorization: `Bearer ${token}` },
+        if (!token) {
+          setError("No authentication token found. Please log in.");
+          navigate("/login");
+          return;
+        }
+
+        const config = { headers: { Authorization: `Bearer ${token}` } };
+        const [userResponse, clubsResponse] = await Promise.all([
+          axios
+            .get("http://localhost:5000/api/auth/user", config)
+            .catch(() => ({ data: null })),
+          axios
+            .get("http://localhost:5000/api/clubs", config)
+            .catch(() => ({ data: [] })),
+        ]);
+
+        const userData = userResponse.data;
+        if (!userData || !userData._id) {
+          setError("Failed to load user data.");
+          navigate("/login");
+          return;
+        }
+        setUser(userData);
+
+        // Debug logging
+        console.log("AttendanceTracker - User:", {
+          _id: userData._id || "null",
+          name: userData.name || "null",
+          isAdmin: userData.isAdmin || false,
+          headCoordinatorClubs: userData.headCoordinatorClubs || [],
         });
-        setClubs(response.data);
-        if (response.data.length > 0) {
-          setSelectedClub(response.data[0]._id);
+
+        // Filter clubs based on role
+        const isGlobalAdmin = userData.isAdmin === true;
+        const isSuperAdmin = clubsResponse.data.some((club) =>
+          club?.superAdmins?.some(
+            (admin) => admin?._id?.toString() === userData._id?.toString()
+          )
+        );
+        const isAdmin = (userData.headCoordinatorClubs || []).length > 0;
+
+        console.log("AttendanceTracker - Roles:", {
+          isGlobalAdmin,
+          isSuperAdmin,
+          isAdmin,
+        });
+
+        let filteredClubs = [];
+        if (isGlobalAdmin) {
+          filteredClubs = clubsResponse.data || [];
+          console.log("AttendanceTracker - Showing all clubs for global admin");
+        } else if (isSuperAdmin) {
+          filteredClubs = (clubsResponse.data || []).filter((club) =>
+            club?.superAdmins?.some(
+              (admin) => admin?._id?.toString() === userData._id?.toString()
+            )
+          );
+          console.log(
+            "AttendanceTracker - Filtered clubs for SuperAdmin:",
+            filteredClubs
+          );
+        } else if (isAdmin) {
+          filteredClubs = (clubsResponse.data || []).filter((club) =>
+            (userData.headCoordinatorClubs || []).includes(club?.name)
+          );
+          console.log(
+            "AttendanceTracker - Filtered clubs for Admin:",
+            filteredClubs
+          );
+        } else {
+          setError("You are not authorized to mark attendance.");
+          console.log("AttendanceTracker - No clubs for user");
+          navigate("/dashboard");
+          return;
+        }
+
+        setClubs(filteredClubs);
+        if (filteredClubs.length > 0) {
+          setSelectedClub(filteredClubs[0]._id || "");
         }
       } catch (err) {
-        setError("Failed to load clubs. Please try again.");
-        if (err.response?.status === 401) {
+        console.error("Error fetching data:", err);
+        setError(
+          err.response?.data?.error || err.message || "Failed to load data."
+        );
+        if (err.response?.status === 401 || err.response?.status === 403) {
           localStorage.removeItem("token");
           navigate("/login");
         }
@@ -192,7 +289,7 @@ const AttendanceTracker = () => {
         setIsLoading(false);
       }
     };
-    fetchClubs();
+    fetchData();
   }, [navigate]);
 
   // Fetch members for selected club
@@ -208,22 +305,27 @@ const AttendanceTracker = () => {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        const formattedMembers = response.data.map((member) => ({
-          id: member._id,
-          name: member.name,
-          email: member.email,
-          rollNo: member.rollNo,
+        const formattedMembers = (response.data || []).map((member) => ({
+          id: member._id || `member-${Math.random()}`, // Fallback ID
+          name: member.name || "Unknown",
+          email: member.email || "N/A",
+          rollNo: member.rollNo || "N/A",
         }));
         setMembers(formattedMembers);
         setAttendance(
-          formattedMembers.reduce((acc, member) => ({
-            ...acc,
-            [member.id]: null,
-          }), {})
+          formattedMembers.reduce(
+            (acc, member) => ({
+              ...acc,
+              [member.id]: null,
+            }),
+            {}
+          )
         );
+        console.log("AttendanceTracker - Members:", formattedMembers);
       } catch (err) {
+        console.error("Error fetching members:", err);
         setError("Failed to load members. Please try again.");
-        if (err.response?.status === 401) {
+        if (err.response?.status === 401 || err.response?.status === 403) {
           localStorage.removeItem("token");
           navigate("/login");
         }
@@ -244,10 +346,12 @@ const AttendanceTracker = () => {
         headers: { Authorization: `Bearer ${token}` },
         params: { club: selectedClub },
       });
-      setAttendanceHistory(response.data);
+      setAttendanceHistory(response.data || []);
+      console.log("AttendanceTracker - History:", response.data);
     } catch (err) {
+      console.error("Error fetching history:", err);
       setError("Failed to load attendance history.");
-      if (err.response?.status === 401) {
+      if (err.response?.status === 401 || err.response?.status === 403) {
         localStorage.removeItem("token");
         navigate("/login");
       }
@@ -278,10 +382,15 @@ const AttendanceTracker = () => {
   // Calculate stats
   const stats = useMemo(() => {
     const total = members.length;
-    const presentCount = Object.values(attendance).filter((s) => s === "present").length;
-    const absentCount = Object.values(attendance).filter((s) => s === "absent").length;
+    const presentCount = Object.values(attendance).filter(
+      (s) => s === "present"
+    ).length;
+    const absentCount = Object.values(attendance).filter(
+      (s) => s === "absent"
+    ).length;
     const totalMarked = presentCount + absentCount;
-    const attendanceRate = total > 0 ? ((presentCount / total) * 100).toFixed(1) : 0;
+    const attendanceRate =
+      total > 0 ? ((presentCount / total) * 100).toFixed(1) : 0;
     return { presentCount, absentCount, totalMarked, attendanceRate };
   }, [attendance, members]);
 
@@ -299,6 +408,7 @@ const AttendanceTracker = () => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem("token");
+      if (!token) throw new Error("No authentication token found");
       await axios.post(
         "http://localhost:5000/api/attendance",
         {
@@ -307,6 +417,7 @@ const AttendanceTracker = () => {
           lectureNumber: parseInt(lectureNumber),
           attendance,
           stats,
+          createdBy: user?._id,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -314,16 +425,22 @@ const AttendanceTracker = () => {
       );
       setSuccess("Attendance recorded successfully!");
       setAttendance(
-        members.reduce((acc, member) => ({
-          ...acc,
-          [member.id]: null,
-        }), {})
+        members.reduce(
+          (acc, member) => ({
+            ...acc,
+            [member.id]: null,
+          }),
+          {}
+        )
       );
       setTimeout(() => setSuccess(""), 3000);
       fetchAttendanceHistory();
     } catch (err) {
-      setError("Failed to save attendance. Please try again.");
-      if (err.response?.status === 401) {
+      console.error("Error saving attendance:", err);
+      setError(
+        err.response?.data?.error || err.message || "Failed to save attendance."
+      );
+      if (err.response?.status === 401 || err.response?.status === 403) {
         localStorage.removeItem("token");
         navigate("/login");
       }
@@ -338,9 +455,12 @@ const AttendanceTracker = () => {
     const query = searchQuery.toLowerCase();
     return members.filter(
       (member) =>
-        member.name.toLowerCase().includes(query) ||
-        (member.rollNo && member.rollNo.toLowerCase().includes(query)) ||
-        member.email.toLowerCase().includes(query)
+        member.name?.toLowerCase().includes(query) ||
+        false ||
+        member.rollNo?.toLowerCase().includes(query) ||
+        false ||
+        member.email?.toLowerCase().includes(query) ||
+        false
     );
   }, [members, searchQuery]);
 
@@ -348,24 +468,39 @@ const AttendanceTracker = () => {
   const downloadCSV = () => {
     const headers = ["Name", "Roll No", "Email", "Attendance"];
     const rows = filteredMembers.map((member) => [
-      `"${member.name}"`,
+      `"${member.name || "Unknown"}"`,
       `"${member.rollNo || "N/A"}"`,
-      `"${member.email}"`,
+      `"${member.email || "N/A"}"`,
       attendance[member.id] || "Not Marked",
     ]);
-    const csvContent = [headers, ...rows].map((row) => row.join(",")).join("\n");
+    const csvContent = [headers, ...rows]
+      .map((row) => row.join(","))
+      .join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `attendance_${selectedClub}_${date}_lecture${lectureNumber}.csv`);
+    link.setAttribute(
+      "download",
+      `attendance_${selectedClub}_${date}_lecture${lectureNumber}.csv`
+    );
     link.click();
     URL.revokeObjectURL(url);
   };
 
+  if (isLoading && !user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#456882] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   return (
     <ErrorBoundary>
+      <Navbar  />
       <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+        
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -425,68 +560,77 @@ const AttendanceTracker = () => {
                   <Filter className="w-5 h-5 text-[#456882]" />
                   Attendance Details
                 </h2>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Select Club
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={selectedClub}
-                        onChange={(e) => setSelectedClub(e.target.value)}
-                        className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-xl focus:ring-[#456882] focus:border-[#456882] appearance-none bg-white"
-                        disabled={isLoading}
-                      >
-                        {clubs.map((club) => (
-                          <option key={club._id} value={club._id}>
-                            {club.name}
-                          </option>
-                        ))}
-                      </select>
-                      <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                {clubs.length === 0 ? (
+                  <p className="text-sm text-gray-600">
+                    No clubs available to manage.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Select Club
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={selectedClub}
+                          onChange={(e) => setSelectedClub(e.target.value)}
+                          className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-xl focus:ring-[#456882] focus:border-[#456882] appearance-none bg-white"
+                          disabled={isLoading}
+                        >
+                          {clubs.map((club) => (
+                            <option
+                              key={club._id || `club-${Math.random()}`}
+                              value={club._id}
+                            >
+                              {club.name || "Unknown Club"}
+                            </option>
+                          ))}
+                        </select>
+                        <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Date
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="date"
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
-                        className="w-full pl-10 py-2 border border-gray-300 rounded-xl focus:ring-[#456882] focus:border-[#456882]"
-                        disabled={isLoading}
-                      />
-                      <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Date
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="date"
+                          value={date || ""}
+                          onChange={(e) => setDate(e.target.value)}
+                          className="w-full pl-10 py-2 border border-gray-300 rounded-xl focus:ring-[#456882] focus:border-[#456882]"
+                          disabled={isLoading}
+                        />
+                        <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Lecture Number
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        value={lectureNumber}
-                        onChange={(e) => setLectureNumber(e.target.value)}
-                        min="1"
-                        className="w-full pl-10 py-2 border border-gray-300 rounded-xl focus:ring-[#456882] focus:border-[#456882]"
-                        disabled={isLoading}
-                      />
-                      <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Lecture Number
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={lectureNumber || 1}
+                          onChange={(e) => setLectureNumber(e.target.value)}
+                          min="1"
+                          className="w-full pl-10 py-2 border border-gray-300 rounded-xl focus:ring-[#456882] focus:border-[#456882]"
+                          disabled={isLoading}
+                        />
+                        <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      </div>
                     </div>
+                    <button
+                      onClick={handleSubmit}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#456882] text-white rounded-xl hover:bg-[#5a7a98] transition-colors disabled:opacity-50"
+                      disabled={isLoading}
+                    >
+                      <Save className="w-5 h-5" />
+                      Save Attendance
+                    </button>
                   </div>
-                  <button
-                    onClick={handleSubmit}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#456882] text-white rounded-xl hover:bg-[#5a7a98] transition-colors disabled:opacity-50"
-                    disabled={isLoading}
-                  >
-                    <Save className="w-5 h-5" />
-                    Save Attendance
-                  </button>
-                </div>
+                )}
               </motion.div>
 
               {/* Stats */}
@@ -496,7 +640,9 @@ const AttendanceTracker = () => {
                 transition={{ delay: 0.2 }}
                 className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
               >
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Attendance Stats</h2>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                  Attendance Stats
+                </h2>
                 <div className="grid grid-cols-1 gap-4">
                   <StatsCard
                     title="Total Members"
@@ -543,7 +689,7 @@ const AttendanceTracker = () => {
                     <input
                       type="text"
                       placeholder="Search by name, roll no, or email..."
-                      value={searchQuery}
+                      value={searchQuery || ""}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-[#456882] focus:border-[#456882]"
                       disabled={isLoading}
@@ -621,33 +767,40 @@ const AttendanceTracker = () => {
                     <div className="space-y-4 max-h-[calc(100vh-400px)] overflow-y-auto pr-2">
                       {attendanceHistory.map((record) => (
                         <motion.div
-                          key={record._id}
+                          key={record._id || `record-${Math.random()}`}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           className="p-4 rounded-xl border border-gray-200 bg-gray-50"
                         >
                           <div className="flex justify-between items-center mb-2">
                             <h3 className="text-lg font-semibold text-gray-900">
-                              {record.club.name} - Lecture {record.lectureNumber}
+                              {record.club?.name || "Unknown Club"} - Lecture{" "}
+                              {record.lectureNumber || "N/A"}
                             </h3>
-                            <p className="text-sm text-gray-500">{record.date}</p>
+                            <p className="text-sm text-gray-500">
+                              {record.date
+                                ? new Date(record.date).toLocaleDateString()
+                                : "N/A"}
+                            </p>
                           </div>
                           <div className="grid grid-cols-2 gap-2 text-sm">
                             <p>
                               <span className="font-medium">Present:</span>{" "}
-                              {record.stats.presentCount}
+                              {record.stats?.presentCount || 0}
                             </p>
                             <p>
                               <span className="font-medium">Absent:</span>{" "}
-                              {record.stats.absentCount}
+                              {record.stats?.absentCount || 0}
                             </p>
                             <p>
-                              <span className="font-medium">Attendance Rate:</span>{" "}
-                              {record.stats.attendanceRate}%
+                              <span className="font-medium">
+                                Attendance Rate:
+                              </span>{" "}
+                              {record.stats?.attendanceRate || 0}%
                             </p>
                             <p>
                               <span className="font-medium">Marked By:</span>{" "}
-                              {record.createdBy.name}
+                              {record.createdBy?.name || "Unknown"}
                             </p>
                           </div>
                         </motion.div>
