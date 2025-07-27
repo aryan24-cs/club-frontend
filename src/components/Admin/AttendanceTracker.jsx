@@ -305,8 +305,8 @@ const AttendanceTracker = () => {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        const formattedMembers = (response.data || []).map((member) => ({
-          id: member._id || `member-${Math.random()}`, // Fallback ID
+        const formattedMembers = (response.data || []).map((member, index) => ({
+          id: member._id || `member-${member.email || index}-${index}`,
           name: member.name || "Unknown",
           email: member.email || "N/A",
           rollNo: member.rollNo || "N/A",
@@ -346,8 +346,16 @@ const AttendanceTracker = () => {
         headers: { Authorization: `Bearer ${token}` },
         params: { club: selectedClub },
       });
-      setAttendanceHistory(response.data || []);
-      console.log("AttendanceTracker - History:", response.data);
+      const formattedHistory = (response.data || []).map((record, index) => ({
+        ...record,
+        _id:
+          record._id ||
+          `record-${record.date || index}-${
+            record.lectureNumber || index
+          }-${index}`,
+      }));
+      setAttendanceHistory(formattedHistory);
+      console.log("AttendanceTracker - History:", formattedHistory);
     } catch (err) {
       console.error("Error fetching history:", err);
       setError("Failed to load attendance history.");
@@ -456,11 +464,8 @@ const AttendanceTracker = () => {
     return members.filter(
       (member) =>
         member.name?.toLowerCase().includes(query) ||
-        false ||
         member.rollNo?.toLowerCase().includes(query) ||
-        false ||
-        member.email?.toLowerCase().includes(query) ||
-        false
+        member.email?.toLowerCase().includes(query)
     );
   }, [members, searchQuery]);
 
@@ -498,9 +503,8 @@ const AttendanceTracker = () => {
 
   return (
     <ErrorBoundary>
-      <Navbar  />
+      <Navbar />
       <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-        
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -577,9 +581,12 @@ const AttendanceTracker = () => {
                           className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-xl focus:ring-[#456882] focus:border-[#456882] appearance-none bg-white"
                           disabled={isLoading}
                         >
-                          {clubs.map((club) => (
+                          {clubs.map((club, index) => (
                             <option
-                              key={club._id || `club-${Math.random()}`}
+                              key={
+                                club._id ||
+                                `club-${club.name || index}-${index}`
+                              }
                               value={club._id}
                             >
                               {club.name || "Unknown Club"}
@@ -612,9 +619,9 @@ const AttendanceTracker = () => {
                       <div className="relative">
                         <input
                           type="number"
-                          value={lectureNumber || 1}
+                          value={lectureNumber || 0}
                           onChange={(e) => setLectureNumber(e.target.value)}
-                          min="1"
+                          min="0"
                           className="w-full pl-10 py-2 border border-gray-300 rounded-xl focus:ring-[#456882] focus:border-[#456882]"
                           disabled={isLoading}
                         />
@@ -765,9 +772,9 @@ const AttendanceTracker = () => {
                     </p>
                   ) : (
                     <div className="space-y-4 max-h-[calc(100vh-400px)] overflow-y-auto pr-2">
-                      {attendanceHistory.map((record) => (
+                      {attendanceHistory.map((record, index) => (
                         <motion.div
-                          key={record._id || `record-${Math.random()}`}
+                          key={record._id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           className="p-4 rounded-xl border border-gray-200 bg-gray-50"

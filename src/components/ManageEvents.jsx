@@ -67,12 +67,12 @@ const EventCard = memo(({ event, onDelete }) => (
           ? `http://localhost:5000${event.banner.startsWith("/") ? "" : "/"}${
               event.banner
             }`
-          : "https://via.placeholder.com/300x100"
+          : "https://content3.jdmagicbox.com/v2/comp/faridabad/c2/011pxx11.xx11.180720042429.n1c2/catalogue/aravali-college-of-engineering-and-management-jasana-faridabad-colleges-5hhqg5d110.jpg"
       }
       alt={event.title || "Event Banner"}
       className="w-full h-24 object-cover rounded-lg mb-3"
       onError={(e) => {
-        e.target.src = "https://via.placeholder.com/300x100";
+        e.target.src = "https://content3.jdmagicbox.com/v2/comp/faridabad/c2/011pxx11.xx11.180720042429.n1c2/catalogue/aravali-college-of-engineering-and-management-jasana-faridabad-colleges-5hhqg5d110.jpg";
         console.warn(
           `Failed to load banner for event ${event.title || "Untitled"}: ${
             event.banner || "No banner"

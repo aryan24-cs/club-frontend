@@ -78,11 +78,11 @@ const ClubCard = memo(({ club, onEdit, onDelete, onView }) => (
   >
     <div className="relative overflow-hidden">
       <img
-        src={club.icon || "https://via.placeholder.com/400x200"}
+        src={club.icon || "https://content3.jdmagicbox.com/v2/comp/faridabad/c2/011pxx11.xx11.180720042429.n1c2/catalogue/aravali-college-of-engineering-and-management-jasana-faridabad-colleges-5hhqg5d110.jpg"}
         alt={club.name || "Club Icon"}
         className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
         onError={(e) => {
-          e.target.src = "https://via.placeholder.com/400x200";
+          e.target.src = "https://content3.jdmagicbox.com/v2/comp/faridabad/c2/011pxx11.xx11.180720042429.n1c2/catalogue/aravali-college-of-engineering-and-management-jasana-faridabad-colleges-5hhqg5d110.jpg";
           console.warn(
             `Failed to load icon for club ${club.name}: ${club.icon}`
           );
