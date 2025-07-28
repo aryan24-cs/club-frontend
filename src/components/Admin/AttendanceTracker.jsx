@@ -4,7 +4,6 @@ import axios from "axios";
 import {
   Users,
   Calendar,
-  Clock,
   Search,
   ChevronDown,
   Save,
@@ -174,20 +173,120 @@ const MemberCard = memo(({ member, attendance, onToggleAttendance, index }) => {
   );
 });
 
+// Present Students Modal
+const PresentStudentsModal = ({ isOpen, onClose, presentStudents, eventTitle }) => {
+  if (!isOpen) return null;
+
+  const downloadPresentCSV = () => {
+    const headers = ["Name", "Roll No", "Email", "Date"];
+    const rows = presentStudents.map((student) => [
+      `"${student.name || "Unknown"}"`,
+      `"${student.rollNo || "N/A"}"`,
+      `"${student.email || "N/A"}"`,
+      `"${student.date || "N/A"}"`,
+    ]);
+    const csvContent = [headers, ...rows]
+      .map((row) => row.join(","))
+      .join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `present_students_${eventTitle}_${Date.now()}.csv`
+    );
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto"
+      >
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Present Students for {eventTitle || "Event"}
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-500 hover:text-gray-700"
+          >
+            <XCircle className="w-6 h-6" />
+          </button>
+        </div>
+        {presentStudents.length === 0 ? (
+          <p className="text-gray-500 text-center py-4">
+            No students were marked present for this event.
+          </p>
+        ) : (
+          <>
+            <div className="space-y-2">
+              {presentStudents.map((student, index) => (
+                <div
+                  key={student._id}
+                  className="flex items-center p-3 bg-gray-50 rounded-lg"
+                >
+                  <div className="w-10 h-10 bg-gradient-to-br from-[#456882] to-[#5a7a98] rounded-lg flex items-center justify-center text-white text-lg font-semibold mr-3">
+                    {student.name?.charAt(0).toUpperCase() || "?"}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {student.name || "Unknown"}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {student.rollNo || "N/A"} • {student.email || "N/A"}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Date: {student.date || "N/A"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={downloadPresentCSV}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors"
+              >
+                <Download className="w-5 h-5" />
+                Download CSV
+              </button>
+            </div>
+          </>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+};
+
 const AttendanceTracker = () => {
   const [user, setUser] = useState(null);
   const [clubs, setClubs] = useState([]);
   const [selectedClub, setSelectedClub] = useState("");
+  const [events, setEvents] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState("");
   const [members, setMembers] = useState([]);
   const [attendance, setAttendance] = useState({});
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [lectureNumber, setLectureNumber] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [attendanceHistory, setAttendanceHistory] = useState([]);
+  const [showPresentModal, setShowPresentModal] = useState(false);
+  const [presentStudents, setPresentStudents] = useState([]);
+  const [currentEventTitle, setCurrentEventTitle] = useState("");
   const navigate = useNavigate();
 
   // Fetch user and clubs
@@ -204,12 +303,8 @@ const AttendanceTracker = () => {
 
         const config = { headers: { Authorization: `Bearer ${token}` } };
         const [userResponse, clubsResponse] = await Promise.all([
-          axios
-            .get("http://localhost:5000/api/auth/user", config)
-            .catch(() => ({ data: null })),
-          axios
-            .get("http://localhost:5000/api/clubs", config)
-            .catch(() => ({ data: [] })),
+          axios.get("http://localhost:5000/api/auth/user", config),
+          axios.get("http://localhost:5000/api/clubs", config),
         ]);
 
         const userData = userResponse.data;
@@ -220,14 +315,6 @@ const AttendanceTracker = () => {
         }
         setUser(userData);
 
-        // Debug logging
-        console.log("AttendanceTracker - User:", {
-          _id: userData._id || "null",
-          name: userData.name || "null",
-          isAdmin: userData.isAdmin || false,
-          headCoordinatorClubs: userData.headCoordinatorClubs || [],
-        });
-
         // Filter clubs based on role
         const isGlobalAdmin = userData.isAdmin === true;
         const isSuperAdmin = clubsResponse.data.some((club) =>
@@ -237,37 +324,21 @@ const AttendanceTracker = () => {
         );
         const isAdmin = (userData.headCoordinatorClubs || []).length > 0;
 
-        console.log("AttendanceTracker - Roles:", {
-          isGlobalAdmin,
-          isSuperAdmin,
-          isAdmin,
-        });
-
         let filteredClubs = [];
         if (isGlobalAdmin) {
           filteredClubs = clubsResponse.data || [];
-          console.log("AttendanceTracker - Showing all clubs for global admin");
         } else if (isSuperAdmin) {
           filteredClubs = (clubsResponse.data || []).filter((club) =>
             club?.superAdmins?.some(
               (admin) => admin?._id?.toString() === userData._id?.toString()
             )
           );
-          console.log(
-            "AttendanceTracker - Filtered clubs for SuperAdmin:",
-            filteredClubs
-          );
         } else if (isAdmin) {
           filteredClubs = (clubsResponse.data || []).filter((club) =>
             (userData.headCoordinatorClubs || []).includes(club?.name)
           );
-          console.log(
-            "AttendanceTracker - Filtered clubs for Admin:",
-            filteredClubs
-          );
         } else {
           setError("You are not authorized to mark attendance.");
-          console.log("AttendanceTracker - No clubs for user");
           navigate("/dashboard");
           return;
         }
@@ -292,11 +363,50 @@ const AttendanceTracker = () => {
     fetchData();
   }, [navigate]);
 
+  // Fetch events for selected club
+  useEffect(() => {
+    const fetchEvents = async () => {
+      if (!selectedClub) {
+        setEvents([]);
+        setSelectedEvent("");
+        return;
+      }
+      try {
+        setIsLoading(true);
+        const token = localStorage.getItem("token");
+        const response = await axios.get("http://localhost:5000/api/events", {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { club: selectedClub },
+        });
+        const formattedEvents = (response.data || []).map((event, index) => ({
+          _id: event._id || `event-${index}-${Date.now()}`,
+          title: event.title || "Unknown Event",
+          date: event.date || "N/A",
+        }));
+        setEvents(formattedEvents);
+        if (formattedEvents.length > 0) {
+          setSelectedEvent(formattedEvents[0]._id);
+        } else {
+          setSelectedEvent("");
+        }
+      } catch (err) {
+        console.error("Error fetching events:", err);
+        setError(
+          err.response?.data?.error || "Failed to load events. Please try again."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchEvents();
+  }, [selectedClub]);
+
   // Fetch members for selected club
   useEffect(() => {
     const fetchMembers = async () => {
       if (!selectedClub) {
-        console.log("fetchMembers: No club selected, skipping fetch");
+        setMembers([]);
+        setAttendance({});
         return;
       }
       try {
@@ -326,7 +436,6 @@ const AttendanceTracker = () => {
             {}
           )
         );
-        console.log("AttendanceTracker - Members:", formattedMembers);
       } catch (err) {
         console.error("Error fetching members:", err);
         setError(
@@ -344,10 +453,10 @@ const AttendanceTracker = () => {
     fetchMembers();
   }, [selectedClub, navigate]);
 
-  // Fetch attendance history with retry logic
+  // Fetch attendance history
   const fetchAttendanceHistory = useCallback(async () => {
     if (!selectedClub) {
-      console.log("fetchAttendanceHistory: No club selected, skipping fetch");
+      setAttendanceHistory([]);
       return;
     }
     try {
@@ -361,21 +470,14 @@ const AttendanceTracker = () => {
         ...record,
         _id:
           record._id ||
-          `record-${record.date || index}-${
-            record.lectureNumber || index
-          }-${Date.now()}-${index}`,
+          `record-${record.date || index}-${Date.now()}-${index}`,
       }));
       setAttendanceHistory(formattedHistory);
-      console.log("AttendanceTracker - History:", formattedHistory);
     } catch (err) {
       console.error("Error fetching history:", err);
-      const errorMessage =
-        err.response?.status === 403
-          ? "You are not authorized to view attendance history for this club."
-          : err.response?.status === 500
-          ? "Server error while fetching attendance history. Please try again later."
-          : "Failed to load attendance history.";
-      setError(errorMessage);
+      setError(
+        err.response?.data?.error || "Failed to load attendance history."
+      );
       if (err.response?.status === 401 || err.response?.status === 403) {
         localStorage.removeItem("token");
         navigate("/login");
@@ -390,6 +492,30 @@ const AttendanceTracker = () => {
       fetchAttendanceHistory();
     }
   }, [showHistory, fetchAttendanceHistory]);
+
+  // Fetch present students for an event
+  const fetchPresentStudents = useCallback(async (eventId, eventTitle) => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:5000/api/attendance/${eventId}/present`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setPresentStudents(response.data.presentStudents || []);
+      setCurrentEventTitle(eventTitle);
+      setShowPresentModal(true);
+    } catch (err) {
+      console.error("Error fetching present students:", err);
+      setError(
+        err.response?.data?.error || "Failed to load present students."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   // Handle attendance toggle
   const handleToggleAttendance = useCallback((memberId, status = null) => {
@@ -421,8 +547,8 @@ const AttendanceTracker = () => {
 
   // Handle form submission
   const handleSubmit = async () => {
-    if (!selectedClub || !date || !lectureNumber) {
-      setError("Please fill in all required fields.");
+    if (!selectedClub || !selectedEvent || !date) {
+      setError("Please select a club, event, and date.");
       return;
     }
     if (Object.values(attendance).every((status) => status === null)) {
@@ -438,11 +564,9 @@ const AttendanceTracker = () => {
         "http://localhost:5000/api/attendance",
         {
           club: selectedClub,
+          event: selectedEvent,
           date,
-          lectureNumber: parseInt(lectureNumber),
           attendance,
-          stats,
-          createdBy: user?._id,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -506,7 +630,7 @@ const AttendanceTracker = () => {
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `attendance_${selectedClub}_${date}_lecture${lectureNumber}.csv`
+      `attendance_${selectedClub}_${selectedEvent}_${date}.csv`
     );
     link.click();
     URL.revokeObjectURL(url);
@@ -569,6 +693,14 @@ const AttendanceTracker = () => {
             )}
           </AnimatePresence>
 
+          {/* Present Students Modal */}
+          <PresentStudentsModal
+            isOpen={showPresentModal}
+            onClose={() => setShowPresentModal(false)}
+            presentStudents={presentStudents}
+            eventTitle={currentEventTitle}
+          />
+
           {/* Main Content */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Form and Stats */}
@@ -596,10 +728,14 @@ const AttendanceTracker = () => {
                       <div className="relative">
                         <select
                           value={selectedClub}
-                          onChange={(e) => setSelectedClub(e.target.value)}
+                          onChange={(e) => {
+                            setSelectedClub(e.target.value);
+                            setSelectedEvent("");
+                          }}
                           className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-xl focus:ring-[#456882] focus:border-[#456882] appearance-none bg-white"
                           disabled={isLoading}
                         >
+                          <option value="">Select a club</option>
                           {clubs.map((club, index) => (
                             <option
                               key={
@@ -620,6 +756,31 @@ const AttendanceTracker = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Select Event
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={selectedEvent}
+                          onChange={(e) => setSelectedEvent(e.target.value)}
+                          className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-xl focus:ring-[#456882] focus:border-[#456882] appearance-none bg-white"
+                          disabled={isLoading || events.length === 0}
+                        >
+                          <option value="">Select an event</option>
+                          {events.map((event, index) => (
+                            <option
+                              key={event._id}
+                              value={event._id}
+                            >
+                              {event.title} ({event.date})
+                            </option>
+                          ))}
+                        </select>
+                        <BookOpen className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
                         Date
                       </label>
                       <div className="relative">
@@ -631,22 +792,6 @@ const AttendanceTracker = () => {
                           disabled={isLoading}
                         />
                         <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Lecture Number
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="number"
-                          value={lectureNumber || 0}
-                          onChange={(e) => setLectureNumber(e.target.value)}
-                          min="0"
-                          className="w-full pl-10 py-2 border border-gray-300 rounded-xl focus:ring-[#456882] focus:border-[#456882]"
-                          disabled={isLoading}
-                        />
-                        <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                       </div>
                     </div>
                     <button
@@ -802,14 +947,28 @@ const AttendanceTracker = () => {
                         >
                           <div className="flex justify-between items-center mb-2">
                             <h3 className="text-lg font-semibold text-gray-900">
-                              {record.club?.name || "Unknown Club"} - Lecture{" "}
-                              {record.lectureNumber || "N/A"}
+                              {record.club?.name || "Unknown Club"} -{" "}
+                              {record.event?.title || "Unknown Event"}
                             </h3>
-                            <p className="text-sm text-gray-500">
-                              {record.date
-                                ? new Date(record.date).toLocaleDateString()
-                                : "N/A"}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm text-gray-500">
+                                {record.date
+                                  ? new Date(record.date).toLocaleDateString()
+                                  : "N/A"}
+                              </p>
+                              <button
+                                onClick={() =>
+                                  fetchPresentStudents(
+                                    record.event?._id,
+                                    record.event?.title
+                                  )
+                                }
+                                className="px-3 py-1 bg-[#456882] text-white rounded-full hover:bg-[#5a7a98] transition-colors text-sm flex items-center gap-1"
+                              >
+                                <UserCheck className="w-4 h-4" />
+                                Present
+                              </button>
+                            </div>
                           </div>
                           <div className="grid grid-cols-2 gap-2 text-sm">
                             <p>

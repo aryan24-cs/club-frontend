@@ -41,126 +41,6 @@ import {
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 
-// Static mock data for features not supported by backend
-const mockData = {
-  notifications: [
-    {
-      _id: 1,
-      message: "Your application to Drama Society has been approved!",
-      date: "2025-07-25",
-      type: "success",
-      read: false,
-      clubId: "64f5b1234567890abcdef125",
-    },
-    {
-      _id: 2,
-      message: "AI Workshop registration is now open",
-      date: "2025-07-24",
-      type: "info",
-      read: false,
-      eventId: 1,
-    },
-    {
-      _id: 3,
-      message: "Photography Competition deadline approaching",
-      date: "2025-07-23",
-      type: "warning",
-      read: true,
-      eventId: 2,
-    },
-  ],
-  achievements: [
-    {
-      id: "achievement1",
-      title: "Active Participant",
-      description: "Attended 10+ events",
-      icon: "🎯",
-      earnedAt: "2025-03-15",
-      category: "Participation",
-    },
-    {
-      id: "achievement2",
-      title: "Club Ambassador",
-      description: "Member of 3+ clubs",
-      icon: "🏆",
-      earnedAt: "2025-05-01",
-      category: "Leadership",
-    },
-  ],
-  activityExtras: {
-    1: {
-      time: "10:00 AM - 4:00 PM",
-      location: "Main Auditorium",
-      type: "workshop",
-      attendees: 85,
-      maxCapacity: 100,
-      registrationOpen: true,
-      featured: true,
-      image: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e",
-      tags: ["AI", "Technology", "Learning"],
-      prerequisites: "Basic programming knowledge",
-    },
-    2: {
-      time: "9:00 AM - 6:00 PM",
-      location: "Campus Grounds",
-      type: "competition",
-      attendees: 45,
-      maxCapacity: 50,
-      registrationOpen: true,
-      featured: false,
-      image: "https://images.unsplash.com/photo-1452587925148-ce544e77e70d",
-      tags: ["Photography", "Competition", "Art"],
-      prizes: ["₹5000", "₹3000", "₹2000"],
-    },
-    3: {
-      time: "7:00 PM - 9:00 PM",
-      location: "College Theatre",
-      type: "performance",
-      attendees: 200,
-      maxCapacity: 250,
-      registrationOpen: false,
-      featured: true,
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
-      tags: ["Drama", "Performance", "Entertainment"],
-    },
-  },
-  clubExtras: {
-    "64f5b1234567890abcdef123": {
-      icon: "FaCode",
-      rating: 4.8,
-      memberCount: 125,
-      coordinators: ["John Doe", "Jane Smith"],
-      headCoordinator: "Dr. Sarah Wilson",
-      whatsappLink: "https://chat.whatsapp.com/sample",
-      isActive: true,
-      founded: "2019",
-      achievements: ["Best Project Award 2023", "National Level Recognition"],
-    },
-    "64f5b1234567890abcdef124": {
-      icon: "FaMusic",
-      rating: 4.6,
-      memberCount: 89,
-      coordinators: ["Mike Johnson"],
-      headCoordinator: "Prof. David Brown",
-      whatsappLink: "https://chat.whatsapp.com/sample2",
-      isActive: true,
-      founded: "2018",
-      achievements: ["Inter-college Photo Contest Winner"],
-    },
-    "64f5b1234567890abcdef125": {
-      icon: "FaBook",
-      rating: 4.7,
-      memberCount: 67,
-      coordinators: ["Emily Davis"],
-      headCoordinator: "Dr. Lisa Anderson",
-      whatsappLink: "https://chat.whatsapp.com/sample3",
-      isActive: true,
-      founded: "2020",
-      achievements: ["Best Drama Performance 2024"],
-    },
-  },
-};
-
 // Theme configuration
 const theme = {
   primary: "#456882",
@@ -172,68 +52,13 @@ const theme = {
   info: "#3b82f6",
 };
 
-// Icon mapping
+// Icon mapping for club categories
 const iconMap = {
-  FaCode: <FaCode />,
-  FaMusic: <FaMusic />,
-  FaBook: <FaBook />,
-  FaRunning: <FaRunning />,
-  FaHandsHelping: <FaHandsHelping />,
-  FaTrophy: <FaTrophy />,
+  Technical: <FaCode />,
+  Cultural: <FaMusic />,
+  Literary: <FaBook />,
+  Entrepreneurial: <FaHandsHelping />,
 };
-
-// Navbar Component (from CreateClubPage)
-// const Navbar = () => {
-//   const navigate = useNavigate();
-//   const handleLogout = () => {
-//     localStorage.removeItem("token");
-//     navigate("/login");
-//   };
-
-//   return (
-//     <nav className="bg-white shadow-md">
-//       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-//         <div className="flex justify-between h-16">
-//           <div className="flex items-center">
-//             <Link to="/" className="text-2xl font-bold text-[#456882]">
-//               ACEM
-//             </Link>
-//           </div>
-//           <div className="flex items-center space-x-4">
-//             <Link
-//               to="/"
-//               className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-//             >
-//               <FaHome className="mr-2" />
-//               Home
-//             </Link>
-//             <Link
-//               to="/clubs"
-//               className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-//             >
-//               <FaUsers className="mr-2" />
-//               Clubs
-//             </Link>
-//             <Link
-//               to="/dashboard"
-//               className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-//             >
-//               <FaUserCircle className="mr-2" />
-//               Dashboard
-//             </Link>
-//             <button
-//               onClick={handleLogout}
-//               className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-//             >
-//               <FaSignOutAlt className="mr-2" />
-//               Logout
-//             </button>
-//           </div>
-//         </div>
-//       </div>
-//     </nav>
-//   );
-// };
 
 // Enhanced Loading Component
 const LoadingSpinner = () => (
@@ -290,9 +115,9 @@ const StatsCard = memo(({ stat, index }) => (
 
 // Enhanced Club Card Component
 const ClubCard = memo(({ club, user, handleJoinClub }) => {
-  const isJoined = user?.clubs?.includes(club._id);
-  const isPending = user?.pendingClubs?.includes(club._id);
-  const clubExtras = mockData.clubExtras[club._id] || {};
+  const navigate = useNavigate();
+  const isJoined = user?.clubName?.includes(club.name);
+  const isPending = user?.pendingClubs?.includes(club.name);
 
   return (
     <motion.div
@@ -331,18 +156,14 @@ const ClubCard = memo(({ club, user, handleJoinClub }) => {
             {club.icon ? (
               <img src={club.icon} alt={`${club.name} icon`} className="w-8 h-8 object-cover rounded-full" />
             ) : (
-              iconMap[clubExtras.icon] || <FaTrophy />
+              iconMap[club.category] || <FaTrophy />
             )}
           </motion.div>
           <h3 className="text-xl font-bold mb-2">{club.name}</h3>
           <div className="flex items-center gap-4 text-sm opacity-90">
             <div className="flex items-center gap-1">
-              <FaStar />
-              <span>{clubExtras.rating || "N/A"}</span>
-            </div>
-            <div className="flex items-center gap-1">
               <FaUsers />
-              <span>{clubExtras.memberCount || 0} members</span>
+              <span>{club.memberCount || 0} members</span>
             </div>
           </div>
         </div>
@@ -359,12 +180,8 @@ const ClubCard = memo(({ club, user, handleJoinClub }) => {
             <span className="font-medium">{club.category}</span>
           </div>
           <div className="flex justify-between">
-            <span>Founded:</span>
-            <span className="font-medium">{clubExtras.founded || "N/A"}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Head Coordinator:</span>
-            <span className="font-medium">{clubExtras.headCoordinator || club.headCoordinators[0] || "N/A"}</span>
+            <span>Contact Email:</span>
+            <span className="font-medium">{club.contactEmail || "N/A"}</span>
           </div>
         </div>
 
@@ -392,10 +209,9 @@ const ClubCard = memo(({ club, user, handleJoinClub }) => {
               disabled={isPending}
               whileHover={{ scale: isPending ? 1 : 1.02 }}
               whileTap={{ scale: isPending ? 1 : 0.98 }}
-              className={`flex-1 px-4 py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 ${isPending
-                  ? "bg-yellow-400 text-white cursor-not-allowed"
-                  : "bg-[#456882] text-white hover:bg-[#3a536b]"
-                }`}
+              className={`flex-1 px-4 py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 ${
+                isPending ? "bg-yellow-400 text-white cursor-not-allowed" : "bg-[#456882] text-white hover:bg-[#3a536b]"
+              }`}
             >
               {isPending ? (
                 <>
@@ -417,17 +233,9 @@ const ClubCard = memo(({ club, user, handleJoinClub }) => {
           <div className="flex gap-2 mt-3 pt-3 border-t">
             <motion.button
               whileHover={{ scale: 1.1 }}
-              className="p-2 text-green-500 hover:bg-green-50 rounded-lg transition"
-              title="WhatsApp Group"
-              onClick={() => window.open(clubExtras.whatsappLink, "_blank")}
-            >
-              <FaWhatsapp />
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
               className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition"
               title="Email Coordinator"
-              onClick={() => window.location.href = `mailto:${club.contactEmail || clubExtras.headCoordinator}`}
+              onClick={() => window.location.href = `mailto:${club.contactEmail || "satyam.pandey@acem.edu.in"}`}
             >
               <FaEnvelope />
             </motion.button>
@@ -440,8 +248,7 @@ const ClubCard = memo(({ club, user, handleJoinClub }) => {
 
 // Enhanced Activity Card Component
 const ActivityCard = memo(({ activity }) => {
-  const extras = mockData.activityExtras[activity.id] || {};
-
+  const navigate = useNavigate();
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -450,19 +257,10 @@ const ActivityCard = memo(({ activity }) => {
       whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(0,0,0,0.1)" }}
       className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
     >
-      {/* Featured Badge */}
-      {extras.featured && (
-        <div className="absolute top-4 left-4 z-10">
-          <span className="px-3 py-1 bg-red-500 text-white rounded-full text-xs font-semibold flex items-center gap-1">
-            <FaFireAlt /> Featured
-          </span>
-        </div>
-      )}
-
       {/* Image */}
       <div className="relative h-48 overflow-hidden">
         <img
-          src={activity.images[0] || extras.image || "https://images.unsplash.com/photo-1523240795612-9a054b0db644"}
+          src={activity.images[0] || "https://images.unsplash.com/photo-1523240795612-9a054b0db644"}
           alt={activity.title}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
         />
@@ -471,8 +269,6 @@ const ActivityCard = memo(({ activity }) => {
           <div className="flex items-center gap-2 text-sm">
             <FaCalendarAlt />
             <span>{new Date(activity.date).toLocaleDateString()}</span>
-            <FaClock />
-            <span>{extras.time || "N/A"}</span>
           </div>
         </div>
       </div>
@@ -481,16 +277,6 @@ const ActivityCard = memo(({ activity }) => {
       <div className="p-6">
         <div className="flex items-start justify-between mb-3">
           <h4 className="text-lg font-bold text-gray-900 line-clamp-2">{activity.title}</h4>
-          <span
-            className={`px-2 py-1 rounded-full text-xs font-semibold ${extras.type === "workshop"
-                ? "bg-blue-100 text-blue-600"
-                : extras.type === "competition"
-                  ? "bg-green-100 text-green-600"
-                  : "bg-purple-100 text-purple-600"
-              }`}
-          >
-            {extras.type || "event"}
-          </span>
         </div>
 
         <p className="text-gray-600 mb-4 line-clamp-2">{activity.description}</p>
@@ -498,72 +284,26 @@ const ActivityCard = memo(({ activity }) => {
         {/* Event Details */}
         <div className="space-y-2 mb-4 text-sm">
           <div className="flex items-center gap-2 text-gray-500">
-            <FaMapMarkerAlt />
-            <span>{extras.location || "N/A"}</span>
-          </div>
-          <div className="flex items-center gap-2 text-gray-500">
-            <FaUsers />
-            <span>{extras.attendees || 0}/{extras.maxCapacity || "N/A"} registered</span>
-          </div>
-          <div className="flex items-center gap-2 text-gray-500">
             <FaGraduationCap />
             <span>By {activity.club}</span>
           </div>
         </div>
-
-        {/* Progress Bar */}
-        {extras.attendees && extras.maxCapacity && (
-          <div className="mb-4">
-            <div className="flex justify-between text-xs mb-1">
-              <span>Registration</span>
-              <span>{Math.round((extras.attendees / extras.maxCapacity) * 100)}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <motion.div
-                className="bg-[#456882] h-2 rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${(extras.attendees / extras.maxCapacity) * 100}%` }}
-                transition={{ duration: 1, ease: "easeOut" }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Tags */}
-        {extras.tags && (
-          <div className="flex flex-wrap gap-1 mb-4">
-            {extras.tags.map((tag, index) => (
-              <span key={index} className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">
-                #{tag}
-              </span>
-            ))}
-          </div>
-        )}
 
         {/* Action Buttons */}
         <div className="flex gap-3">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className={`flex-1 px-4 py-2 rounded-lg font-medium transition ${extras.registrationOpen
-                ? "bg-[#456882] text-white hover:bg-[#3a536b]"
-                : "bg-gray-300 text-gray-500 cursor-not-allowed"
-              }`}
-            disabled={!extras.registrationOpen}
+            className="flex-1 px-4 py-2 bg-[#456882] text-white rounded-lg hover:bg-[#3a536b] transition"
+            onClick={() => navigate(`/activities/${activity._id}`)}
           >
-            {extras.registrationOpen ? "Register Now" : "Registration Closed"}
+            View Details
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.1 }}
             className="p-2 text-gray-500 hover:text-red-500 transition"
           >
             <FaHeart />
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            className="p-2 text-gray-500 hover:text-blue-500 transition"
-          >
-            <FaShareAlt />
           </motion.button>
         </div>
       </div>
@@ -572,8 +312,6 @@ const ActivityCard = memo(({ activity }) => {
 });
 
 // Enhanced User Profile Card
-
-
 const UserProfileCard = ({ user }) => {
   const navigate = useNavigate();
 
@@ -606,17 +344,14 @@ const UserProfileCard = ({ user }) => {
             </motion.div>
             <div className="flex-1">
               <h3 className="text-2xl font-bold">{user?.name || "User"}</h3>
-              <p className="opacity-90">{user?.course}</p>
-              <p className="opacity-90 text-sm">Semester {user?.semester || "N/A"} • {user?.batch || "N/A"}</p>
+              <p className="opacity-90">{user?.course || "N/A"}</p>
+              <p className="opacity-90 text-sm">Semester {user?.semester || "N/A"}</p>
               <div className="flex items-center gap-2 mt-2">
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-semibold ${badge.color} flex items-center gap-1`}
                 >
                   {badge.icon}
                   {badge.text}
-                </span>
-                <span className="px-2 py-1 bg-white/20 rounded-full text-xs">
-                  Rank #{user?.overallRank || "N/A"}
                 </span>
               </div>
             </div>
@@ -628,7 +363,7 @@ const UserProfileCard = ({ user }) => {
       <div className="p-6">
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center p-3 bg-blue-50 rounded-lg">
-            <p className="text-2xl font-bold text-blue-600">{user?.clubs?.length || 0}</p>
+            <p className="text-2xl font-bold text-blue-600">{user?.clubName?.length || 0}</p>
             <p className="text-xs text-gray-600">Clubs Joined</p>
           </div>
           <div className="text-center p-3 bg-green-50 rounded-lg">
@@ -657,6 +392,7 @@ const UserProfileCard = ({ user }) => {
           <motion.button
             whileHover={{ scale: 1.05 }}
             className="px-4 py-2 border border-[#456882] text-[#456882] rounded-lg hover:bg-[#456882]/10 transition"
+            onClick={() => navigate("/settings")}
           >
             <FaExternalLinkAlt />
           </motion.button>
@@ -670,12 +406,20 @@ const UserProfileCard = ({ user }) => {
 const NotificationCard = memo(({ notification }) => {
   const getNotificationStyle = (type) => {
     switch (type) {
-      case "success":
-        return "border-l-green-500 bg-green-50";
-      case "warning":
-        return "border-l-yellow-500 bg-yellow-50";
-      case "error":
-        return "border-l-red-500 bg-red-50";
+      case "membership":
+        return notification.status === "approved"
+          ? "border-l-green-500 bg-green-50"
+          : notification.status === "rejected"
+          ? "border-l-red-500 bg-red-50"
+          : "border-l-yellow-500 bg-yellow-50";
+      case "event":
+        return "border-l-blue-500 bg-blue-50";
+      case "activity":
+        return "border-l-purple-500 bg-purple-50";
+      case "attendance":
+        return notification.status === "present"
+          ? "border-l-green-500 bg-green-50"
+          : "border-l-red-500 bg-red-50";
       default:
         return "border-l-blue-500 bg-blue-50";
     }
@@ -694,7 +438,7 @@ const NotificationCard = memo(({ notification }) => {
         <div className="flex-1">
           <p className="text-sm font-medium text-gray-800">{notification.message}</p>
           <p className="text-xs text-gray-500 mt-1">
-            {new Date(notification.date).toLocaleDateString()}
+            {new Date(notification.createdAt).toLocaleDateString()}
           </p>
         </div>
         {!notification.read && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
@@ -708,8 +452,8 @@ const UserDashboard = () => {
   const [user, setUser] = useState(null);
   const [clubs, setClubs] = useState([]);
   const [activities, setActivities] = useState([]);
-  const [notifications, setNotifications] = useState(mockData.notifications);
-  const [achievements, setAchievements] = useState(mockData.achievements);
+  const [events, setEvents] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [activityFilters, setActivityFilters] = useState({
@@ -735,14 +479,9 @@ const UserDashboard = () => {
         });
         setUser({
           ...userResponse.data,
-          clubs: userResponse.data.clubName.map((name) =>
-            clubs.find((club) => club.name === name)?._id
-          ),
-          eventsAttended: [], // Static, no backend support
-          achievements: mockData.achievements.map((a) => a.id), // Static
-          overallRank: 5, // Static
-          attendanceRate: 92, // Static
-          batch: "2021-2025", // Static
+          eventsAttended: [], // Placeholder, as backend doesn't track events attended
+          achievements: [], // Placeholder, as backend doesn't support achievements
+          attendanceRate: 0, // Placeholder, to be calculated from attendance records
         });
 
         // Fetch clubs
@@ -755,12 +494,19 @@ const UserDashboard = () => {
         const activitiesResponse = await axios.get("http://localhost:5000/api/activities", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setActivities(
-          activitiesResponse.data.map((activity, index) => ({
-            ...activity,
-            id: index + 1, // Assign ID for mapping to mockData.activityExtras
-          }))
-        );
+        setActivities(activitiesResponse.data);
+
+        // Fetch events
+        const eventsResponse = await axios.get("http://localhost:5000/api/events", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setEvents(eventsResponse.data);
+
+        // Fetch notifications
+        const notificationsResponse = await axios.get("http://localhost:5000/api/notifications", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setNotifications(notificationsResponse.data);
 
         // Fetch pending membership requests
         const membershipResponse = await axios.get("http://localhost:5000/api/membership-requests", {
@@ -768,9 +514,20 @@ const UserDashboard = () => {
         });
         const pendingClubs = membershipResponse.data
           .filter((req) => req.status === "pending")
-          .map((req) => clubs.find((club) => club.name === req.clubName)?._id)
-          .filter(Boolean);
+          .map((req) => req.clubName);
         setUser((prev) => ({ ...prev, pendingClubs }));
+
+        // Fetch attendance records to calculate attendance rate
+        const attendanceResponse = await axios.get("http://localhost:5000/api/attendance", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const userAttendance = attendanceResponse.data
+          .flatMap((record) => record.attendance)
+          .filter((entry) => entry.userId.toString() === userResponse.data._id.toString());
+        const presentCount = userAttendance.filter((entry) => entry.status === "present").length;
+        const totalCount = userAttendance.length;
+        const attendanceRate = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
+        setUser((prev) => ({ ...prev, attendanceRate }));
       } catch (err) {
         setError(err.response?.data?.error || "Failed to load dashboard data");
       } finally {
@@ -792,7 +549,7 @@ const UserDashboard = () => {
         );
         setUser((prev) => ({
           ...prev,
-          pendingClubs: [...(prev?.pendingClubs || []), clubId],
+          pendingClubs: [...(prev?.pendingClubs || []), clubs.find((c) => c._id === clubId)?.name],
         }));
         setError("Club join request sent successfully!");
         setTimeout(() => setError(""), 3000);
@@ -800,7 +557,7 @@ const UserDashboard = () => {
         setError(err.response?.data?.error || "Failed to send join request");
       }
     },
-    []
+    [clubs]
   );
 
   // Calculate stats
@@ -808,16 +565,16 @@ const UserDashboard = () => {
     {
       icon: <FaUsers />,
       label: "Clubs Joined",
-      value: user?.clubs?.length || 0,
+      value: user?.clubName?.length || 0,
       color: "from-blue-500 to-blue-600",
-      change: 12,
+      change: 0, // Placeholder, as backend doesn't track historical data
     },
     {
       icon: <FaCalendarAlt />,
       label: "Events Attended",
       value: user?.eventsAttended?.length || 0,
       color: "from-green-500 to-green-600",
-      change: 8,
+      change: 0,
     },
     {
       icon: <FaTrophy />,
@@ -831,17 +588,15 @@ const UserDashboard = () => {
       label: "Notifications",
       value: notifications.filter((n) => !n.read).length,
       color: "from-red-500 to-red-600",
-      change: -25,
+      change: 0,
     },
   ];
 
-  // Filter activities
-  const filteredActivities = activities.filter((activity) => {
-    const extras = mockData.activityExtras[activity.id] || {};
+  // Filter activities and events
+  const filteredActivities = [...activities, ...events].filter((item) => {
     return (
-      activity.title.toLowerCase().includes(activityFilters.search.toLowerCase()) &&
-      (activityFilters.type === "" || extras.type === activityFilters.type) &&
-      (activityFilters.club === "" || activity.club.toLowerCase().includes(activityFilters.club.toLowerCase()))
+      item.title.toLowerCase().includes(activityFilters.search.toLowerCase()) &&
+      (activityFilters.club === "" || item.club?.name?.toLowerCase().includes(activityFilters.club.toLowerCase()) || item.club?.toLowerCase().includes(activityFilters.club.toLowerCase()))
     );
   });
 
@@ -943,6 +698,7 @@ const UserDashboard = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="px-8 py-4 border-2 border-white text-white rounded-full font-bold text-lg hover:bg-white hover:text-[#456882] transition-all"
+                onClick={() => navigate("/events")}
               >
                 View Events
               </motion.button>
@@ -1000,29 +756,12 @@ const UserDashboard = () => {
                     <NotificationCard key={notification._id} notification={notification} />
                   ))}
                 </div>
-                <button className="w-full mt-4 px-4 py-2 text-[#456882] hover:bg-[#456882]/10 rounded-lg transition text-sm font-medium">
+                <button
+                  className="w-full mt-4 px-4 py-2 text-[#456882] hover:bg-[#456882]/10 rounded-lg transition text-sm font-medium"
+                  onClick={() => navigate("/notifications")}
+                >
                   View All Notifications
                 </button>
-              </div>
-
-              {/* Achievement Showcase */}
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">Recent Achievements</h3>
-                <div className="space-y-3">
-                  {achievements.map((achievement) => (
-                    <motion.div
-                      key={achievement.id}
-                      whileHover={{ scale: 1.02 }}
-                      className="flex items-center gap-3 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg"
-                    >
-                      <div className="text-2xl">{achievement.icon}</div>
-                      <div className="flex-1">
-                        <p className="font-semibold text-sm">{achievement.title}</p>
-                        <p className="text-xs text-gray-600">{achievement.description}</p>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
               </div>
 
               {/* Quick Links */}
@@ -1030,16 +769,16 @@ const UserDashboard = () => {
                 <h3 className="text-lg font-bold text-gray-800 mb-4">Quick Links</h3>
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { icon: <FaUsers />, label: "My Clubs", color: "blue" },
-                    { icon: <FaCalendarAlt />, label: "Events", color: "green" },
-                    { icon: <FaTrophy />, label: "Hall of Fame", color: "yellow" },
-                    { icon: <FaChartLine />, label: "Progress", color: "purple" },
+                    { icon: <FaUsers />, label: "My Clubs", color: "blue", path: "/clubs" },
+                    { icon: <FaCalendarAlt />, label: "Events", color: "green", path: "/events" },
+                    { icon: <FaChartLine />, label: "Progress", color: "purple", path: "/progress" },
                   ].map((link, index) => (
                     <motion.button
                       key={index}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       className={`p-3 bg-${link.color}-50 text-${link.color}-600 rounded-lg hover:bg-${link.color}-100 transition text-center`}
+                      onClick={() => navigate(link.path)}
                     >
                       <div className="text-xl mb-1">{link.icon}</div>
                       <div className="text-xs font-medium">{link.label}</div>
@@ -1064,9 +803,10 @@ const UserDashboard = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredActivities
-              .filter((activity) => mockData.activityExtras[activity.id]?.featured)
-              .map((activity) => (
-                <ActivityCard key={activity.id} activity={activity} />
+              .filter((item) => new Date(item.date) > new Date())
+              .slice(0, 3)
+              .map((item) => (
+                <ActivityCard key={item._id} activity={item} />
               ))}
           </div>
         </div>
@@ -1117,9 +857,14 @@ const UserDashboard = () => {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {clubs.map((club) => (
-              <ClubCard key={club._id} club={club} user={user} handleJoinClub={handleJoinClub} />
-            ))}
+            {clubs
+              .filter((club) =>
+                club.name.toLowerCase().includes(activityFilters.search.toLowerCase()) &&
+                (activityFilters.type === "" || club.category === activityFilters.type)
+              )
+              .map((club) => (
+                <ClubCard key={club._id} club={club} user={user} handleJoinClub={handleJoinClub} />
+              ))}
           </div>
         </div>
       </section>
@@ -1135,8 +880,8 @@ const UserDashboard = () => {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredActivities.map((activity) => (
-              <ActivityCard key={activity.id} activity={activity} />
+            {filteredActivities.map((item) => (
+              <ActivityCard key={item._id} activity={item} />
             ))}
           </div>
 
@@ -1183,8 +928,9 @@ const UserDashboard = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="px-8 py-4 border-2 border-white text-white rounded-full font-bold text-lg hover:bg-white hover:text-[#456882] transition-all"
+                onClick={() => navigate("/events")}
               >
-                View Hall of Fame
+                View All Events
               </motion.button>
             </div>
           </motion.div>
