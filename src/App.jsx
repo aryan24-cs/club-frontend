@@ -33,6 +33,7 @@ import AdminContactPanel from "./components/Admin/AdminContactPanel";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import ClubPage from "./components/Admin/ClubPage";
+import RankingSystem from "./components/Admin/RankingSystem";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -169,7 +170,7 @@ const AnimatedRoutes = () => {
             }
           />
           <Route
-            path="/club/:clubId"
+            path="/clubs/:clubId"
             element={
               <ProtectedRoute>
                 <Layout>
@@ -314,6 +315,16 @@ const AnimatedRoutes = () => {
               <RoleBasedRoute roles={["super-admin", "admin"]}>
                 <Layout>
                   <AdminContactPanel />
+                </Layout>
+              </RoleBasedRoute>
+            }
+          />
+          <Route
+            path="/ranking-system"
+            element={
+              <RoleBasedRoute roles={["super-admin", "admin"]}>
+                <Layout>
+                  <RankingSystem />
                 </Layout>
               </RoleBasedRoute>
             }
