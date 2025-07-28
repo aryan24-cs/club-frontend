@@ -14,6 +14,7 @@ import {
   X,
   BookOpen,
   MessageSquare,
+  ChevronDown,
 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
@@ -28,6 +29,11 @@ const AirplaneMenu = ({
   handleLogout,
 }) => {
   const location = useLocation();
+  const [openSubMenu, setOpenSubMenu] = useState(null);
+
+  const toggleSubMenu = (label) => {
+    setOpenSubMenu(openSubMenu === label ? null : label);
+  };
 
   return (
     <AnimatePresence>
@@ -68,24 +74,74 @@ const AirplaneMenu = ({
               <div className="space-y-2">
                 {navLinks.map((link, index) => (
                   <motion.div
-                    key={link.to}
+                    key={link.label}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.4 + index * 0.1 }}
                   >
-                    <Link
-                      to={link.to}
-                      className={`flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-4 py-2 rounded-md text-sm font-medium transition-colors min-w-fit max-w-[200px] truncate ${
-                        location.pathname === link.to
-                          ? "bg-[#334d5e] text-white"
-                          : ""
-                      }`}
-                      onClick={onClose}
-                      aria-label={`Navigate to ${link.label}`}
-                    >
-                      {link.icon}
-                      <span className="ml-2">{link.label}</span>
-                    </Link>
+                    {link.subLinks ? (
+                      <div>
+                        <button
+                          className={`flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-4 py-2 rounded-md text-sm font-medium transition-colors w-full text-left min-w-fit max-w-[200px] truncate ${
+                            location.pathname.startsWith(link.to)
+                              ? "bg-[#334d5e] text-white"
+                              : ""
+                          }`}
+                          onClick={() => toggleSubMenu(link.label)}
+                          aria-label={`Toggle ${link.label} submenu`}
+                        >
+                          {link.icon}
+                          <span className="ml-2">{link.label}</span>
+                          <ChevronDown
+                            className={`w-5 h-5 ml-auto transform ${
+                              openSubMenu === link.label ? "rotate-180" : ""
+                            }`}
+                          />
+                        </button>
+                        <AnimatePresence>
+                          {openSubMenu === link.label && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="ml-4 space-y-1"
+                            >
+                              {link.subLinks.map((subLink, subIndex) => (
+                                <Link
+                                  key={subLink.to}
+                                  to={subLink.to}
+                                  className={`flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-4 py-2 rounded-md text-sm font-medium transition-colors min-w-fit max-w-[180px] truncate ${
+                                    location.pathname === subLink.to
+                                      ? "bg-[#334d5e] text-white"
+                                      : ""
+                                  }`}
+                                  onClick={onClose}
+                                  aria-label={`Navigate to ${subLink.label}`}
+                                >
+                                  {subLink.icon}
+                                  <span className="ml-2">{subLink.label}</span>
+                                </Link>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    ) : (
+                      <Link
+                        to={link.to}
+                        className={`flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-4 py-2 rounded-md text-sm font-medium transition-colors min-w-fit max-w-[200px] truncate ${
+                          location.pathname === link.to
+                            ? "bg-[#334d5e] text-white"
+                            : ""
+                        }`}
+                        onClick={onClose}
+                        aria-label={`Navigate to ${link.label}`}
+                      >
+                        {link.icon}
+                        <span className="ml-2">{link.label}</span>
+                      </Link>
+                    )}
                   </motion.div>
                 ))}
                 {userLinks.map((link, index) => (
@@ -140,6 +196,7 @@ const AirplaneMenu = ({
 const Navbar = memo(() => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [openSubMenu, setOpenSubMenu] = useState(null);
   const [user, setUser] = useState(null);
   const [role, setRole] = useState("user");
   const [loading, setLoading] = useState(true);
@@ -184,8 +241,17 @@ const Navbar = memo(() => {
     navigate("/login");
   };
 
+  const toggleSubMenu = (label) => {
+    setOpenSubMenu(openSubMenu === label ? null : label);
+  };
+
   // Common user links for the dropdown and mobile menu
   const userLinks = [
+    {
+        to: "/dashboard",
+        label: "Dashboard",
+        icon: <Home className="w-5 h-5 mr-2" />,
+      },
     {
       to: "/profile",
       label: "Profile",
@@ -203,7 +269,7 @@ const Navbar = memo(() => {
     },
   ];
 
-  // Role-based navigation links with distinct icons
+  // Role-based navigation links with events and clubs grouped
   const navLinks = {
     user: [
       {
@@ -215,11 +281,25 @@ const Navbar = memo(() => {
         to: "/clubs",
         label: "Clubs",
         icon: <Users className="w-5 h-5 mr-2" />,
+        subLinks: [
+          {
+            to: "/clubs",
+            label: "View Clubs",
+            icon: <Users className="w-5 h-5 mr-2" />,
+          },
+        ],
       },
       {
         to: "/events",
         label: "Events",
         icon: <Calendar className="w-5 h-5 mr-2" />,
+        subLinks: [
+          {
+            to: "/events",
+            label: "View Events",
+            icon: <Calendar className="w-5 h-5 mr-2" />,
+          },
+        ],
       },
     ],
     admin: [
@@ -229,33 +309,47 @@ const Navbar = memo(() => {
         icon: <Home className="w-5 h-5 mr-2" />,
       },
       {
+        to: "/clubs",
+        label: "Clubs",
+        icon: <Users className="w-5 h-5 mr-2" />,
+        subLinks: [
+          {
+            to: "/clubs",
+            label: "View Clubs",
+            icon: <Users className="w-5 h-5 mr-2" />,
+          },
+          {
+            to: "/manage-clubs",
+            label: "Manage Clubs",
+            icon: <Settings className="w-5 h-5 mr-2" />,
+          },
+        ],
+      },
+      {
         to: "/admin/events",
         label: "Events",
         icon: <Calendar className="w-5 h-5 mr-2" />,
-      },
-      {
-        to: "/attendance",
-        label: "Attendance",
-        icon: <BookOpen className="w-5 h-5 mr-2" />,
-      },
-      {
-        to: "/admin/activities",
-        label: "Activities",
-        icon: <Settings className="w-5 h-5 mr-2" />,
+        subLinks: [
+          {
+            to: "/admin/events",
+            label: "Manage Events",
+            icon: <Calendar className="w-5 h-5 mr-2" />,
+          },
+          {
+            to: "/attendance",
+            label: "Attendance",
+            icon: <BookOpen className="w-5 h-5 mr-2" />,
+          },
+          {
+            to: "/admin/activities",
+            label: "Activities",
+            icon: <Settings className="w-5 h-5 mr-2" />,
+          },
+        ],
       },
       {
         to: "/admin/users",
         label: "Users",
-        icon: <Users className="w-5 h-5 mr-2" />,
-      },
-      {
-        to: "/manage-clubs",
-        label: "Manage Clubs",
-        icon: <Settings className="w-5 h-5 mr-2" />,
-      },
-      {
-        to: "/clubs",
-        label: "Clubs",
         icon: <Users className="w-5 h-5 mr-2" />,
       },
       {
@@ -271,38 +365,52 @@ const Navbar = memo(() => {
         icon: <Home className="w-5 h-5 mr-2" />,
       },
       {
-        to: "/create-club",
-        label: "Create Club",
-        icon: <PlusCircle className="w-5 h-5 mr-2" />,
-      },
-      {
-        to: "/manage-clubs",
-        label: "Manage Clubs",
-        icon: <Settings className="w-5 h-5 mr-2" />,
+        to: "/clubs",
+        label: "Clubs",
+        icon: <Users className="w-5 h-5 mr-2" />,
+        subLinks: [
+          {
+            to: "/clubs",
+            label: "View Clubs",
+            icon: <Users className="w-5 h-5 mr-2" />,
+          },
+          {
+            to: "/create-club",
+            label: "Create Club",
+            icon: <PlusCircle className="w-5 h-5 mr-2" />,
+          },
+          {
+            to: "/manage-clubs",
+            label: "Manage Clubs",
+            icon: <Settings className="w-5 h-5 mr-2" />,
+          },
+        ],
       },
       {
         to: "/admin/events",
         label: "Events",
         icon: <Calendar className="w-5 h-5 mr-2" />,
-      },
-      {
-        to: "/attendance",
-        label: "Attendance",
-        icon: <BookOpen className="w-5 h-5 mr-2" />,
-      },
-      {
-        to: "/admin/activities",
-        label: "Activities",
-        icon: <Settings className="w-5 h-5 mr-2" />,
+        subLinks: [
+          {
+            to: "/admin/events",
+            label: "Manage Events",
+            icon: <Calendar className="w-5 h-5 mr-2" />,
+          },
+          {
+            to: "/attendance",
+            label: "Attendance",
+            icon: <BookOpen className="w-5 h-5 mr-2" />,
+          },
+          {
+            to: "/admin/activities",
+            label: "Activities",
+            icon: <Settings className="w-5 h-5 mr-2" />,
+          },
+        ],
       },
       {
         to: "/admin/users",
         label: "Users",
-        icon: <Users className="w-5 h-5 mr-2" />,
-      },
-      {
-        to: "/clubs",
-        label: "Clubs",
         icon: <Users className="w-5 h-5 mr-2" />,
       },
       {
@@ -317,11 +425,29 @@ const Navbar = memo(() => {
       label: "Dashboard",
       icon: <Home className="w-5 h-5 mr-2" />,
     },
-    { to: "/clubs", label: "Clubs", icon: <Users className="w-5 h-5 mr-2" /> },
+    {
+      to: "/clubs",
+      label: "Clubs",
+      icon: <Users className="w-5 h-5 mr-2" />,
+      subLinks: [
+        {
+          to: "/clubs",
+          label: "View Clubs",
+          icon: <Users className="w-5 h-5 mr-2" />,
+        },
+      ],
+    },
     {
       to: "/events",
       label: "Events",
       icon: <Calendar className="w-5 h-5 mr-2" />,
+      subLinks: [
+        {
+          to: "/events",
+          label: "View Events",
+          icon: <Calendar className="w-5 h-5 mr-2" />,
+        },
+      ],
     },
   ];
 
@@ -360,19 +486,63 @@ const Navbar = memo(() => {
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center space-x-1">
               {navLinks.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className={`flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-4 py-2 rounded-md text-sm font-medium transition-colors min-w-fit max-w-[120px] truncate ${
-                    location.pathname === link.to
-                      ? "bg-[#334d5e] text-white"
-                      : ""
-                  }`}
-                  aria-label={`Navigate to ${link.label}`}
+                <div
+                  key={link.label}
+                  className="relative group"
+                  onMouseEnter={() => link.subLinks && toggleSubMenu(link.label)}
+                  onMouseLeave={() => link.subLinks && toggleSubMenu(null)}
                 >
-                  {link.icon}
-                  <span className="ml-2">{link.label}</span>
-                </Link>
+                  <div
+                    className={`flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-4 py-2 rounded-md text-sm font-medium transition-colors min-w-fit max-w-[120px] truncate cursor-pointer ${
+                      location.pathname === link.to ||
+                      (link.subLinks &&
+                        link.subLinks.some(
+                          (subLink) => subLink.to === location.pathname
+                        ))
+                        ? "bg-[#334d5e] text-white"
+                        : ""
+                    }`}
+                  >
+                    {link.icon}
+                    <span className="ml-2">{link.label}</span>
+                    {link.subLinks && (
+                      <ChevronDown
+                        className={`w-5 h-5 ml-2 transform ${
+                          openSubMenu === link.label ? "rotate-180" : ""
+                        }`}
+                      />
+                    )}
+                  </div>
+                  {link.subLinks && (
+                    <AnimatePresence>
+                      {openSubMenu === link.label && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          transition={{ duration: 0.2 }}
+                          className="absolute top-full mt-2 bg-white shadow-lg rounded-md p-2 min-w-[200px] z-50"
+                        >
+                          {link.subLinks.map((subLink) => (
+                            <Link
+                              key={subLink.to}
+                              to={subLink.to}
+                              className={`flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-4 py-2 rounded-md text-sm font-medium transition-colors min-w-fit max-w-[180px] truncate ${
+                                location.pathname === subLink.to
+                                  ? "bg-[#334d5e] text-white"
+                                  : ""
+                              }`}
+                              aria-label={`Navigate to ${subLink.label}`}
+                            >
+                              {subLink.icon}
+                              <span className="ml-2">{subLink.label}</span>
+                            </Link>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  )}
+                </div>
               ))}
               <div
                 className="relative group"

@@ -34,6 +34,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import ClubPage from "./components/Admin/ClubPage";
 import RankingSystem from "./components/Admin/RankingSystem";
+import Events from "./components/Events";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -135,6 +136,16 @@ const AnimatedRoutes = () => {
               <RoleBasedRoute role="user">
                 <Layout>
                   <UserDashboard />
+                </Layout>
+              </RoleBasedRoute>
+            }
+          />
+          <Route
+            path="/events"
+            element={
+              <RoleBasedRoute role="user">
+                <Layout>
+                  <Events />
                 </Layout>
               </RoleBasedRoute>
             }
