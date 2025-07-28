@@ -61,7 +61,9 @@ const StatsCard = memo(({ title, value, icon: Icon }) => (
     <div className="flex items-center justify-between">
       <div>
         <p className="text-sm text-gray-600">{title}</p>
-        <h3 className="text-lg font-semibold text-gray-900">{value}</h3>
+        <h3 className="text-lg font-semibold text-gray-900">
+          {typeof value === 'number' ? value : 'N/A'}
+        </h3>
       </div>
       <Icon className="w-6 h-6 text-[#456882]" />
     </div>
@@ -157,17 +159,16 @@ const MembershipRequestCard = memo(({ request, onApprove, onReject }) => (
         </div>
         <div>
           <h4 className="text-sm font-semibold text-gray-900">
-            {request.userId?.name}
+            {request.userId?.name || "Unknown"}
           </h4>
-          <p className="text-xs text-gray-500">{request.clubName}</p>
+          <p className="text-xs text-gray-500">{request.clubName || "N/A"}</p>
         </div>
       </div>
       <span
-        className={`px-2 py-1 rounded-full text-xs ${
-          request.status === "pending"
+        className={`px-2 py-1 rounded-full text-xs ${request.status === "pending"
             ? "bg-yellow-100 text-yellow-700"
             : "bg-green-100 text-green-700"
-        }`}
+          }`}
       >
         {request.status}
       </span>
@@ -222,7 +223,13 @@ const SuperAdminDashboard = () => {
           "http://localhost:5000/api/auth/user",
           config
         );
-        setUser(userResponse.data);
+        const userData = userResponse.data;
+        if (!userData || !userData._id) {
+          setError("Failed to load user data.");
+          navigate("/login");
+          return;
+        }
+        setUser(userData);
 
         // Fetch clubs
         const clubsResponse = await axios.get(
@@ -231,21 +238,29 @@ const SuperAdminDashboard = () => {
         );
         const processedClubs = clubsResponse.data.map((club) => ({
           ...club,
-          memberCount: club.memberCount || 0,
-          eventsCount: club.eventsCount || 0,
+          memberCount: Number(club.memberCount) || 0,
+          eventsCount: Number(club.eventsCount) || 0,
         }));
         setClubs(processedClubs);
 
         // Debug logging for clubs
-        console.log("SuperAdminDashboard - User:", userResponse.data);
+        console.log("SuperAdminDashboard - User:", {
+          id: userData._id,
+          name: userData.name,
+          email: userData.email,
+          isAdmin: userData.isAdmin,
+        });
         console.log("SuperAdminDashboard - Clubs:", processedClubs);
         processedClubs.forEach((club, index) => {
           console.log(`Club ${index + 1}:`, {
+            id: club._id,
             name: club.name,
             icon: club.icon,
-            banner: club.banner,
+            category: club.category,
+            memberCount: club.memberCount,
+            eventsCount: club.eventsCount,
             superAdmins: club.superAdmins?.map((admin) => ({
-              id: admin._id?.toString(),
+              id: admin._id,
               name: admin.name,
               email: admin.email,
             })),
@@ -254,11 +269,10 @@ const SuperAdminDashboard = () => {
 
         // Check if user is a super admin
         const isSuperAdmin =
-          userResponse.data.isAdmin ||
+          userData.isAdmin ||
           clubsResponse.data.some((club) =>
             club.superAdmins?.some(
-              (admin) =>
-                admin?._id?.toString() === userResponse.data._id?.toString()
+              (admin) => admin?._id?.toString() === userData._id?.toString()
             )
           );
         console.log("SuperAdminDashboard - Is super admin:", isSuperAdmin);
@@ -280,13 +294,20 @@ const SuperAdminDashboard = () => {
         setCategories([
           "all",
           ...new Set(
-            clubsResponse.data.map((club) => club.category.toLowerCase())
+            clubsResponse.data
+              .map((club) => club.category?.toLowerCase())
+              .filter(Boolean)
           ),
         ]);
 
         setLoading(false);
       } catch (err) {
-        console.error("Fetch error:", err);
+        console.error("Fetch error:", {
+          message: err.message,
+          stack: err.stack,
+          status: err.response?.status,
+          data: err.response?.data,
+        });
         if (err.response?.status === 401 || err.response?.status === 403) {
           localStorage.removeItem("token");
           setError("Session expired or unauthorized. Please log in again.");
@@ -314,8 +335,10 @@ const SuperAdminDashboard = () => {
         )
       );
       setSuccess("Membership request approved successfully.");
+      setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       setError(err.response?.data?.error || "Failed to approve request.");
+      setTimeout(() => setError(""), 3000);
     }
   };
 
@@ -333,8 +356,10 @@ const SuperAdminDashboard = () => {
         )
       );
       setSuccess("Membership request rejected successfully.");
+      setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       setError(err.response?.data?.error || "Failed to reject request.");
+      setTimeout(() => setError(""), 3000);
     }
   };
 
@@ -347,8 +372,10 @@ const SuperAdminDashboard = () => {
       });
       setClubs((prev) => prev.filter((c) => c._id !== club._id));
       setSuccess(`Club ${club.name} deleted successfully.`);
+      setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       setError(err.response?.data?.error || "Failed to delete club.");
+      setTimeout(() => setError(""), 3000);
     }
   };
 
@@ -356,7 +383,7 @@ const SuperAdminDashboard = () => {
     () =>
       clubs.filter(
         (club) =>
-          club.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+          club.name?.toLowerCase().includes(searchTerm.toLowerCase()) &&
           (selectedFilter === "all" ||
             club.category?.toLowerCase() === selectedFilter.toLowerCase())
       ),
@@ -370,7 +397,7 @@ const SuperAdminDashboard = () => {
           request.userId?.name
             ?.toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
-          request.clubName.toLowerCase().includes(searchTerm.toLowerCase())
+          request.clubName?.toLowerCase().includes(searchTerm.toLowerCase())
       ),
     [membershipRequests, searchTerm]
   );
@@ -490,7 +517,7 @@ const SuperAdminDashboard = () => {
             <StatsCard
               title="Total Members"
               value={clubs.reduce(
-                (sum, club) => sum + (club.memberCount || 0),
+                (sum, club) => sum + (Number(club.memberCount) || 0),
                 0
               )}
               icon={Users}
@@ -506,7 +533,7 @@ const SuperAdminDashboard = () => {
             <StatsCard
               title="Active Events"
               value={clubs.reduce(
-                (sum, club) => sum + (club.eventsCount || 0),
+                (sum, club) => sum + (Number(club.eventsCount) || 0),
                 0
               )}
               icon={Calendar}
@@ -542,7 +569,7 @@ const SuperAdminDashboard = () => {
                             {category === "all"
                               ? "All Categories"
                               : category.charAt(0).toUpperCase() +
-                                category.slice(1)}
+                              category.slice(1)}
                           </option>
                         ))}
                       </select>
@@ -580,15 +607,15 @@ const SuperAdminDashboard = () => {
                   Membership Requests
                   {filteredRequests.filter((req) => req.status === "pending")
                     .length > 0 && (
-                    <span className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">
-                      {
-                        filteredRequests.filter(
-                          (req) => req.status === "pending"
-                        ).length
-                      }{" "}
-                      pending
-                    </span>
-                  )}
+                      <span className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">
+                        {
+                          filteredRequests.filter(
+                            (req) => req.status === "pending"
+                          ).length
+                        }{" "}
+                        pending
+                      </span>
+                    )}
                 </h2>
                 {filteredRequests.length === 0 ? (
                   <div className="bg-white rounded-xl shadow-sm p-6 text-center">
