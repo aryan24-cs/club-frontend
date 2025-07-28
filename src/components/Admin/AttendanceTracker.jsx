@@ -18,6 +18,7 @@ import {
   UserCheck,
   UserX,
   BookOpen,
+  UserPlus,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../Navbar";
@@ -269,6 +270,160 @@ const PresentStudentsModal = ({ isOpen, onClose, presentStudents, eventTitle }) 
   );
 };
 
+// Add Student Modal
+const AddStudentModal = ({ isOpen, onClose, onSubmit, isLoading, error }) => {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    rollNo: "",
+    branch: "",
+  });
+  const [formError, setFormError] = useState("");
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormError("");
+  };
+
+  const validateForm = () => {
+    if (!formData.name.trim()) return "Name is required.";
+    if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      return "Valid email is required.";
+    }
+    if (!formData.rollNo.trim()) return "Roll number is required.";
+    if (!formData.branch.trim()) return "Branch is required.";
+    return "";
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const validationError = validateForm();
+    if (validationError) {
+      setFormError(validationError);
+      return;
+    }
+    await onSubmit(formData);
+    setFormData({ name: "", email: "", rollNo: "", branch: "" });
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        className="bg-white rounded-xl p-6 max-w-md w-full mx-4"
+      >
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-gray-900">Add New Student</h2>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-500 hover:text-gray-700"
+          >
+            <XCircle className="w-6 h-6" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Name
+            </label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-[#456882] focus:border-[#456882]"
+              placeholder="Enter student name"
+              disabled={isLoading}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-[#456882] focus:border-[#456882]"
+              placeholder="Enter student email"
+              disabled={isLoading}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Roll Number
+            </label>
+            <input
+              type="text"
+              name="rollNo"
+              value={formData.rollNo}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-[#456882] focus:border-[#456882]"
+              placeholder="Enter roll number"
+              disabled={isLoading}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Branch
+            </label>
+            <input
+              type="text"
+              name="branch"
+              value={formData.branch}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-[#456882] focus:border-[#456882]"
+              placeholder="Enter branch (e.g., CSE)"
+              disabled={isLoading}
+            />
+          </div>
+          {formError && (
+            <p className="text-red-600 text-sm flex items-center gap-1">
+              <AlertTriangle className="w-4 h-4" />
+              {formError}
+            </p>
+          )}
+          {error && (
+            <p className="text-red-600 text-sm flex items-center gap-1">
+              <AlertTriangle className="w-4 h-4" />
+              {error}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#456882] text-white rounded-xl hover:bg-[#5a7a98] transition-colors disabled:opacity-50"
+              disabled={isLoading}
+            >
+              <UserPlus className="w-5 h-5" />
+              Add Student
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors"
+              disabled={isLoading}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 const AttendanceTracker = () => {
   const [user, setUser] = useState(null);
   const [clubs, setClubs] = useState([]);
@@ -287,6 +442,7 @@ const AttendanceTracker = () => {
   const [showPresentModal, setShowPresentModal] = useState(false);
   const [presentStudents, setPresentStudents] = useState([]);
   const [currentEventTitle, setCurrentEventTitle] = useState("");
+  const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const navigate = useNavigate();
 
   // Fetch user and clubs
@@ -353,7 +509,7 @@ const AttendanceTracker = () => {
           err.response?.data?.error || err.message || "Failed to load data."
         );
         if (err.response?.status === 401 || err.response?.status === 403) {
-          localStorage.removeItem("token");
+          localStorage.removeItem("id_token");
           navigate("/login");
         }
       } finally {
@@ -380,7 +536,7 @@ const AttendanceTracker = () => {
         });
         const formattedEvents = (response.data || []).map((event, index) => ({
           _id: event._id || `event-${index}-${Date.now()}`,
-          title: event.title || "Unknown Event",
+          title: event.title || "N/A",
           date: event.date || "N/A",
         }));
         setEvents(formattedEvents);
@@ -402,55 +558,52 @@ const AttendanceTracker = () => {
   }, [selectedClub]);
 
   // Fetch members for selected club
-  useEffect(() => {
-    const fetchMembers = async () => {
-      if (!selectedClub) {
-        setMembers([]);
-        setAttendance({});
-        return;
-      }
-      try {
-        setIsLoading(true);
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
-          `http://localhost:5000/api/clubs/${selectedClub}/members`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        const formattedMembers = (response.data || []).map((member, index) => ({
-          id:
-            member._id ||
-            `member-${member.email || index}-${Date.now()}-${index}`,
-          name: member.name || "Unknown",
-          email: member.email || "N/A",
-          rollNo: member.rollNo || "N/A",
-        }));
-        setMembers(formattedMembers);
-        setAttendance(
-          formattedMembers.reduce(
-            (acc, member) => ({
-              ...acc,
-              [member.id]: null,
-            }),
-            {}
-          )
-        );
-      } catch (err) {
-        console.error("Error fetching members:", err);
-        setError(
-          err.response?.data?.error ||
-            "Failed to load members. Please try again."
-        );
-        if (err.response?.status === 401 || err.response?.status === 403) {
-          localStorage.removeItem("token");
-          navigate("/login");
+  const fetchMembers = useCallback(async () => {
+    if (!selectedClub) {
+      setMembers([]);
+      setAttendance({});
+      return;
+    }
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:5000/api/clubs/${selectedClub}/members`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
         }
-      } finally {
-        setIsLoading(false);
+      );
+      const formattedMembers = (response.data || []).map((member, index) => ({
+        id:
+          member._id ||
+          `member-${member.email || index}-${Date.now()}-${index}`,
+        name: member.name || "N/A",
+        email: member.email || "N/A",
+        rollNo: member.rollNo || "N/A",
+      }));
+      setMembers(formattedMembers);
+      setAttendance(
+        formattedMembers.reduce(
+          (acc, member) => ({
+            ...acc,
+            [member.id]: null,
+          }),
+          {}
+        )
+      );
+    } catch (err) {
+      console.error("Error fetching members:", err);
+      setError(
+        err.response?.data?.error ||
+          "Failed to load members. Please try again."
+      );
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        localStorage.removeItem("token");
+        navigate("/login");
       }
-    };
-    fetchMembers();
+    } finally {
+      setIsLoading(false);
+    }
   }, [selectedClub, navigate]);
 
   // Fetch attendance history
@@ -529,6 +682,40 @@ const AttendanceTracker = () => {
       return { ...prev, [memberId]: "present" };
     });
   }, []);
+
+  // Handle adding new student
+  const handleAddStudent = async (formData) => {
+    if (!selectedClub) {
+      setError("Please select a club first.");
+      return;
+    }
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `http://localhost:5000/api/clubs/${selectedClub}/add-student`,
+        formData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setSuccess("Student added successfully!");
+      setShowAddStudentModal(false);
+      await fetchMembers(); // Refresh members list
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      console.error("Error adding student:", err);
+      setError(
+        err.response?.data?.error || "Failed to add student. Please try again."
+      );
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        localStorage.removeItem("token");
+        navigate("/login");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -616,7 +803,7 @@ const AttendanceTracker = () => {
   const downloadCSV = () => {
     const headers = ["Name", "Roll No", "Email", "Attendance"];
     const rows = filteredMembers.map((member) => [
-      `"${member.name || "Unknown"}"`,
+      `"${member.name || "N/A"}"`,
       `"${member.rollNo || "N/A"}"`,
       `"${member.email || "N/A"}"`,
       attendance[member.id] || "Not Marked",
@@ -693,12 +880,19 @@ const AttendanceTracker = () => {
             )}
           </AnimatePresence>
 
-          {/* Present Students Modal */}
+          {/* Modals */}
           <PresentStudentsModal
             isOpen={showPresentModal}
             onClose={() => setShowPresentModal(false)}
             presentStudents={presentStudents}
             eventTitle={currentEventTitle}
+          />
+          <AddStudentModal
+            isOpen={showAddStudentModal}
+            onClose={() => setShowAddStudentModal(false)}
+            onSubmit={handleAddStudent}
+            isLoading={isLoading}
+            error={error}
           />
 
           {/* Main Content */}
@@ -746,7 +940,7 @@ const AttendanceTracker = () => {
                               }
                               value={club._id}
                             >
-                              {club.name || "Unknown Club"}
+                              {club.name || "N/A"}
                             </option>
                           ))}
                         </select>
@@ -870,13 +1064,22 @@ const AttendanceTracker = () => {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   </motion.div>
 
-                  {/* Download Button */}
+                  {/* Buttons */}
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="flex justify-end"
+                    className="flex justify-end gap-2"
                   >
+                    <button
+                      onClick={() => setShowAddStudentModal(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-[#456882] text-white rounded-xl hover:bg-[#5a7a98] transition-colors"
+                      disabled={isLoading || !selectedClub}
+                      title={selectedClub ? "Add new student" : "Select a club first"}
+                    >
+                      <UserPlus className="w-5 h-5" />
+                      Add Student
+                    </button>
                     <button
                       onClick={downloadCSV}
                       className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors"
@@ -947,8 +1150,8 @@ const AttendanceTracker = () => {
                         >
                           <div className="flex justify-between items-center mb-2">
                             <h3 className="text-lg font-semibold text-gray-900">
-                              {record.club?.name || "Unknown Club"} -{" "}
-                              {record.event?.title || "Unknown Event"}
+                              {record.club?.name || "N/A"} -{" "}
+                              {record.event?.title || "N/A"}
                             </h3>
                             <div className="flex items-center gap-2">
                               <p className="text-sm text-gray-500">
@@ -987,7 +1190,7 @@ const AttendanceTracker = () => {
                             </p>
                             <p>
                               <span className="font-medium">Marked By:</span>{" "}
-                              {record.createdBy?.name || "Unknown"}
+                              {record.createdBy?.name || "N/A"}
                             </p>
                           </div>
                         </motion.div>
