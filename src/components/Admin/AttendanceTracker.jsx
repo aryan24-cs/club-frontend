@@ -295,7 +295,10 @@ const AttendanceTracker = () => {
   // Fetch members for selected club
   useEffect(() => {
     const fetchMembers = async () => {
-      if (!selectedClub) return;
+      if (!selectedClub) {
+        console.log("fetchMembers: No club selected, skipping fetch");
+        return;
+      }
       try {
         setIsLoading(true);
         const token = localStorage.getItem("token");
@@ -306,7 +309,9 @@ const AttendanceTracker = () => {
           }
         );
         const formattedMembers = (response.data || []).map((member, index) => ({
-          id: member._id || `member-${member.email || index}-${index}`,
+          id:
+            member._id ||
+            `member-${member.email || index}-${Date.now()}-${index}`,
           name: member.name || "Unknown",
           email: member.email || "N/A",
           rollNo: member.rollNo || "N/A",
@@ -324,7 +329,10 @@ const AttendanceTracker = () => {
         console.log("AttendanceTracker - Members:", formattedMembers);
       } catch (err) {
         console.error("Error fetching members:", err);
-        setError("Failed to load members. Please try again.");
+        setError(
+          err.response?.data?.error ||
+            "Failed to load members. Please try again."
+        );
         if (err.response?.status === 401 || err.response?.status === 403) {
           localStorage.removeItem("token");
           navigate("/login");
@@ -336,9 +344,12 @@ const AttendanceTracker = () => {
     fetchMembers();
   }, [selectedClub, navigate]);
 
-  // Fetch attendance history
+  // Fetch attendance history with retry logic
   const fetchAttendanceHistory = useCallback(async () => {
-    if (!selectedClub) return;
+    if (!selectedClub) {
+      console.log("fetchAttendanceHistory: No club selected, skipping fetch");
+      return;
+    }
     try {
       setIsLoading(true);
       const token = localStorage.getItem("token");
@@ -352,13 +363,19 @@ const AttendanceTracker = () => {
           record._id ||
           `record-${record.date || index}-${
             record.lectureNumber || index
-          }-${index}`,
+          }-${Date.now()}-${index}`,
       }));
       setAttendanceHistory(formattedHistory);
       console.log("AttendanceTracker - History:", formattedHistory);
     } catch (err) {
       console.error("Error fetching history:", err);
-      setError("Failed to load attendance history.");
+      const errorMessage =
+        err.response?.status === 403
+          ? "You are not authorized to view attendance history for this club."
+          : err.response?.status === 500
+          ? "Server error while fetching attendance history. Please try again later."
+          : "Failed to load attendance history.";
+      setError(errorMessage);
       if (err.response?.status === 401 || err.response?.status === 403) {
         localStorage.removeItem("token");
         navigate("/login");
@@ -442,7 +459,9 @@ const AttendanceTracker = () => {
         )
       );
       setTimeout(() => setSuccess(""), 3000);
-      fetchAttendanceHistory();
+      if (showHistory) {
+        fetchAttendanceHistory();
+      }
     } catch (err) {
       console.error("Error saving attendance:", err);
       setError(
@@ -585,7 +604,9 @@ const AttendanceTracker = () => {
                             <option
                               key={
                                 club._id ||
-                                `club-${club.name || index}-${index}`
+                                `club-${
+                                  club.name || index
+                                }-${Date.now()}-${index}`
                               }
                               value={club._id}
                             >
