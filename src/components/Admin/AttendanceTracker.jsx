@@ -19,6 +19,7 @@ import {
   UserX,
   BookOpen,
   UserPlus,
+  GraduationCap,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../Navbar";
@@ -138,6 +139,10 @@ const MemberCard = memo(({ member, attendance, onToggleAttendance, index }) => {
             <User className="w-3 h-3" />
             {member.email || "N/A"}
           </p>
+          <p className="text-xs text-gray-500 flex items-center gap-1">
+            <GraduationCap className="w-3 h-3" />
+            {member.branch || "N/A"} • Sem {member.semester || "N/A"} • {member.course || "N/A"} • {member.specialization || "N/A"}
+          </p>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -179,11 +184,15 @@ const PresentStudentsModal = ({ isOpen, onClose, presentStudents, eventTitle }) 
   if (!isOpen) return null;
 
   const downloadPresentCSV = () => {
-    const headers = ["Name", "Roll No", "Email", "Date"];
+    const headers = ["Name", "Roll No", "Email", "Branch", "Semester", "Course", "Specialization", "Date"];
     const rows = presentStudents.map((student) => [
       `"${student.name || "Unknown"}"`,
       `"${student.rollNo || "N/A"}"`,
       `"${student.email || "N/A"}"`,
+      `"${student.branch || "N/A"}"`,
+      `"${student.semester || "N/A"}"`,
+      `"${student.course || "N/A"}"`,
+      `"${student.specialization || "N/A"}"`,
       `"${student.date || "N/A"}"`,
     ]);
     const csvContent = [headers, ...rows]
@@ -248,6 +257,9 @@ const PresentStudentsModal = ({ isOpen, onClose, presentStudents, eventTitle }) 
                       {student.rollNo || "N/A"} • {student.email || "N/A"}
                     </p>
                     <p className="text-xs text-gray-500">
+                      {student.branch || "N/A"} • Sem {student.semester || "N/A"} • {student.course || "N/A"} • {student.specialization || "N/A"}
+                    </p>
+                    <p className="text-xs text-gray-500">
                       Date: {student.date || "N/A"}
                     </p>
                   </div>
@@ -277,6 +289,9 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit, isLoading, error }) => {
     email: "",
     rollNo: "",
     branch: "",
+    semester: "",
+    course: "",
+    specialization: "",
   });
   const [formError, setFormError] = useState("");
 
@@ -293,6 +308,11 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit, isLoading, error }) => {
     }
     if (!formData.rollNo.trim()) return "Roll number is required.";
     if (!formData.branch.trim()) return "Branch is required.";
+    if (!formData.semester || isNaN(formData.semester) || formData.semester < 1 || formData.semester > 8) {
+      return "Valid semester (1-8) is required.";
+    }
+    if (!formData.course.trim()) return "Course is required.";
+    if (!formData.specialization.trim()) return "Specialization is required.";
     return "";
   };
 
@@ -304,7 +324,7 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit, isLoading, error }) => {
       return;
     }
     await onSubmit(formData);
-    setFormData({ name: "", email: "", rollNo: "", branch: "" });
+    setFormData({ name: "", email: "", rollNo: "", branch: "", semester: "", course: "", specialization: "" });
   };
 
   if (!isOpen) return null;
@@ -388,6 +408,53 @@ const AddStudentModal = ({ isOpen, onClose, onSubmit, isLoading, error }) => {
               disabled={isLoading}
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Semester
+            </label>
+            <input
+              type="number"
+              name="semester"
+              value={formData.semester}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-[#456882] focus:border-[#456882]"
+              placeholder="Enter semester (1-8)"
+              min="1"
+              max="8"
+              disabled={isLoading}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Course
+            </label>
+            <select
+              name="course"
+              value={formData.course}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-[#456882] focus:border-[#456882]"
+              disabled={isLoading}
+            >
+              <option value="">Select a course</option>
+              {["BTech", "BCA", "BBA", "MBA"].map((course) => (
+                <option key={course} value={course}>{course}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Specialization
+            </label>
+            <input
+              type="text"
+              name="specialization"
+              value={formData.specialization}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-[#456882] focus:border-[#456882]"
+              placeholder="Enter specialization (e.g., Computer Science)"
+              disabled={isLoading}
+            />
+          </div>
           {formError && (
             <p className="text-red-600 text-sm flex items-center gap-1">
               <AlertTriangle className="w-4 h-4" />
@@ -444,6 +511,17 @@ const AttendanceTracker = () => {
   const [currentEventTitle, setCurrentEventTitle] = useState("");
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const navigate = useNavigate();
+
+  // Validate inputs
+  const validateInputs = () => {
+    if (!selectedClub) return "Please select a club.";
+    if (!selectedEvent) return "Please select an event.";
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return "Please select a valid date.";
+    if (Object.values(attendance).every((status) => status === null)) {
+      return "Please mark attendance for at least one member.";
+    }
+    return "";
+  };
 
   // Fetch user and clubs
   useEffect(() => {
@@ -509,7 +587,7 @@ const AttendanceTracker = () => {
           err.response?.data?.error || err.message || "Failed to load data."
         );
         if (err.response?.status === 401 || err.response?.status === 403) {
-          localStorage.removeItem("id_token");
+          localStorage.removeItem("token");
           navigate("/login");
         }
       } finally {
@@ -537,7 +615,7 @@ const AttendanceTracker = () => {
         const formattedEvents = (response.data || []).map((event, index) => ({
           _id: event._id || `event-${index}-${Date.now()}`,
           title: event.title || "N/A",
-          date: event.date || "N/A",
+          date: event.date ? new Date(event.date).toISOString().split("T")[0] : "N/A",
         }));
         setEvents(formattedEvents);
         if (formattedEvents.length > 0) {
@@ -580,6 +658,10 @@ const AttendanceTracker = () => {
         name: member.name || "N/A",
         email: member.email || "N/A",
         rollNo: member.rollNo || "N/A",
+        branch: member.branch || "N/A",
+        semester: member.semester || "N/A",
+        course: member.course || "N/A",
+        specialization: member.specialization || "N/A",
       }));
       setMembers(formattedMembers);
       setAttendance(
@@ -624,6 +706,7 @@ const AttendanceTracker = () => {
         _id:
           record._id ||
           `record-${record.date || index}-${Date.now()}-${index}`,
+        date: record.date ? new Date(record.date).toISOString().split("T")[0] : "N/A",
       }));
       setAttendanceHistory(formattedHistory);
     } catch (err) {
@@ -657,7 +740,11 @@ const AttendanceTracker = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setPresentStudents(response.data.presentStudents || []);
+      const formattedStudents = (response.data.presentStudents || []).map(student => ({
+        ...student,
+        date: student.date ? new Date(student.date).toISOString().split("T")[0] : "N/A",
+      }));
+      setPresentStudents(formattedStudents);
       setCurrentEventTitle(eventTitle);
       setShowPresentModal(true);
     } catch (err) {
@@ -734,12 +821,9 @@ const AttendanceTracker = () => {
 
   // Handle form submission
   const handleSubmit = async () => {
-    if (!selectedClub || !selectedEvent || !date) {
-      setError("Please select a club, event, and date.");
-      return;
-    }
-    if (Object.values(attendance).every((status) => status === null)) {
-      setError("Please mark attendance for at least one member.");
+    const validationError = validateInputs();
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -795,17 +879,25 @@ const AttendanceTracker = () => {
       (member) =>
         member.name?.toLowerCase().includes(query) ||
         member.rollNo?.toLowerCase().includes(query) ||
-        member.email?.toLowerCase().includes(query)
+        member.email?.toLowerCase().includes(query) ||
+        member.branch?.toLowerCase().includes(query) ||
+        member.semester?.toString().includes(query) ||
+        member.course?.toLowerCase().includes(query) ||
+        member.specialization?.toLowerCase().includes(query)
     );
   }, [members, searchQuery]);
 
   // Download attendance as CSV
   const downloadCSV = () => {
-    const headers = ["Name", "Roll No", "Email", "Attendance"];
+    const headers = ["Name", "Roll No", "Email", "Branch", "Semester", "Course", "Specialization", "Attendance"];
     const rows = filteredMembers.map((member) => [
       `"${member.name || "N/A"}"`,
       `"${member.rollNo || "N/A"}"`,
       `"${member.email || "N/A"}"`,
+      `"${member.branch || "N/A"}"`,
+      `"${member.semester || "N/A"}"`,
+      `"${member.course || "N/A"}"`,
+      `"${member.specialization || "N/A"}"`,
       attendance[member.id] || "Not Marked",
     ]);
     const csvContent = [headers, ...rows]
@@ -822,6 +914,10 @@ const AttendanceTracker = () => {
     link.click();
     URL.revokeObjectURL(url);
   };
+
+  useEffect(() => {
+    fetchMembers();
+  }, [fetchMembers]);
 
   if (isLoading && !user) {
     return (
@@ -984,6 +1080,7 @@ const AttendanceTracker = () => {
                           onChange={(e) => setDate(e.target.value)}
                           className="w-full pl-10 py-2 border border-gray-300 rounded-xl focus:ring-[#456882] focus:border-[#456882]"
                           disabled={isLoading}
+                          max={new Date().toISOString().split("T")[0]}
                         />
                         <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                       </div>
@@ -1055,7 +1152,7 @@ const AttendanceTracker = () => {
                   >
                     <input
                       type="text"
-                      placeholder="Search by name, roll no, or email..."
+                      placeholder="Search by name, roll no, email, branch, etc..."
                       value={searchQuery || ""}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-[#456882] focus:border-[#456882]"
@@ -1155,9 +1252,7 @@ const AttendanceTracker = () => {
                             </h3>
                             <div className="flex items-center gap-2">
                               <p className="text-sm text-gray-500">
-                                {record.date
-                                  ? new Date(record.date).toLocaleDateString()
-                                  : "N/A"}
+                                {record.date}
                               </p>
                               <button
                                 onClick={() =>
