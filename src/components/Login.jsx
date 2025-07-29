@@ -1,8 +1,14 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { FaUsers } from 'react-icons/fa';
+import React, { useState, useRef, useEffect } from "react";
+import {
+  motion,
+  AnimatePresence,
+  useScroll,
+  useTransform,
+} from "framer-motion";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+// import jwtDecode from "jwt-decode"; 
+import { FaUsers } from "react-icons/fa";
 
 // Floating Bubble Component (Fragrance-like animation)
 const Bubble = ({ size, delay }) => {
@@ -14,20 +20,23 @@ const Bubble = ({ size, delay }) => {
       style={{
         width: size,
         height: size,
-        backgroundColor: '#CFFFE2',
-        willChange: 'transform, opacity',
+        backgroundColor: "#CFFFE2",
+        willChange: "transform, opacity",
       }}
-      initial={{ x: `${randomXOffset}vw`, y: '100vh', opacity: 0.5 }}
+      initial={{ x: `${randomXOffset}vw`, y: "100vh", opacity: 0.5 }}
       animate={{
-        x: [`${randomXOffset}vw`, `${randomXOffset + (Math.random() * 20 - 10)}vw`], // Slight horizontal sway
-        y: '-10vh', // Move to top
+        x: [
+          `${randomXOffset}vw`,
+          `${randomXOffset + (Math.random() * 20 - 10)}vw`,
+        ], // Slight horizontal sway
+        y: "-10vh", // Move to top
         opacity: [0.5, 0.7, 0], // Fade in, then out
       }}
       transition={{
         duration: 8 + Math.random() * 4, // Random duration (8-12s)
         repeat: Infinity,
-        repeatType: 'loop',
-        ease: 'easeOut',
+        repeatType: "loop",
+        ease: "easeOut",
         delay: delay,
       }}
       whileHover={{ scale: 1.3, opacity: 0.8 }}
@@ -42,22 +51,22 @@ const OtpInput = ({ otp, setOtp, otpFocused, setOtpFocused }) => {
 
   const handleChange = (index, value) => {
     if (!/^\d?$/.test(value)) return;
-    const newOtp = otp.split('');
+    const newOtp = otp.split("");
     newOtp[index] = value;
-    setOtp(newOtp.join(''));
+    setOtp(newOtp.join(""));
     if (value && index < OTP_LENGTH - 1) {
       inputRefs.current[index + 1].focus();
     }
   };
 
   const handleKeyDown = (index, e) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
       inputRefs.current[index - 1].focus();
     }
   };
 
   const handlePaste = (e) => {
-    const pastedData = e.clipboardData.getData('text').slice(0, OTP_LENGTH);
+    const pastedData = e.clipboardData.getData("text").slice(0, OTP_LENGTH);
     if (/^\d{6}$/.test(pastedData)) {
       setOtp(pastedData);
       inputRefs.current[OTP_LENGTH - 1].focus();
@@ -74,14 +83,14 @@ const OtpInput = ({ otp, setOtp, otpFocused, setOtpFocused }) => {
             ref={(el) => (inputRefs.current[index] = el)}
             type="text"
             maxLength={1}
-            value={otp[index] || ''}
+            value={otp[index] || ""}
             onChange={(e) => handleChange(index, e.target.value)}
             onKeyDown={(e) => handleKeyDown(index, e)}
             onPaste={handlePaste}
             onFocus={() => setOtpFocused(index)}
             onBlur={() => setOtpFocused(null)}
             className={`w-12 h-12 text-center text-lg border-2 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-600 transition-all duration-300 ${
-              otpFocused === index ? 'border-teal-600' : 'border-gray-300'
+              otpFocused === index ? "border-teal-600" : "border-gray-300"
             }`}
             aria-label={`OTP digit ${index + 1}`}
           />
@@ -91,12 +100,12 @@ const OtpInput = ({ otp, setOtp, otpFocused, setOtpFocused }) => {
 };
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [otp, setOtp] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [useOtp, setUseOtp] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
@@ -108,66 +117,76 @@ const Login = () => {
 
   const handleSendOtp = async () => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Please enter a valid email address');
+      setError("Please enter a valid email address");
       return;
     }
-    setError('');
+    setError("");
     setLoading(true);
     try {
-      await axios.post('http://localhost:5000/api/auth/send-otp', { email });
+      await axios.post("http://localhost:5000/api/auth/send-otp", { email });
       setOtpSent(true);
       setUseOtp(true);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to send OTP. Try again.');
+      setError(err.response?.data?.error || "Failed to send OTP. Try again.");
     }
     setLoading(false);
   };
 
   const handlePasswordLogin = async () => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Please enter a valid email address');
+      setError("Please enter a valid email address");
       return;
     }
     if (!password) {
-      setError('Please enter a password');
+      setError("Please enter a password");
       return;
     }
-    setError('');
+    setError("");
     setLoading(true);
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/login-password', { email, password });
-      localStorage.setItem('token', res.data.token);
-      navigate('/dashboard');
+      const res = await axios.post(
+        "http://localhost:5000/api/auth/login-password",
+        { email, password }
+      );
+      const token = res.data.token;
+      localStorage.setItem("token", token);
+      localStorage.setItem("userId", token); // Store userId from decoded token
+      navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.error || 'Invalid credentials. Try again.');
+      setError(err.response?.data?.error || "Invalid credentials. Try again.");
     }
     setLoading(false);
   };
 
   const handleVerifyOtp = async () => {
     if (!otp || !/^\d{6}$/.test(otp)) {
-      setError('Please enter a valid 6-digit OTP');
+      setError("Please enter a valid 6-digit OTP");
       return;
     }
-    setError('');
+    setError("");
     setLoading(true);
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/verify-otp-login', { email, otp });
-      localStorage.setItem('token', res.data.token);
-      navigate('/dashboard');
+      const res = await axios.post(
+        "http://localhost:5000/api/auth/verify-otp-login",
+        { email, otp }
+      );
+      const token = res.data.token;
+      localStorage.setItem("token", token);
+      localStorage.setItem("userId", token); // Store userId from decoded token
+      navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.error || 'Invalid OTP. Try again.');
+      setError(err.response?.data?.error || "Invalid OTP. Try again.");
     }
     setLoading(false);
   };
 
   const labelVariants = {
-    resting: { y: 12, fontSize: '1rem', color: '#4B5563' },
-    floating: { y: -12, fontSize: '0.75rem', color: '#456882' },
+    resting: { y: 12, fontSize: "1rem", color: "#4B5563" },
+    floating: { y: -12, fontSize: "0.75rem", color: "#456882" },
   };
 
   // Progress steps
-  const steps = ['Enter Email', 'Verify OTP', 'Login'];
+  const steps = ["Enter Email", "Verify OTP", "Login"];
   const currentStep = !otpSent ? 0 : !useOtp ? 2 : 1;
 
   // Bubbles
@@ -179,10 +198,7 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center relative overflow-hidden font-[Poppins]">
       {/* Background and Bubbles */}
-      <motion.div
-        className="absolute inset-0 z-0"
-        style={{ y: bgY }}
-      >
+      <motion.div className="absolute inset-0 z-0" style={{ y: bgY }}>
         <div className="relative w-full h-full">
           <div className="absolute inset-0 bg-gradient-to-br from-teal-100 via-white to-blue-100"></div>
           <div className="absolute inset-0 bg-gradient-to-t from-teal-600/30 to-transparent"></div>
@@ -215,7 +231,10 @@ const Login = () => {
         </motion.div>
 
         {/* Title */}
-        <h2 className="text-3xl font-bold text-teal-600 text-center mb-6" style={{ color: '#456882' }}>
+        <h2
+          className="text-3xl font-bold text-teal-600 text-center mb-6"
+          style={{ color: "#456882" }}
+        >
           Login to ACEM Clubs
         </h2>
 
@@ -225,9 +244,11 @@ const Login = () => {
             <div key={index} className="flex flex-col items-center">
               <motion.div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold ${
-                  index <= currentStep ? 'bg-teal-600' : 'bg-gray-300'
+                  index <= currentStep ? "bg-teal-600" : "bg-gray-300"
                 }`}
-                style={{ backgroundColor: index <= currentStep ? '#456882' : '#D1D5DB' }}
+                style={{
+                  backgroundColor: index <= currentStep ? "#456882" : "#D1D5DB",
+                }}
                 animate={{ scale: index === currentStep ? 1.1 : 1 }}
                 transition={{ duration: 0.3 }}
               >
@@ -245,7 +266,7 @@ const Login = () => {
               <div className="relative">
                 <motion.label
                   className="absolute left-4 top-3 text-gray-700 font-medium pointer-events-none"
-                  animate={emailFocused || email ? 'floating' : 'resting'}
+                  animate={emailFocused || email ? "floating" : "resting"}
                   variants={labelVariants}
                   transition={{ duration: 0.2 }}
                 >
@@ -265,7 +286,9 @@ const Login = () => {
                 <div className="relative">
                   <motion.label
                     className="absolute left-4 top-3 text-gray-700 font-medium pointer-events-none"
-                    animate={passwordFocused || password ? 'floating' : 'resting'}
+                    animate={
+                      passwordFocused || password ? "floating" : "resting"
+                    }
                     variants={labelVariants}
                     transition={{ duration: 0.2 }}
                   >
@@ -300,8 +323,8 @@ const Login = () => {
                 onClick={useOtp ? handleSendOtp : handlePasswordLogin}
                 disabled={loading}
                 className="w-full px-4 py-3 bg-teal-600 text-white rounded-full font-semibold hover:bg-teal-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center"
-                style={{ backgroundColor: '#456882' }}
-                aria-label={useOtp ? 'Send OTP' : 'Login'}
+                style={{ backgroundColor: "#456882" }}
+                aria-label={useOtp ? "Send OTP" : "Login"}
               >
                 {loading ? (
                   <>
@@ -309,26 +332,35 @@ const Login = () => {
                       className="animate-spin h-5 w-5 mr-2 text-white"
                       viewBox="0 0 24 24"
                     >
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
                       <path
                         className="opacity-75"
                         fill="currentColor"
                         d="M4 12a8 8 0 018-8v8z"
                       />
                     </svg>
-                    {useOtp ? 'Sending...' : 'Logging In...'}
+                    {useOtp ? "Sending..." : "Logging In..."}
                   </>
+                ) : useOtp ? (
+                  "Send OTP"
                 ) : (
-                  useOtp ? 'Send OTP' : 'Login'
+                  "Login"
                 )}
               </motion.button>
               <p className="text-center text-gray-700">
                 <button
                   onClick={() => setUseOtp(!useOtp)}
                   className="text-teal-600 hover:underline font-medium"
-                  style={{ color: '#456882' }}
+                  style={{ color: "#456882" }}
                 >
-                  {useOtp ? 'Use Password Instead' : 'Use OTP Instead'}
+                  {useOtp ? "Use Password Instead" : "Use OTP Instead"}
                 </button>
               </p>
             </>
@@ -337,13 +369,18 @@ const Login = () => {
               <div className="relative">
                 <motion.label
                   className="text-gray-700 font-medium text-center block mb-2"
-                  animate={otpFocused !== null || otp ? 'floating' : 'resting'}
+                  animate={otpFocused !== null || otp ? "floating" : "resting"}
                   variants={labelVariants}
                   transition={{ duration: 0.2 }}
                 >
                   Enter OTP
                 </motion.label>
-                <OtpInput otp={otp} setOtp={setOtp} otpFocused={otpFocused} setOtpFocused={setOtpFocused} />
+                <OtpInput
+                  otp={otp}
+                  setOtp={setOtp}
+                  otpFocused={otpFocused}
+                  setOtpFocused={setOtpFocused}
+                />
               </div>
               <AnimatePresence>
                 {error && (
@@ -363,7 +400,7 @@ const Login = () => {
                 onClick={handleVerifyOtp}
                 disabled={loading}
                 className="w-full px-4 py-3 bg-teal-600 text-white rounded-full font-semibold hover:bg-teal-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center"
-                style={{ backgroundColor: '#456882' }}
+                style={{ backgroundColor: "#456882" }}
                 aria-label="Verify OTP"
               >
                 {loading ? (
@@ -372,7 +409,14 @@ const Login = () => {
                       className="animate-spin h-5 w-5 mr-2 text-white"
                       viewBox="0 0 24 24"
                     >
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
                       <path
                         className="opacity-75"
                         fill="currentColor"
@@ -382,14 +426,18 @@ const Login = () => {
                     Verifying...
                   </>
                 ) : (
-                  'Verify OTP'
+                  "Verify OTP"
                 )}
               </motion.button>
             </>
           )}
           <p className="text-center text-gray-700">
-            Don't have an account?{' '}
-            <Link to="/signup" className="text-teal-600 hover:underline font-medium" style={{ color: '#456882' }}>
+            Don't have an account?{" "}
+            <Link
+              to="/signup"
+              className="text-teal-600 hover:underline font-medium"
+              style={{ color: "#456882" }}
+            >
               Signup
             </Link>
           </p>

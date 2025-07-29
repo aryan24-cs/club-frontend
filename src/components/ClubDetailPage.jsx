@@ -1,135 +1,264 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
-import { 
-  Users, 
-  Calendar, 
-  Mail, 
-  Settings, 
-  Search, 
-  CheckCircle, 
-  UserPlus, 
-  Eye, 
-  EyeOff, 
+import React, { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+import {
+  Users,
+  Calendar,
+  Mail,
+  Search,
+  CheckCircle,
+  UserPlus,
+  Eye,
+  EyeOff,
   X,
   MapPin,
   Clock,
   Award,
   ChevronLeft,
   Edit3,
-  Trash2
-} from 'lucide-react';
+  Trash2,
+  Send,
+  Activity,
+} from "lucide-react";
+import toast, { Toaster } from "react-hot-toast";
 
 const ClubDetailPage = () => {
   const { clubName } = useParams();
+  const navigate = useNavigate();
   const [club, setClub] = useState(null);
   const [activities, setActivities] = useState([]);
+  const [events, setEvents] = useState([]);
   const [members, setMembers] = useState([]);
   const [filteredMembers, setFilteredMembers] = useState([]);
   const [isMember, setIsMember] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isHeadCoordinator, setIsHeadCoordinator] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [showMembers, setShowMembers] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('about');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("about");
   const [joinLoading, setJoinLoading] = useState(false);
+  const [contactMessage, setContactMessage] = useState("");
+  const [contactSending, setContactSending] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [membersPage, setMembersPage] = useState(1);
+  const [eventsPage, setEventsPage] = useState(1);
+  const itemsPerPage = 6;
 
-  useEffect(() => {
-    const fetchClubData = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const clubResponse = await axios.get(`http://localhost:5000/api/clubs?name=${clubName}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setClub(clubResponse.data[0]);
+  const fetchClubData = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Please log in to view this page");
+      }
 
-        const activitiesResponse = await axios.get(`http://localhost:5000/api/activities?club=${clubName}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setActivities(activitiesResponse.data);
+      setLoading(true);
+      setError("");
 
-        const membersResponse = await axios.get(`http://localhost:5000/api/clubs/${clubResponse.data[0]._id}/members`, {
+      // Fetch club details
+      const clubResponse = await axios.get(
+        `http://localhost:5000/api/clubs?name=${clubName}`,
+        {
           headers: { Authorization: `Bearer ${token}` },
-        });
-        setMembers(membersResponse.data);
-        setFilteredMembers(membersResponse.data);
+        }
+      );
 
-        const userResponse = await axios.get('http://localhost:5000/api/auth/user', {
+      if (!clubResponse.data[0]) {
+        throw new Error("Club not found");
+      }
+
+      const clubData = clubResponse.data[0];
+      setClub(clubData);
+
+      // Fetch activities
+      const activitiesResponse = await axios.get(
+        `http://localhost:5000/api/activities?club=${clubName}`,
+        {
           headers: { Authorization: `Bearer ${token}` },
-        });
-        setIsMember(userResponse.data.clubName.includes(clubName));
-        setIsAdmin(userResponse.data.isAdmin);
-        setIsHeadCoordinator(
-          userResponse.data.isHeadCoordinator &&
+        }
+      );
+      setActivities(activitiesResponse.data);
+
+      // Fetch events
+      const eventsResponse = await axios.get(
+        `http://localhost:5000/api/events?club=${clubData._id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setEvents(eventsResponse.data);
+
+      // Fetch members
+      const membersResponse = await axios.get(
+        `http://localhost:5000/api/clubs/${clubData._id}/members`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setMembers(membersResponse.data);
+      setFilteredMembers(membersResponse.data);
+
+      // Fetch user data
+      const userResponse = await axios.get(
+        "http://localhost:5000/api/auth/user",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setIsMember(userResponse.data.clubName.includes(clubName));
+      setIsAdmin(userResponse.data.isAdmin);
+      setIsHeadCoordinator(
+        userResponse.data.isHeadCoordinator &&
           userResponse.data.headCoordinatorClubs.includes(clubName)
+      );
+
+      setLoading(false);
+      setRetryCount(0);
+    } catch (err) {
+      if (retryCount < 3) {
+        setTimeout(() => {
+          setRetryCount((prev) => prev + 1);
+          fetchClubData();
+        }, 2000);
+      } else {
+        setError(
+          err.response?.data?.error ||
+            "Failed to load club details after multiple attempts"
         );
         setLoading(false);
-      } catch (err) {
-        setError('Failed to load club details.');
-        setLoading(false);
+      }
+    }
+  }, [clubName, retryCount]);
+
+  useEffect(() => {
+    fetchClubData();
+
+    // Polling for real-time updates (every 30 seconds)
+    const interval = setInterval(fetchClubData, 30000);
+    return () => clearInterval(interval);
+
+    // Optional: WebSocket setup (uncomment if backend supports WebSocket)
+    /*
+    const ws = new WebSocket(`ws://localhost:5000/api/clubs/${clubName}/updates`);
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'update') {
+        fetchClubData();
       }
     };
-    fetchClubData();
-  }, [clubName]);
+    return () => ws.close();
+    */
+  }, [fetchClubData]);
 
   useEffect(() => {
     setFilteredMembers(
-      members.filter(member =>
-        member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        member.email.toLowerCase().includes(searchQuery.toLowerCase())
+      members.filter(
+        (member) =>
+          member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          member.email.toLowerCase().includes(searchQuery.toLowerCase())
       )
     );
+    setMembersPage(1); // Reset to first page on search
   }, [searchQuery, members]);
 
   const handleJoinClub = async () => {
     setJoinLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      await axios.patch(
-        'http://localhost:5000/api/auth/user-details',
-        {
-          clubName: [clubName],
-          isClubMember: true,
-        },
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `http://localhost:5000/api/clubs/${club._id}/join`,
+        {},
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setIsMember(true);
-      const membersResponse = await axios.get(`http://localhost:5000/api/clubs/${club._id}/members`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setMembers(membersResponse.data);
-      setFilteredMembers(membersResponse.data);
+      toast.success("Membership request sent successfully");
+      await fetchClubData();
     } catch (err) {
-      setError('Failed to join club.');
+      toast.error(
+        err.response?.data?.error || "Failed to send membership request"
+      );
     }
     setJoinLoading(false);
   };
 
   const handleRemoveMember = async (email) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/api/clubs/${club._id}/members`, {
-        headers: { Authorization: `Bearer ${token}` },
-        data: { email },
-      });
-      const updatedMembers = members.filter((member) => member.email !== email);
-      setMembers(updatedMembers);
-      setFilteredMembers(updatedMembers);
-    } catch (err) {
-      setError('Failed to remove member.');
+    if (window.confirm("Are you sure you want to remove this member?")) {
+      try {
+        const token = localStorage.getItem("token");
+        await axios.delete(
+          `http://localhost:5000/api/clubs/${club._id}/members`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            data: { email },
+          }
+        );
+        toast.success("Member removed successfully");
+        await fetchClubData();
+      } catch (err) {
+        toast.error(err.response?.data?.error || "Failed to remove member");
+      }
     }
   };
 
+  const handleDeleteEvent = async (eventId) => {
+    if (window.confirm("Are you sure you want to delete this event?")) {
+      try {
+        const token = localStorage.getItem("token");
+        await axios.delete(`http://localhost:5000/api/events/${eventId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        toast.success("Event deleted successfully");
+        await fetchClubData();
+      } catch (err) {
+        toast.error(err.response?.data?.error || "Failed to delete event");
+      }
+    }
+  };
+
+  const handleContactSubmit = async (e) => {
+    e.preventDefault();
+    if (!contactMessage.trim()) {
+      toast.error("Please enter a message");
+      return;
+    }
+
+    setContactSending(true);
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `http://localhost:5000/api/clubs/${club._id}/contact`,
+        { message: contactMessage },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success("Message sent successfully");
+      setContactMessage("");
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to send message");
+    }
+    setContactSending(false);
+  };
+
   const tabs = [
-    { id: 'about', label: 'About', icon: Users },
-    { id: 'events', label: 'Events', icon: Calendar },
-    { id: 'members', label: 'Members', icon: Users },
+    { id: "about", label: "About", icon: Users },
+    { id: "activities", label: "Activities", icon: Activity },
+    { id: "events", label: "Events", icon: Calendar },
+    { id: "members", label: "Members", icon: Users },
+    { id: "contact", label: "Contact", icon: Mail },
   ];
+
+  // Pagination logic
+  const paginatedMembers = filteredMembers.slice(
+    (membersPage - 1) * itemsPerPage,
+    membersPage * itemsPerPage
+  );
+  const paginatedEvents = events.slice(
+    (eventsPage - 1) * itemsPerPage,
+    eventsPage * itemsPerPage
+  );
 
   if (loading) {
     return (
@@ -157,10 +286,10 @@ const ClubDetailPage = () => {
         <div className="bg-red-50 border border-red-200 rounded-2xl p-8 max-w-md mx-auto text-center">
           <div className="text-red-600 text-lg font-medium mb-4">{error}</div>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => fetchClubData()}
             className="px-6 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
           >
-            Try Again
+            Retry
           </button>
         </div>
       </div>
@@ -171,7 +300,9 @@ const ClubDetailPage = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-700 mb-2">Club not found</h2>
+          <h2 className="text-2xl font-bold text-gray-700 mb-2">
+            Club not found
+          </h2>
           <Link
             to="/clubs"
             className="inline-flex items-center gap-2 px-6 py-3 bg-[#456882] text-white rounded-full hover:bg-[#334d5e] transition-colors"
@@ -186,17 +317,26 @@ const ClubDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+      <Toaster position="top-right" />
       {/* Hero Section */}
       <div className="relative h-96 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-[#456882] to-[#5a7a98]">
           <img
-            src={club.banner || club.icon || '/api/placeholder/1200/400'}
+            src={
+              club.banner ||
+              club.icon ||
+              "https://via.placeholder.com/1200x400?text=Club+Banner"
+            }
             alt={`${club.name} banner`}
             className="w-full h-full object-cover opacity-30"
+            onError={(e) => {
+              e.target.src =
+                "https://via.placeholder.com/1200x400?text=Club+Banner";
+            }}
           />
         </div>
         <div className="absolute inset-0 bg-black/20"></div>
-        
+
         {/* Navigation */}
         <div className="absolute top-6 left-6">
           <Link
@@ -210,7 +350,7 @@ const ClubDetailPage = () => {
 
         {/* Admin Controls */}
         {(isAdmin || isHeadCoordinator) && (
-          <div className="absolute top-6 right-6">
+          <div className="absolute top-6 right-6 flex gap-2">
             <Link
               to={`/clubs/${clubName}/edit`}
               className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-full hover:bg-white/30 transition-all"
@@ -218,9 +358,36 @@ const ClubDetailPage = () => {
               <Edit3 className="w-4 h-4" />
               Edit Club
             </Link>
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  if (
+                    window.confirm("Are you sure you want to delete this club?")
+                  ) {
+                    axios
+                      .delete(`http://localhost:5000/api/clubs/${club._id}`, {
+                        headers: {
+                          Authorization: `Bearer ${localStorage.getItem(
+                            "token"
+                          )}`,
+                        },
+                      })
+                      .then(() => {
+                        toast.success("Club deleted successfully");
+                        navigate("/clubs");
+                      })
+                      .catch(() => toast.error("Failed to delete club"));
+                  }
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-red-600/80 backdrop-blur-sm text-white rounded-full hover:bg-red-700/80 transition-all"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete Club
+              </button>
+            )}
           </div>
         )}
-        
+
         {/* Club Info */}
         <div className="absolute bottom-8 left-6 right-6">
           <div className="flex items-end gap-6">
@@ -228,9 +395,16 @@ const ClubDetailPage = () => {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              src={club.icon || '/api/placeholder/120/120'}
+              src={
+                club.icon ||
+                "https://via.placeholder.com/120x120?text=Club+Icon"
+              }
               alt={`${club.name} icon`}
               className="w-24 h-24 rounded-2xl border-4 border-white shadow-2xl"
+              onError={(e) => {
+                e.target.src =
+                  "https://via.placeholder.com/120x120?text=Club+Icon";
+              }}
             />
             <div className="flex-1">
               <motion.h1
@@ -253,12 +427,12 @@ const ClubDetailPage = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-5 h-5" />
-                  <span>{activities.length} events</span>
+                  <span>{events.length} events</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Award className="w-5 h-5" />
                   <span className="px-3 py-1 bg-white/20 rounded-full text-sm">
-                    {club.category || 'Active'}
+                    {club.category || "General"}
                   </span>
                 </div>
               </motion.div>
@@ -295,7 +469,7 @@ const ClubDetailPage = () => {
                 <UserPlus className="w-5 h-5" />
               )}
               <span className="font-medium">
-                {joinLoading ? 'Joining...' : 'Join Club'}
+                {joinLoading ? "Sending Request..." : "Request to Join Club"}
               </span>
             </motion.button>
           )}
@@ -309,11 +483,15 @@ const ClubDetailPage = () => {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    if (tab.id === "members") setMembersPage(1);
+                    if (tab.id === "events") setEventsPage(1);
+                  }}
                   className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium transition-all ${
                     activeTab === tab.id
-                      ? 'bg-white text-[#456882] shadow-md'
-                      : 'text-gray-600 hover:text-[#456882]'
+                      ? "bg-white text-[#456882] shadow-md"
+                      : "text-gray-600 hover:text-[#456882]"
                   }`}
                 >
                   <IconComponent className="w-4 h-4" />
@@ -327,7 +505,7 @@ const ClubDetailPage = () => {
         {/* Tab Content */}
         <AnimatePresence mode="wait">
           {/* About Tab */}
-          {activeTab === 'about' && (
+          {activeTab === "about" && (
             <motion.div
               key="about"
               initial={{ opacity: 0, y: 20 }}
@@ -336,11 +514,14 @@ const ClubDetailPage = () => {
               transition={{ duration: 0.3 }}
             >
               <div className="bg-white rounded-2xl shadow-lg p-8">
-                <h2 className="text-2xl font-bold text-[#456882] mb-4">About {club.name}</h2>
+                <h2 className="text-2xl font-bold text-[#456882] mb-4">
+                  About {club.name}
+                </h2>
                 <p className="text-gray-600 text-lg leading-relaxed mb-6">
-                  {club.description || 'Discover amazing opportunities and connect with like-minded students in this vibrant community.'}
+                  {club.description ||
+                    "Discover amazing opportunities and connect with like-minded students in this vibrant community."}
                 </p>
-                
+
                 {/* Club Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl">
@@ -348,25 +529,33 @@ const ClubDetailPage = () => {
                       <Users className="w-6 h-6 text-blue-600" />
                       <h3 className="font-semibold text-blue-900">Members</h3>
                     </div>
-                    <p className="text-2xl font-bold text-blue-600">{members.length}</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {members.length}
+                    </p>
                     <p className="text-blue-700 text-sm">Active members</p>
                   </div>
-                  
+
                   <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl">
                     <div className="flex items-center gap-3 mb-2">
                       <Calendar className="w-6 h-6 text-green-600" />
                       <h3 className="font-semibold text-green-900">Events</h3>
                     </div>
-                    <p className="text-2xl font-bold text-green-600">{activities.length}</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {events.length}
+                    </p>
                     <p className="text-green-700 text-sm">Total events</p>
                   </div>
-                  
+
                   <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl">
                     <div className="flex items-center gap-3 mb-2">
                       <Award className="w-6 h-6 text-purple-600" />
-                      <h3 className="font-semibold text-purple-900">Category</h3>
+                      <h3 className="font-semibold text-purple-900">
+                        Category
+                      </h3>
                     </div>
-                    <p className="text-lg font-bold text-purple-600">{club.category || 'General'}</p>
+                    <p className="text-lg font-bold text-purple-600">
+                      {club.category || "General"}
+                    </p>
                     <p className="text-purple-700 text-sm">Club type</p>
                   </div>
                 </div>
@@ -374,10 +563,10 @@ const ClubDetailPage = () => {
             </motion.div>
           )}
 
-          {/* Events Tab */}
-          {activeTab === 'events' && (
+          {/* Activities Tab */}
+          {activeTab === "activities" && (
             <motion.div
-              key="events"
+              key="activities"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
@@ -385,20 +574,29 @@ const ClubDetailPage = () => {
             >
               <div className="bg-white rounded-2xl shadow-lg p-8">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-[#456882]">Club Events</h2>
+                  <h2 className="text-2xl font-bold text-[#456882]">
+                    Club Activities
+                  </h2>
                   {(isAdmin || isHeadCoordinator) && (
-                    <button className="inline-flex items-center gap-2 px-4 py-2 bg-[#456882] text-white rounded-full hover:bg-[#334d5e] transition-colors">
-                      <Calendar className="w-4 h-4" />
-                      Add Event
-                    </button>
+                    <Link
+                      to={`/clubs/${clubName}/activities/new`}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-[#456882] text-white rounded-full hover:bg-[#334d5e] transition-colors"
+                    >
+                      <Activity className="w-4 h-4" />
+                      Add Activity
+                    </Link>
                   )}
                 </div>
-                
+
                 {activities.length === 0 ? (
                   <div className="text-center py-12">
-                    <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-gray-600 mb-2">No events yet</h3>
-                    <p className="text-gray-500">Check back later for upcoming events!</p>
+                    <Activity className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                      No activities yet
+                    </h3>
+                    <p className="text-gray-500">
+                      Check back later for upcoming activities!
+                    </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -416,21 +614,48 @@ const ClubDetailPage = () => {
                           </h3>
                           {(isAdmin || isHeadCoordinator) && (
                             <div className="flex gap-2">
-                              <button className="p-1 text-gray-400 hover:text-[#456882]">
+                              <Link
+                                to={`/clubs/${clubName}/activities/${activity._id}/edit`}
+                                className="p-1 text-gray-400 hover:text-[#456882]"
+                              >
                                 <Edit3 className="w-4 h-4" />
-                              </button>
-                              <button className="p-1 text-gray-400 hover:text-red-600">
+                              </Link>
+                              <button
+                                onClick={() => {
+                                  if (
+                                    window.confirm(
+                                      "Are you sure you want to delete this activity?"
+                                    )
+                                  ) {
+                                    axios
+                                      .delete(
+                                        `http://localhost:5000/api/activities/${activity._id}`,
+                                        {
+                                          headers: {
+                                            Authorization: `Bearer ${localStorage.getItem(
+                                              "token"
+                                            )}`,
+                                          },
+                                        }
+                                      )
+                                      .then(() =>
+                                        toast.success(
+                                          "Activity deleted successfully"
+                                        )
+                                      )
+                                      .catch(() =>
+                                        toast.error("Failed to delete activity")
+                                      )
+                                      .finally(() => fetchClubData());
+                                  }
+                                }}
+                                className="p-1 text-gray-400 hover:text-red-600"
+                              >
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
                           )}
                         </div>
-                        
-                        <div className="flex items-center gap-2 text-gray-600 mb-3">
-                          <Clock className="w-4 h-4" />
-                          <span className="text-sm">{activity.date}</span>
-                        </div>
-                        
                         <p className="text-gray-600 text-sm line-clamp-3">
                           {activity.description}
                         </p>
@@ -442,8 +667,163 @@ const ClubDetailPage = () => {
             </motion.div>
           )}
 
+          {/* Events Tab */}
+          {activeTab === "events" && (
+            <motion.div
+              key="events"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="bg-white rounded-2xl shadow-lg p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-[#456882]">
+                    Club Events
+                  </h2>
+                  {(isAdmin || isHeadCoordinator) && (
+                    <Link
+                      to={`/clubs/${clubName}/events/new`}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-[#456882] text-white rounded-full hover:bg-[#334d5e] transition-colors"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      Add Event
+                    </Link>
+                  )}
+                </div>
+
+                {events.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                      No events yet
+                    </h3>
+                    <p className="text-gray-500">
+                      Check back later for upcoming events!
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {paginatedEvents.map((event, index) => (
+                        <motion.div
+                          key={event._id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.1 }}
+                          className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all"
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-[#456882] flex-1">
+                              {event.title}
+                            </h3>
+                            {(isAdmin || isHeadCoordinator) && (
+                              <div className="flex gap-2">
+                                <Link
+                                  to={`/clubs/${clubName}/events/${event._id}/edit`}
+                                  className="p-1 text-gray-400 hover:text-[#456882]"
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                </Link>
+                                <button
+                                  onClick={() => handleDeleteEvent(event._id)}
+                                  className="p-1 text-gray-400 hover:text-red-600"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 text-gray-600 mb-3">
+                            <Clock className="w-4 h-4" />
+                            <span className="text-sm">
+                              {new Date(event.date).toLocaleDateString()} at{" "}
+                              {event.time}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-600 mb-3">
+                            <MapPin className="w-4 h-4" />
+                            <span className="text-sm">{event.location}</span>
+                          </div>
+                          <p className="text-gray-600 text-sm line-clamp-3">
+                            {event.description}
+                          </p>
+                          {isMember && (
+                            <button
+                              onClick={() => {
+                                axios
+                                  .post(
+                                    `http://localhost:5000/api/events/${event._id}/register`,
+                                    {},
+                                    {
+                                      headers: {
+                                        Authorization: `Bearer ${localStorage.getItem(
+                                          "token"
+                                        )}`,
+                                      },
+                                    }
+                                  )
+                                  .then(() =>
+                                    toast.success(
+                                      "Registered for event successfully"
+                                    )
+                                  )
+                                  .catch((err) =>
+                                    toast.error(
+                                      err.response?.data?.error ||
+                                        "Failed to register"
+                                    )
+                                  );
+                              }}
+                              className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#456882] text-white rounded-full hover:bg-[#334d5e] transition-colors"
+                            >
+                              <UserPlus className="w-4 h-4" />
+                              Register
+                            </button>
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
+                    <div className="flex justify-between mt-6">
+                      <button
+                        onClick={() =>
+                          setEventsPage((prev) => Math.max(prev - 1, 1))
+                        }
+                        disabled={eventsPage === 1}
+                        className="px-4 py-2 bg-gray-200 rounded-full disabled:opacity-50"
+                      >
+                        Previous
+                      </button>
+                      <span>
+                        Page {eventsPage} of{" "}
+                        {Math.ceil(events.length / itemsPerPage)}
+                      </span>
+                      <button
+                        onClick={() =>
+                          setEventsPage((prev) =>
+                            Math.min(
+                              prev + 1,
+                              Math.ceil(events.length / itemsPerPage)
+                            )
+                          )
+                        }
+                        disabled={
+                          eventsPage === Math.ceil(events.length / itemsPerPage)
+                        }
+                        className="px-4 py-2 bg-gray-200 rounded-full disabled:opacity-50"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          )}
+
           {/* Members Tab */}
-          {activeTab === 'members' && (
+          {activeTab === "members" && (
             <motion.div
               key="members"
               initial={{ opacity: 0, y: 20 }}
@@ -456,7 +836,7 @@ const ClubDetailPage = () => {
                   <h2 className="text-2xl font-bold text-[#456882]">
                     Club Members ({filteredMembers.length})
                   </h2>
-                  
+
                   <div className="flex items-center gap-4">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -468,13 +848,17 @@ const ClubDetailPage = () => {
                         className="pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#456882] focus:border-transparent"
                       />
                     </div>
-                    
+
                     <button
                       onClick={() => setShowMembers(!showMembers)}
                       className="inline-flex items-center gap-2 px-4 py-2 bg-[#456882] text-white rounded-full hover:bg-[#334d5e] transition-colors"
                     >
-                      {showMembers ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      {showMembers ? 'Hide' : 'Show'}
+                      {showMembers ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                      {showMembers ? "Hide" : "Show"}
                     </button>
                   </div>
                 </div>
@@ -483,7 +867,7 @@ const ClubDetailPage = () => {
                   {showMembers && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
+                      animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.3 }}
                     >
@@ -491,51 +875,156 @@ const ClubDetailPage = () => {
                         <div className="text-center py-12">
                           <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                           <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                            {searchQuery ? 'No members found' : 'No members yet'}
+                            {searchQuery
+                              ? "No members found"
+                              : "No members yet"}
                           </h3>
                           <p className="text-gray-500">
-                            {searchQuery ? 'Try adjusting your search terms' : 'Be the first to join this club!'}
+                            {searchQuery
+                              ? "Try adjusting your search terms"
+                              : "Be the first to join this club!"}
                           </p>
                         </div>
                       ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {filteredMembers.map((member, index) => (
-                            <motion.div
-                              key={member.email}
-                              initial={{ opacity: 0, scale: 0.95 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ duration: 0.3, delay: index * 0.05 }}
-                              className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-4 flex items-center justify-between hover:shadow-md transition-all"
+                        <>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {paginatedMembers.map((member, index) => (
+                              <motion.div
+                                key={member.email}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{
+                                  duration: 0.3,
+                                  delay: index * 0.05,
+                                }}
+                                className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-4 flex items-center justify-between hover:shadow-md transition-all"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 bg-gradient-to-br from-[#456882] to-[#5a7a98] rounded-full flex items-center justify-center text-white font-semibold">
+                                    {member.name.charAt(0).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-gray-800">
+                                      {member.name}
+                                    </p>
+                                    <p className="text-sm text-gray-500 flex items-center gap-1">
+                                      <Mail className="w-3 h-3" />
+                                      {member.email}
+                                    </p>
+                                    {member.rollNo && (
+                                      <p className="text-sm text-gray-500">
+                                        Roll No: {member.rollNo}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {(isAdmin || isHeadCoordinator) && (
+                                  <button
+                                    onClick={() =>
+                                      handleRemoveMember(member.email)
+                                    }
+                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                                    title={`Remove ${member.name}`}
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </motion.div>
+                            ))}
+                          </div>
+                          <div className="flex justify-between mt-6">
+                            <button
+                              onClick={() =>
+                                setMembersPage((prev) => Math.max(prev - 1, 1))
+                              }
+                              disabled={membersPage === 1}
+                              className="px-4 py-2 bg-gray-200 rounded-full disabled:opacity-50"
                             >
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-gradient-to-br from-[#456882] to-[#5a7a98] rounded-full flex items-center justify-center text-white font-semibold">
-                                  {member.name.charAt(0).toUpperCase()}
-                                </div>
-                                <div>
-                                  <p className="font-medium text-gray-800">{member.name}</p>
-                                  <p className="text-sm text-gray-500 flex items-center gap-1">
-                                    <Mail className="w-3 h-3" />
-                                    {member.email}
-                                  </p>
-                                </div>
-                              </div>
-                              
-                              {(isAdmin || isHeadCoordinator) && (
-                                <button
-                                  onClick={() => handleRemoveMember(member.email)}
-                                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                                  title={`Remove ${member.name}`}
-                                >
-                                  <X className="w-4 h-4" />
-                                </button>
-                              )}
-                            </motion.div>
-                          ))}
-                        </div>
+                              Previous
+                            </button>
+                            <span>
+                              Page {membersPage} of{" "}
+                              {Math.ceil(filteredMembers.length / itemsPerPage)}
+                            </span>
+                            <button
+                              onClick={() =>
+                                setMembersPage((prev) =>
+                                  Math.min(
+                                    prev + 1,
+                                    Math.ceil(
+                                      filteredMembers.length / itemsPerPage
+                                    )
+                                  )
+                                )
+                              }
+                              disabled={
+                                membersPage ===
+                                Math.ceil(filteredMembers.length / itemsPerPage)
+                              }
+                              className="px-4 py-2 bg-gray-200 rounded-full disabled:opacity-50"
+                            >
+                              Next
+                            </button>
+                          </div>
+                        </>
                       )}
                     </motion.div>
                   )}
                 </AnimatePresence>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Contact Tab */}
+          {activeTab === "contact" && (
+            <motion.div
+              key="contact"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="bg-white rounded-2xl shadow-lg p-8">
+                <h2 className="text-2xl font-bold text-[#456882] mb-4">
+                  Contact {club.name}
+                </h2>
+                <form onSubmit={handleContactSubmit} className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="message"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Your Message
+                    </label>
+                    <textarea
+                      id="message"
+                      value={contactMessage}
+                      onChange={(e) => setContactMessage(e.target.value)}
+                      rows={5}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#456882] focus:border-transparent"
+                      placeholder="Enter your message here..."
+                    />
+                  </div>
+                  <div>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      type="submit"
+                      disabled={contactSending}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-[#456882] text-white rounded-full hover:bg-[#334d5e] transition-colors disabled:opacity-50"
+                    >
+                      {contactSending ? (
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4" />
+                      )}
+                      <span>
+                        {contactSending ? "Sending..." : "Send Message"}
+                      </span>
+                    </motion.button>
+                  </div>
+                </form>
               </div>
             </motion.div>
           )}
