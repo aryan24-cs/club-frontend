@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaUser, FaGraduationCap, FaCog, FaUsers, FaArrowRight, FaArrowLeft, FaCheck, FaRocket } from 'react-icons/fa';
+import { FaUser, FaGraduationCap, FaCog, FaUsers, FaArrowRight, FaArrowLeft, FaCheck, FaRocket, FaIdCard } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -35,11 +35,13 @@ const UserDetailsForm = () => {
   const [semester, setSemester] = useState('');
   const [course, setCourse] = useState('');
   const [specialization, setSpecialization] = useState('');
+  const [rollNo, setRollNo] = useState('');
+  const [isACEMStudent, setIsACEMStudent] = useState(true);
   const [selectedClubs, setSelectedClubs] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(1);
-  const [progress, setProgress] = useState(25);
+  const [progress, setProgress] = useState(20);
   const [completedSteps, setCompletedSteps] = useState([]);
   const navigate = useNavigate();
 
@@ -53,7 +55,7 @@ const UserDetailsForm = () => {
   ];
 
   useEffect(() => {
-    setProgress((currentQuestion / 4) * 100);
+    setProgress((currentQuestion / 5) * 100);
     if (currentQuestion > 1 && !completedSteps.includes(currentQuestion - 1)) {
       setCompletedSteps(prev => [...prev, currentQuestion - 1]);
     }
@@ -71,7 +73,7 @@ const UserDetailsForm = () => {
       ripple.style.left = `${x}px`;
       ripple.style.top = `${y}px`;
       ripple.className = 'ripple-effect';
-      ripple.style.background = 'rgba(69, 104, 130, 0.3)'; // Teal-based ripple
+      ripple.style.background = 'rgba(69, 104, 130, 0.3)';
 
       e.currentTarget.appendChild(ripple);
       setTimeout(() => ripple.remove(), 600);
@@ -124,6 +126,10 @@ const UserDetailsForm = () => {
       setError('Please enter your specialization');
       return;
     }
+    if (currentQuestion === 4 && !rollNo) {
+      setError('Please enter your roll number');
+      return;
+    }
     setError('');
     setCurrentQuestion(prev => prev + 1);
   };
@@ -162,6 +168,8 @@ const UserDetailsForm = () => {
           semester,
           course,
           specialization,
+          rollNo,
+          isACEMStudent,
           isClubMember: selectedClubs.length > 0,
           clubName: selectedClubs,
         },
@@ -182,7 +190,7 @@ const UserDetailsForm = () => {
   };
 
   const getStepIcon = (step) => {
-    const icons = [FaUser, FaGraduationCap, FaCog, FaUsers];
+    const icons = [FaUser, FaGraduationCap, FaCog, FaIdCard, FaUsers];
     const Icon = icons[step - 1];
     return <Icon className="text-lg" />;
   };
@@ -377,6 +385,66 @@ const UserDetailsForm = () => {
       case 4:
         return (
           <motion.div
+            key="rollNo"
+            variants={questionVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="space-y-6"
+          >
+            <motion.div variants={itemVariants} className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-teal-600 rounded-full mb-4" style={{ backgroundColor: '#456882' }}>
+                <FaIdCard className="text-white text-2xl" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">Your roll number?</h3>
+              <p className="text-gray-600">Enter your student roll number</p>
+            </motion.div>
+
+            <motion.div variants={itemVariants} className="relative">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={rollNo}
+                  onChange={(e) => setRollNo(e.target.value)}
+                  placeholder="e.g., ACEM12345"
+                  className="w-full px-6 py-4 text-lg border-0 border-b-3 border-gray-300 bg-transparent focus:border-teal-600 focus:outline-none transition-all duration-300 text-center"
+                  style={{ borderBottomColor: '#456882' }}
+                />
+                <motion.div
+                  className="absolute bottom-0 left-0 h-0.5 bg-teal-600"
+                  initial={{ width: 0 }}
+                  animate={{ width: rollNo ? '100%' : '0%' }}
+                  transition={{ duration: 0.3 }}
+                  style={{ backgroundColor: '#456882' }}
+                />
+              </div>
+            </motion.div>
+
+            <motion.div variants={itemVariants} className="flex justify-between">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handlePrevQuestion}
+                className="px-6 py-3 text-gray-600 border border-gray-300 rounded-full font-semibold flex items-center gap-2 hover:bg-gray-50 transition-all"
+              >
+                <FaArrowLeft /> Back
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05, boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleNextQuestion}
+                className="ripple-btn relative overflow-hidden px-8 py-3 bg-teal-600 text-white rounded-full font-semibold flex items-center gap-2"
+                style={{ backgroundColor: '#456882' }}
+              >
+                Next <FaArrowRight />
+              </motion.button>
+            </motion.div>
+          </motion.div>
+        );
+
+      case 5:
+        return (
+          <motion.div
             key="clubs"
             variants={questionVariants}
             initial="initial"
@@ -392,41 +460,53 @@ const UserDetailsForm = () => {
               <p className="text-gray-600">You can select multiple clubs</p>
             </motion.div>
 
-            <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {clubs.map((club, index) => (
-                <motion.div
-                  key={club.name}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  whileHover={{ scale: 1.02 }}
-                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${
-                    selectedClubs.includes(club.name)
-                      ? 'border-teal-600 bg-teal-50'
-                      : 'border-gray-200 hover:border-teal-300 hover:bg-gray-50'
-                  }`}
-                  onClick={() => handleClubSelection(club.name)}
-                  style={{ borderColor: selectedClubs.includes(club.name) ? '#456882' : '#d1d5db' }}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{club.icon}</span>
-                      <div>
-                        <div className="font-semibold text-gray-800">{club.name}</div>
-                        <div className="text-sm text-gray-600">{club.description}</div>
+            <motion.div variants={itemVariants} className="space-y-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={isACEMStudent}
+                  onChange={(e) => setIsACEMStudent(e.target.checked)}
+                  className="w-5 h-5 text-teal-600 focus:ring-teal-600 rounded"
+                  style={{ accentColor: '#456882' }}
+                />
+                <label className="text-gray-700 font-medium">I am an ACEM student</label>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {clubs.map((club, index) => (
+                  <motion.div
+                    key={club.name}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    whileHover={{ scale: 1.02 }}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${
+                      selectedClubs.includes(club.name)
+                        ? 'border-teal-600 bg-teal-50'
+                        : 'border-gray-200 hover:border-teal-300 hover:bg-gray-50'
+                    }`}
+                    onClick={() => handleClubSelection(club.name)}
+                    style={{ borderColor: selectedClubs.includes(club.name) ? '#456882' : '#d1d5db' }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{club.icon}</span>
+                        <div>
+                          <div className="font-semibold text-gray-800">{club.name}</div>
+                          <div className="text-sm text-gray-600">{club.description}</div>
+                        </div>
                       </div>
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: selectedClubs.includes(club.name) ? 1 : 0 }}
+                        className="w-6 h-6 bg-teal-600 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: '#456882' }}
+                      >
+                        <FaCheck className="text-white text-xs" />
+                      </motion.div>
                     </div>
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: selectedClubs.includes(club.name) ? 1 : 0 }}
-                      className="w-6 h-6 bg-teal-600 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: '#456882' }}
-                    >
-                      <FaCheck className="text-white text-xs" />
-                    </motion.div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                ))}
+              </div>
             </motion.div>
 
             <motion.div variants={itemVariants} className="flex justify-between">
@@ -521,7 +601,7 @@ const UserDetailsForm = () => {
             />
           </div>
           <div className="flex justify-between items-center">
-            {[1, 2, 3, 4].map((step) => (
+            {[1, 2, 3, 4, 5].map((step) => (
               <motion.div
                 key={step}
                 className={`flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-300 ${
