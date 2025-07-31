@@ -81,23 +81,32 @@ const AirplaneMenu = ({
                   >
                     {link.subLinks ? (
                       <div>
-                        <button
-                          className={`flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-4 py-2 rounded-md text-sm font-medium transition-colors w-full text-left min-w-fit max-w-[200px] truncate ${
-                            location.pathname.startsWith(link.to)
-                              ? "bg-[#334d5e] text-white"
-                              : ""
-                          }`}
-                          onClick={() => toggleSubMenu(link.label)}
-                          aria-label={`Toggle ${link.label} submenu`}
-                        >
-                          {link.icon}
-                          <span className="ml-2">{link.label}</span>
-                          <ChevronDown
-                            className={`w-5 h-5 ml-auto transform ${
-                              openSubMenu === link.label ? "rotate-180" : ""
+                        <div className="flex items-center w-full">
+                          <Link
+                            to={link.to}
+                            className={`flex items-center flex-1 text-[#456882] hover:bg-[#456882] hover:text-white px-4 py-2 rounded-md text-sm font-medium transition-colors min-w-fit max-w-[160px] truncate ${
+                              location.pathname === link.to
+                                ? "bg-[#334d5e] text-white"
+                                : ""
                             }`}
-                          />
-                        </button>
+                            aria-label={`Navigate to ${link.label}`}
+                          >
+                            {link.icon}
+                            <span className="ml-2">{link.label}</span>
+                          </Link>
+                          <button
+                            className="p-2 text-[#456882] hover:bg-[#456882] hover:text-white rounded-md"
+                            onClick={() => toggleSubMenu(link.label)}
+                            aria-label={`Toggle ${link.label} submenu`}
+                            aria-expanded={openSubMenu === link.label}
+                          >
+                            <ChevronDown
+                              className={`w-5 h-5 transform ${
+                                openSubMenu === link.label ? "rotate-180" : ""
+                              }`}
+                            />
+                          </button>
+                        </div>
                         <AnimatePresence>
                           {openSubMenu === link.label && (
                             <motion.div
@@ -107,7 +116,7 @@ const AirplaneMenu = ({
                               transition={{ duration: 0.2 }}
                               className="ml-4 space-y-1"
                             >
-                              {link.subLinks.map((subLink, subIndex) => (
+                              {link.subLinks.map((subLink) => (
                                 <Link
                                   key={subLink.to}
                                   to={subLink.to}
@@ -116,7 +125,10 @@ const AirplaneMenu = ({
                                       ? "bg-[#334d5e] text-white"
                                       : ""
                                   }`}
-                                  onClick={onClose}
+                                  onClick={() => {
+                                    onClose();
+                                    navigate(subLink.to);
+                                  }}
                                   aria-label={`Navigate to ${subLink.label}`}
                                 >
                                   {subLink.icon}
@@ -129,13 +141,17 @@ const AirplaneMenu = ({
                       </div>
                     ) : (
                       <Link
+                        key={link.to}
                         to={link.to}
                         className={`flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-4 py-2 rounded-md text-sm font-medium transition-colors min-w-fit max-w-[200px] truncate ${
                           location.pathname === link.to
                             ? "bg-[#334d5e] text-white"
                             : ""
                         }`}
-                        onClick={onClose}
+                        onClick={() => {
+                          onClose();
+                          navigate(link.to);
+                        }}
                         aria-label={`Navigate to ${link.label}`}
                       >
                         {link.icon}
@@ -160,7 +176,10 @@ const AirplaneMenu = ({
                           ? "bg-[#334d5e] text-white"
                           : ""
                       }`}
-                      onClick={onClose}
+                      onClick={() => {
+                        onClose();
+                        navigate(link.to);
+                      }}
                       aria-label={`Navigate to ${link.label}`}
                     >
                       {link.icon}
@@ -248,10 +267,10 @@ const Navbar = memo(() => {
   // Common user links for the dropdown and mobile menu
   const userLinks = [
     {
-        to: "/dashboard",
-        label: "Dashboard",
-        icon: <Home className="w-5 h-5 mr-2" />,
-      },
+      to: "/dashboard",
+      label: "Dashboard",
+      icon: <Home className="w-5 h-5 mr-2" />,
+    },
     {
       to: "/profile",
       label: "Profile",
@@ -340,11 +359,6 @@ const Navbar = memo(() => {
             label: "Attendance",
             icon: <BookOpen className="w-5 h-5 mr-2" />,
           },
-          {
-            to: "/admin/activities",
-            label: "Activities",
-            icon: <Settings className="w-5 h-5 mr-2" />,
-          },
         ],
       },
       {
@@ -400,11 +414,6 @@ const Navbar = memo(() => {
             to: "/attendance",
             label: "Attendance",
             icon: <BookOpen className="w-5 h-5 mr-2" />,
-          },
-          {
-            to: "/admin/activities",
-            label: "Activities",
-            icon: <Settings className="w-5 h-5 mr-2" />,
           },
         ],
       },
@@ -486,61 +495,88 @@ const Navbar = memo(() => {
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center space-x-1">
               {navLinks.map((link) => (
-                <div
-                  key={link.label}
-                  className="relative group"
-                  onMouseEnter={() => link.subLinks && toggleSubMenu(link.label)}
-                  onMouseLeave={() => link.subLinks && toggleSubMenu(null)}
-                >
-                  <div
-                    className={`flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-4 py-2 rounded-md text-sm font-medium transition-colors min-w-fit max-w-[120px] truncate cursor-pointer ${
-                      location.pathname === link.to ||
-                      (link.subLinks &&
-                        link.subLinks.some(
-                          (subLink) => subLink.to === location.pathname
-                        ))
-                        ? "bg-[#334d5e] text-white"
-                        : ""
-                    }`}
-                  >
-                    {link.icon}
-                    <span className="ml-2">{link.label}</span>
-                    {link.subLinks && (
-                      <ChevronDown
-                        className={`w-5 h-5 ml-2 transform ${
-                          openSubMenu === link.label ? "rotate-180" : ""
-                        }`}
-                      />
-                    )}
-                  </div>
-                  {link.subLinks && (
-                    <AnimatePresence>
-                      {openSubMenu === link.label && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 10 }}
-                          transition={{ duration: 0.2 }}
-                          className="absolute top-full mt-2 bg-white shadow-lg rounded-md p-2 min-w-[200px] z-50"
+                <div key={link.label} className="relative">
+                  {link.subLinks ? (
+                    <div
+                      className="group"
+                      onMouseEnter={() => toggleSubMenu(link.label)}
+                      onMouseLeave={() => toggleSubMenu(null)}
+                    >
+                      <div className="flex items-center">
+                        <Link
+                          to={link.to}
+                          className={`flex items-center flex-1 text-[#456882] hover:bg-[#456882] hover:text-white px-4 py-2 rounded-md text-sm font-medium transition-colors min-w-fit max-w-[100px] truncate ${
+                            location.pathname === link.to ||
+                            link.subLinks.some(
+                              (subLink) => subLink.to === location.pathname
+                            )
+                              ? "bg-[#334d5e] text-white"
+                              : ""
+                          }`}
+                          aria-label={`Navigate to ${link.label}`}
                         >
-                          {link.subLinks.map((subLink) => (
-                            <Link
-                              key={subLink.to}
-                              to={subLink.to}
-                              className={`flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-4 py-2 rounded-md text-sm font-medium transition-colors min-w-fit max-w-[180px] truncate ${
-                                location.pathname === subLink.to
-                                  ? "bg-[#334d5e] text-white"
-                                  : ""
-                              }`}
-                              aria-label={`Navigate to ${subLink.label}`}
-                            >
-                              {subLink.icon}
-                              <span className="ml-2">{subLink.label}</span>
-                            </Link>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                          {link.icon}
+                          <span className="ml-2">{link.label}</span>
+                        </Link>
+                        <span
+                          className="p-2 text-[#456882] hover:bg-[#456882] hover:text-white rounded-md cursor-pointer"
+                          aria-label={`Toggle ${link.label} submenu`}
+                          aria-expanded={openSubMenu === link.label}
+                        >
+                          <ChevronDown
+                            className={`w-5 h-5 transform ${
+                              openSubMenu === link.label ? "rotate-180" : ""
+                            }`}
+                          />
+                        </span>
+                      </div>
+                      <AnimatePresence>
+                        {openSubMenu === link.label && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 10 }}
+                            transition={{ duration: 0.2 }}
+                            className="absolute top-full mt-1 bg-white shadow-lg rounded-md p-2 min-w-[200px] z-50"
+                          >
+                            {link.subLinks.map((subLink) => (
+                              <Link
+                                key={subLink.to}
+                                to={subLink.to}
+                                className={`flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-4 py-2 rounded-md text-sm font-medium transition-colors min-w-fit max-w-[180px] truncate ${
+                                  location.pathname === subLink.to
+                                    ? "bg-[#334d5e] text-white"
+                                    : ""
+                                }`}
+                                onClick={() => {
+                                  setOpenSubMenu(null);
+                                  navigate(subLink.to);
+                                }}
+                                aria-label={`Navigate to ${subLink.label}`}
+                              >
+                                {subLink.icon}
+                                <span className="ml-2">{subLink.label}</span>
+                              </Link>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  ) : (
+                    <Link
+                      key={link.to}
+                      to={link.to}
+                      className={`flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-4 py-2 rounded-md text-sm font-medium transition-colors min-w-fit max-w-[120px] truncate ${
+                        location.pathname === link.to
+                          ? "bg-[#334d5e] text-white"
+                          : ""
+                      }`}
+                      onClick={() => navigate(link.to)}
+                      aria-label={`Navigate to ${link.label}`}
+                    >
+                      {link.icon}
+                      <span className="ml-2">{link.label}</span>
+                    </Link>
                   )}
                 </div>
               ))}
@@ -560,7 +596,7 @@ const Navbar = memo(() => {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 10 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute right-0 top-full mt-2 bg-white shadow-lg rounded-md p-4 min-w-[200px] z-50"
+                      className="absolute right-0 top-full mt-1 bg-white shadow-lg rounded-md p-4 min-w-[200px] z-50"
                     >
                       <p className="px-4 py-2 text-sm text-gray-600 border-b border-gray-200 truncate">
                         {user?.email || "user@acem.edu"}
@@ -574,7 +610,10 @@ const Navbar = memo(() => {
                               ? "bg-[#334d5e] text-white"
                               : ""
                           }`}
-                          onClick={() => setIsProfileOpen(false)}
+                          onClick={() => {
+                            setIsProfileOpen(false);
+                            navigate(link.to);
+                          }}
                           aria-label={`Navigate to ${link.label}`}
                         >
                           {link.icon}
