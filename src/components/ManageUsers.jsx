@@ -223,12 +223,24 @@ const ManageUsers = () => {
         });
         console.log("ManageUsers - All Clubs:", clubsResponse.data);
 
+        // Filter clubs for super admins
+        const managedClubs = clubsResponse.data.filter(
+          (club) =>
+            club.creator?._id?.toString() === userData._id?.toString() ||
+            club.superAdmins?.some(
+              (admin) => admin?._id?.toString() === userData._id?.toString()
+            ) ||
+            userData.headCoordinatorClubs?.includes(club.name)
+        );
+
+        console.log("ManageUsers - Managed Clubs:", managedClubs);
+
         // Determine user role
         const isGlobalAdmin = userData.isAdmin;
-        const isSuperAdmin = clubsResponse.data.some((club) =>
+        const isSuperAdmin = managedClubs.some((club) =>
           club.superAdmins?.some(
             (admin) => admin?._id?.toString() === userData._id?.toString()
-          )
+          ) || club.creator?._id?.toString() === userData._id?.toString()
         );
         const isAdmin = userData.headCoordinatorClubs?.length > 0;
 
@@ -245,30 +257,17 @@ const ManageUsers = () => {
           console.log(
             "ManageUsers - Showing all membership requests for global admin"
           );
-        } else if (isSuperAdmin) {
-          // SuperAdmin sees requests for clubs they manage
-          const managedClubIds = clubsResponse.data
-            .filter((club) =>
-              club.superAdmins?.some(
-                (admin) => admin?._id?.toString() === userData._id?.toString()
-              )
-            )
-            .map((club) => club._id.toString());
-          filteredRequests = requestsResponse.data.filter((request) =>
-            managedClubIds.includes(request.clubId?.toString())
+        } else if (isSuperAdmin || isAdmin) {
+          // SuperAdmin or head coordinator sees requests for clubs they manage
+          const managedClubIds = managedClubs.map((club) => club._id.toString());
+          const managedClubNames = managedClubs.map((club) => club.name);
+          filteredRequests = requestsResponse.data.filter(
+            (request) =>
+              managedClubIds.includes(request.clubId?.toString()) ||
+              managedClubNames.includes(request.clubName)
           );
           console.log(
-            "ManageUsers - Filtered membership requests for SuperAdmin:",
-            filteredRequests
-          );
-        } else if (isAdmin) {
-          // Admin sees requests for clubs in headCoordinatorClubs
-          const managedClubNames = userData.headCoordinatorClubs || [];
-          filteredRequests = requestsResponse.data.filter((request) =>
-            managedClubNames.includes(request.clubName)
-          );
-          console.log(
-            "ManageUsers - Filtered membership requests for Admin:",
+            "ManageUsers - Filtered membership requests for SuperAdmin/Head Coordinator:",
             filteredRequests
           );
         } else {
@@ -283,15 +282,9 @@ const ManageUsers = () => {
         if (isGlobalAdmin) {
           // Global admin sees all users
           console.log("ManageUsers - Showing all users for global admin");
-        } else if (isSuperAdmin) {
-          // SuperAdmin sees users who are members of their managed clubs
-          const managedClubIds = clubsResponse.data
-            .filter((club) =>
-              club.superAdmins?.some(
-                (admin) => admin?._id?.toString() === userData._id?.toString()
-              )
-            )
-            .map((club) => club._id.toString());
+        } else if (isSuperAdmin || isAdmin) {
+          // SuperAdmin or head coordinator sees users who are members of their managed clubs
+          const managedClubIds = managedClubs.map((club) => club._id.toString());
           const clubMembersPromises = managedClubIds.map((clubId) =>
             axios
               .get(`http://localhost:5000/api/clubs/${clubId}/members`, config)
@@ -307,13 +300,8 @@ const ManageUsers = () => {
             memberIds.has(u._id?.toString())
           );
           console.log(
-            "ManageUsers - Filtered users for SuperAdmin:",
+            "ManageUsers - Filtered users for SuperAdmin/Head Coordinator:",
             filteredUsers
-          );
-        } else if (isAdmin) {
-          // Admin sees users based on backend filtering (assumed to be headCoordinatorClubs)
-          console.log(
-            "ManageUsers - Showing users for Admin (backend filtered)"
           );
         } else {
           filteredUsers = [];
@@ -322,9 +310,12 @@ const ManageUsers = () => {
 
         setUsers(filteredUsers);
 
-        if (filteredUsers.length === 0 && filteredRequests.length === 0) {
-          setError("No users or membership requests found for your role.");
+        // Set error if no data is available
+        if (managedClubs.length === 0 && filteredUsers.length === 0 && filteredRequests.length === 0) {
+          setError("You do not have access to manage any clubs, users, or membership requests.");
         }
+
+        setIsLoading(false);
       } catch (err) {
         console.error("Error fetching data:", err);
         if (err.response?.status === 401 || err.response?.status === 403) {
@@ -337,7 +328,6 @@ const ManageUsers = () => {
               "Failed to load data. Please try again."
           );
         }
-      } finally {
         setIsLoading(false);
       }
     };
