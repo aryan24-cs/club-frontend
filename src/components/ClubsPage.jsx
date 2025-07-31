@@ -70,7 +70,10 @@ const ClubsPage = () => {
           category: club.category || "General",
           description: club.description || "No description available.",
           icon: club.icon || "https://via.placeholder.com/150?text=Club+Icon",
-          banner: club.banner || null,
+          banner:
+            club.banner ||
+            club.icon ||
+            "https://via.placeholder.com/150?text=Club+Icon",
         }));
 
         setClubs(processedClubs);
@@ -296,17 +299,10 @@ const ClubsPage = () => {
                 >
                   <div className="relative overflow-hidden h-48">
                     <img
-                      src={club.icon}
-                      alt={`${club.name} icon`}
+                      src={club.banner}
+                      alt={`${club.name} banner`}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
-                    {club.banner && (
-                      <img
-                        src={club.banner}
-                        alt={`${club.name} banner`}
-                        className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                      />
-                    )}
                     <div className="absolute top-3 right-3">
                       <span className="bg-[#456882] text-white px-2 py-1 rounded-full text-xs font-medium">
                         {club.category}
@@ -314,9 +310,18 @@ const ClubsPage = () => {
                     </div>
                   </div>
                   <div className="p-6">
-                    <h3 className="text-xl font-bold text-[#456882] mb-2 group-hover:text-[#334d5e] transition-colors">
-                      {club.name}
-                    </h3>
+                    <div className="flex items-center gap-4 mb-3">
+                      <div className="w-16 h-16 rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+                        <img
+                          src={club.icon}
+                          alt={`${club.name} icon`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <h3 className="text-xl font-bold text-[#456882] group-hover:text-[#334d5e] transition-colors">
+                        {club.name}
+                      </h3>
+                    </div>
                     <p className="text-gray-600 text-sm mb-4 line-clamp-2">
                       {club.description}
                     </p>
