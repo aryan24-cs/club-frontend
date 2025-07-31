@@ -1,19 +1,25 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { 
-  FaGraduationCap, 
-  FaEye, 
-  FaEyeSlash, 
-  FaSpinner, 
-  FaShieldAlt, 
+import React, { useState, useRef, useEffect } from "react";
+import {
+  motion,
+  AnimatePresence,
+  useScroll,
+  useTransform,
+  useSpring,
+} from "framer-motion";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+import {
+  FaGraduationCap,
+  FaEye,
+  FaEyeSlash,
+  FaSpinner,
+  FaShieldAlt,
   FaUserGraduate,
   FaArrowLeft,
   FaCheckCircle,
   FaLock,
-  FaEnvelope
-} from 'react-icons/fa';
+  FaEnvelope,
+} from "react-icons/fa";
 
 // Floating Particles Component (matching landing page)
 const FloatingParticle = ({ delay, duration }) => {
@@ -23,18 +29,18 @@ const FloatingParticle = ({ delay, duration }) => {
       initial={{
         x: Math.random() * window.innerWidth,
         y: window.innerHeight + 20,
-        opacity: 0
+        opacity: 0,
       }}
       animate={{
         x: Math.random() * window.innerWidth,
         y: -20,
-        opacity: [0, 0.6, 0]
+        opacity: [0, 0.6, 0],
       }}
       transition={{
         duration: duration,
         repeat: Infinity,
         delay: delay,
-        ease: "linear"
+        ease: "linear",
       }}
     />
   );
@@ -47,22 +53,22 @@ const OtpInput = ({ otp, setOtp, otpFocused, setOtpFocused }) => {
 
   const handleChange = (index, value) => {
     if (!/^\d?$/.test(value)) return;
-    const newOtp = otp.split('');
+    const newOtp = otp.split("");
     newOtp[index] = value;
-    setOtp(newOtp.join(''));
+    setOtp(newOtp.join(""));
     if (value && index < OTP_LENGTH - 1) {
       inputRefs.current[index + 1].focus();
     }
   };
 
   const handleKeyDown = (index, e) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
       inputRefs.current[index - 1].focus();
     }
   };
 
   const handlePaste = (e) => {
-    const pastedData = e.clipboardData.getData('text').slice(0, OTP_LENGTH);
+    const pastedData = e.clipboardData.getData("text").slice(0, OTP_LENGTH);
     if (/^\d{6}$/.test(pastedData)) {
       setOtp(pastedData);
       inputRefs.current[OTP_LENGTH - 1].focus();
@@ -79,7 +85,7 @@ const OtpInput = ({ otp, setOtp, otpFocused, setOtpFocused }) => {
             ref={(el) => (inputRefs.current[index] = el)}
             type="text"
             maxLength={1}
-            value={otp[index] || ''}
+            value={otp[index] || ""}
             onChange={(e) => handleChange(index, e.target.value)}
             onKeyDown={(e) => handleKeyDown(index, e)}
             onPaste={handlePaste}
@@ -88,11 +94,11 @@ const OtpInput = ({ otp, setOtp, otpFocused, setOtpFocused }) => {
             whileFocus={{ scale: 1.05 }}
             whileHover={{ scale: 1.02 }}
             className={`w-12 h-12 text-center text-xl font-semibold border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#456882]/50 transition-all duration-300 bg-white/80 backdrop-blur-sm ${
-              otpFocused === index 
-                ? 'border-[#456882] shadow-lg bg-white' 
-                : otp[index] 
-                ? 'border-green-500 bg-green-50' 
-                : 'border-gray-300 hover:border-gray-400'
+              otpFocused === index
+                ? "border-[#456882] shadow-lg bg-white"
+                : otp[index]
+                ? "border-green-500 bg-green-50"
+                : "border-gray-300 hover:border-gray-400"
             }`}
             aria-label={`OTP digit ${index + 1}`}
           />
@@ -107,8 +113,18 @@ const AnimatedGrid = () => {
     <div className="absolute inset-0 overflow-hidden opacity-10">
       <svg width="100%" height="100%" className="absolute inset-0">
         <defs>
-          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#456882" strokeWidth="1"/>
+          <pattern
+            id="grid"
+            width="40"
+            height="40"
+            patternUnits="userSpaceOnUse"
+          >
+            <path
+              d="M 40 0 L 0 0 0 40"
+              fill="none"
+              stroke="#456882"
+              strokeWidth="1"
+            />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#grid)" />
@@ -118,12 +134,12 @@ const AnimatedGrid = () => {
 };
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [otp, setOtp] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [useOtp, setUseOtp] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
@@ -133,76 +149,86 @@ const Login = () => {
 
   const { scrollY } = useScroll();
   const bgY = useTransform(scrollY, [0, 500], [0, -50]);
-  const smoothY = useSpring(bgY, { stiffness: 100, damping: 30, restDelta: 0.001 });
+  const smoothY = useSpring(bgY, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001,
+  });
 
   // Particles array
   const particles = Array.from({ length: 12 }, (_, i) => ({
     delay: i * 1.5,
-    duration: 12 + Math.random() * 8
+    duration: 12 + Math.random() * 8,
   }));
 
   const handleSendOtp = async () => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Please enter a valid email address');
+      setError("Please enter a valid email address");
       return;
     }
-    setError('');
+    setError("");
     setLoading(true);
     try {
-      await axios.post('http://localhost:5000/api/auth/send-otp', { email });
+      await axios.post("http://localhost:5000/api/auth/send-otp", { email });
       setOtpSent(true);
       setUseOtp(true);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to send OTP. Try again.');
+      setError(err.response?.data?.error || "Failed to send OTP. Try again.");
     }
     setLoading(false);
   };
 
   const handlePasswordLogin = async () => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Please enter a valid email address');
+      setError("Please enter a valid email address");
       return;
     }
     if (!password) {
-      setError('Please enter a password');
+      setError("Please enter a password");
       return;
     }
-    setError('');
+    setError("");
     setLoading(true);
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/login-password', { email, password });
-      localStorage.setItem('token', res.data.token);
-      navigate('/dashboard');
+      const res = await axios.post(
+        "http://localhost:5000/api/auth/login-password",
+        { email, password }
+      );
+      localStorage.setItem("token", res.data.token);
+      navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.error || 'Invalid credentials. Try again.');
+      setError(err.response?.data?.error || "Invalid credentials. Try again.");
     }
     setLoading(false);
   };
 
   const handleVerifyOtp = async () => {
     if (!otp || !/^\d{6}$/.test(otp)) {
-      setError('Please enter a valid 6-digit OTP');
+      setError("Please enter a valid 6-digit OTP");
       return;
     }
-    setError('');
+    setError("");
     setLoading(true);
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/verify-otp-login', { email, otp });
-      localStorage.setItem('token', res.data.token);
-      navigate('/dashboard');
+      const res = await axios.post(
+        "http://localhost:5000/api/auth/verify-otp-login",
+        { email, otp }
+      );
+      localStorage.setItem("token", res.data.token);
+      navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.error || 'Invalid OTP. Try again.');
+      setError(err.response?.data?.error || "Invalid OTP. Try again.");
     }
     setLoading(false);
   };
 
   const labelVariants = {
-    resting: { y: 0, scale: 1, color: '#6B7280' },
-    floating: { y: -24, scale: 0.85, color: '#456882' },
+    resting: { y: 0, scale: 1, color: "#6B7280" },
+    floating: { y: -24, scale: 0.85, color: "#456882" },
   };
 
   // Progress steps
-  const steps = ['Enter Email', 'Verify OTP', 'Login'];
+  const steps = ["Enter Email", "Verify OTP", "Login"];
   const currentStep = !otpSent ? 0 : !useOtp ? 2 : 1;
 
   return (
@@ -218,7 +244,7 @@ const Login = () => {
         className="absolute inset-0 overflow-hidden"
       >
         <AnimatedGrid />
-        
+
         {/* Floating geometric shapes */}
         <motion.div
           animate={{
@@ -228,7 +254,7 @@ const Login = () => {
           transition={{
             duration: 20,
             repeat: Infinity,
-            ease: "linear"
+            ease: "linear",
           }}
           className="absolute top-20 right-20 w-32 h-32 bg-[#456882] opacity-5 rounded-full"
         />
@@ -240,7 +266,7 @@ const Login = () => {
           transition={{
             duration: 15,
             repeat: Infinity,
-            ease: "linear"
+            ease: "linear",
           }}
           className="absolute bottom-20 left-20 w-24 h-24 bg-[#456882] opacity-5 rounded-full"
         />
@@ -253,7 +279,7 @@ const Login = () => {
         transition={{ duration: 0.8, delay: 0.2 }}
         whileHover={{ scale: 1.02, x: 5 }}
         whileTap={{ scale: 0.98 }}
-        onClick={() => navigate('/')}
+        onClick={() => navigate("/")}
         className="absolute top-8 left-8 z-20 flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full border border-[#456882]/20 text-[#456882] hover:bg-white/90 transition-all duration-300 shadow-lg"
       >
         <FaArrowLeft />
@@ -271,7 +297,7 @@ const Login = () => {
         <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8 relative overflow-hidden">
           {/* Gradient overlay */}
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#456882] to-[#5a7a95]"></div>
-          
+
           {/* Club Logo */}
           <motion.div
             className="flex justify-center mb-8"
@@ -322,21 +348,29 @@ const Login = () => {
             <div className="absolute top-4 left-0 w-full h-0.5 bg-gray-200 rounded-full">
               <motion.div
                 className="h-full bg-gradient-to-r from-[#456882] to-[#5a7a95] rounded-full"
-                initial={{ width: '0%' }}
-                animate={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
+                initial={{ width: "0%" }}
+                animate={{
+                  width: `${((currentStep + 1) / steps.length) * 100}%`,
+                }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
               />
             </div>
 
             {steps.map((step, index) => (
-              <div key={index} className="flex flex-col items-center relative z-10">
+              <div
+                key={index}
+                className="flex flex-col items-center relative z-10"
+              >
                 <motion.div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold relative ${
-                    index <= currentStep ? 'bg-[#456882]' : 'bg-gray-300'
+                    index <= currentStep ? "bg-[#456882]" : "bg-gray-300"
                   }`}
-                  animate={{ 
+                  animate={{
                     scale: index === currentStep ? 1.1 : 1,
-                    boxShadow: index === currentStep ? "0 4px 15px rgba(69, 104, 130, 0.3)" : "none"
+                    boxShadow:
+                      index === currentStep
+                        ? "0 4px 15px rgba(69, 104, 130, 0.3)"
+                        : "none",
                   }}
                   transition={{ duration: 0.3 }}
                 >
@@ -353,7 +387,9 @@ const Login = () => {
                     />
                   )}
                 </motion.div>
-                <span className="text-xs text-gray-600 mt-2 font-medium">{step}</span>
+                <span className="text-xs text-gray-600 mt-2 font-medium">
+                  {step}
+                </span>
               </div>
             ))}
           </motion.div>
@@ -374,13 +410,15 @@ const Login = () => {
                   <div className="relative">
                     <motion.div
                       className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
-                      animate={{ color: emailFocused || email ? '#456882' : '#9CA3AF' }}
+                      animate={{
+                        color: emailFocused || email ? "#456882" : "#9CA3AF",
+                      }}
                     >
                       <FaEnvelope />
                     </motion.div>
                     <motion.label
                       className="absolute left-12 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium pointer-events-none transition-all duration-300"
-                      animate={emailFocused || email ? 'floating' : 'resting'}
+                      animate={emailFocused || email ? "floating" : "resting"}
                       variants={labelVariants}
                     >
                       Email Address
@@ -392,7 +430,7 @@ const Login = () => {
                       onFocus={() => setEmailFocused(true)}
                       onBlur={() => setEmailFocused(false)}
                       whileFocus={{ scale: 1.02 }}
-                      className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl text-gray-900 bg-gray-50/50 focus:outline-none focus:border-[#456882] focus:ring-2 focus:ring-[#456882]/20 focus:bg-white transition-all duration-300"
+                      className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl text-gray-900 bg-gray-50/50 focus:outline-none focus:border-[#456882] focus:ring-2 focus:ring-[#456882]/20 transition-all duration-300"
                       aria-label="Email Address"
                     />
                   </div>
@@ -407,13 +445,18 @@ const Login = () => {
                     >
                       <motion.div
                         className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
-                        animate={{ color: passwordFocused || password ? '#456882' : '#9CA3AF' }}
+                        animate={{
+                          color:
+                            passwordFocused || password ? "#456882" : "#9CA3AF",
+                        }}
                       >
                         <FaLock />
                       </motion.div>
                       <motion.label
                         className="absolute left-12 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium pointer-events-none transition-all duration-300"
-                        animate={passwordFocused || password ? 'floating' : 'resting'}
+                        animate={
+                          passwordFocused || password ? "floating" : "resting"
+                        }
                         variants={labelVariants}
                       >
                         Password
@@ -425,7 +468,7 @@ const Login = () => {
                         onFocus={() => setPasswordFocused(true)}
                         onBlur={() => setPasswordFocused(false)}
                         whileFocus={{ scale: 1.02 }}
-                        className="w-full pl-12 pr-12 py-4 border-2 border-gray-200 rounded-xl text-gray-900 bg-gray-50/50 focus:outline-none focus:border-[#456882] focus:ring-2 focus:ring-[#456882]/20 focus:bg-white transition-all duration-300"
+                        className="w-full pl-12 pr-12 py-4 border-2 border-gray-200 rounded-xl text-gray-900 bg-gray-50/50 focus:outline-none focus:border-[#456882] focus:ring-2 focus:ring-[#456882]/20 transition-all duration-300"
                         aria-label="Password"
                       />
                       <motion.button
@@ -458,32 +501,41 @@ const Login = () => {
 
                   {/* Login Button */}
                   <motion.button
-                    whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(69, 104, 130, 0.2)" }}
+                    whileHover={{
+                      scale: 1.02,
+                      boxShadow: "0 10px 25px rgba(69, 104, 130, 0.2)",
+                    }}
                     whileTap={{ scale: 0.98 }}
                     onClick={useOtp ? handleSendOtp : handlePasswordLogin}
                     disabled={loading}
                     className="w-full py-4 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl font-semibold hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center justify-center relative overflow-hidden"
-                    aria-label={useOtp ? 'Send OTP' : 'Login'}
+                    aria-label={useOtp ? "Send OTP" : "Login"}
                   >
                     <motion.div
                       className="absolute inset-0 bg-white/20"
-                      initial={{ x: '-100%' }}
-                      whileHover={{ x: '100%' }}
+                      initial={{ x: "-100%" }}
+                      whileHover={{ x: "100%" }}
                       transition={{ duration: 0.8 }}
                     />
                     {loading ? (
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        className="flex items-center gap-2"
-                      >
-                        <FaSpinner />
-                        {useOtp ? 'Sending...' : 'Logging In...'}
-                      </motion.div>
+                      <>
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{
+                            duration: 1,
+                            repeat: Infinity,
+                            ease: "linear",
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <FaSpinner />
+                        </motion.div>
+                        {useOtp ? "Sending..." : "Logging In..."}
+                      </>
                     ) : (
                       <div className="flex items-center gap-2">
                         <FaShieldAlt />
-                        {useOtp ? 'Send OTP' : 'Login'}
+                        {useOtp ? "Send OTP" : "Login"}
                       </div>
                     )}
                   </motion.button>
@@ -497,7 +549,7 @@ const Login = () => {
                       onClick={() => setUseOtp(!useOtp)}
                       className="text-[#456882] hover:text-[#5a7a95] font-medium hover:underline transition-all duration-300"
                     >
-                      {useOtp ? 'Use Password Instead' : 'Use OTP Instead'}
+                      {useOtp ? "Use Password Instead" : "Use OTP Instead"}
                     </button>
                   </motion.div>
                 </motion.div>
@@ -518,9 +570,7 @@ const Login = () => {
                     >
                       <FaEnvelope />
                     </motion.div>
-                    <p className="text-gray-600">
-                      We've sent a 6-digit OTP to
-                    </p>
+                    <p className="text-gray-600">We've sent a 6-digit OTP to</p>
                     <p className="font-semibold text-[#456882]">{email}</p>
                   </div>
 
@@ -528,7 +578,12 @@ const Login = () => {
                     <label className="block text-center text-gray-700 font-medium text-sm">
                       Enter Verification Code
                     </label>
-                    <OtpInput otp={otp} setOtp={setOtp} otpFocused={otpFocused} setOtpFocused={setOtpFocused} />
+                    <OtpInput
+                      otp={otp}
+                      setOtp={setOtp}
+                      otpFocused={otpFocused}
+                      setOtpFocused={setOtpFocused}
+                    />
                   </div>
 
                   {/* Error Message */}
@@ -549,7 +604,10 @@ const Login = () => {
 
                   {/* Verify Button */}
                   <motion.button
-                    whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(69, 104, 130, 0.2)" }}
+                    whileHover={{
+                      scale: 1.02,
+                      boxShadow: "0 10px 25px rgba(69, 104, 130, 0.2)",
+                    }}
                     whileTap={{ scale: 0.98 }}
                     onClick={handleVerifyOtp}
                     disabled={loading}
@@ -558,19 +616,25 @@ const Login = () => {
                   >
                     <motion.div
                       className="absolute inset-0 bg-white/20"
-                      initial={{ x: '-100%' }}
-                      whileHover={{ x: '100%' }}
+                      initial={{ x: "-100%" }}
+                      whileHover={{ x: "100%" }}
                       transition={{ duration: 0.8 }}
                     />
                     {loading ? (
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        className="flex items-center gap-2"
-                      >
-                        <FaSpinner />
+                      <>
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{
+                            duration: 1,
+                            repeat: Infinity,
+                            ease: "linear",
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <FaSpinner />
+                        </motion.div>
                         Verifying...
-                      </motion.div>
+                      </>
                     ) : (
                       <div className="flex items-center gap-2">
                         <FaCheckCircle />
@@ -604,9 +668,9 @@ const Login = () => {
               className="text-center pt-6 border-t border-gray-200"
             >
               <p className="text-gray-600">
-                Don't have an account?{' '}
-                <Link 
-                  to="/signup" 
+                Don't have an account?{" "}
+                <Link
+                  to="/signup"
                   className="text-[#456882] hover:text-[#5a7a95] font-semibold hover:underline transition-all duration-300"
                 >
                   Sign Up
