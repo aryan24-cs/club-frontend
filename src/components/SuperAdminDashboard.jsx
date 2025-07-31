@@ -16,6 +16,7 @@ import {
   Trash2,
   Eye,
   ChevronRight,
+  FileText,
 } from "lucide-react";
 import Navbar from "./Navbar";
 
@@ -162,12 +163,17 @@ const MembershipRequestCard = memo(({ request, onApprove, onReject }) => (
             {request.userId?.name || "Unknown"}
           </h4>
           <p className="text-xs text-gray-500">{request.clubName || "N/A"}</p>
+          <p className="text-xs text-gray-500">
+            {request.userId?.isACEMStudent ? "ACEM Student" : "Non-ACEM Student"}
+          </p>
         </div>
       </div>
       <span
         className={`px-2 py-1 rounded-full text-xs ${request.status === "pending"
             ? "bg-yellow-100 text-yellow-700"
-            : "bg-green-100 text-green-700"
+            : request.status === "approved"
+            ? "bg-green-100 text-green-700"
+            : "bg-red-100 text-red-700"
           }`}
       >
         {request.status}
@@ -194,10 +200,91 @@ const MembershipRequestCard = memo(({ request, onApprove, onReject }) => (
   </motion.div>
 ));
 
+// Attendance Card Component
+const AttendanceCard = memo(({ attendance, onView, onDownload }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="bg-white rounded-xl shadow-sm p-4 border border-gray-100"
+  >
+    <div className="flex items-center justify-between mb-2">
+      <div>
+        <h4 className="text-sm font-semibold text-gray-900">
+          {attendance.event?.title || "Event"}
+        </h4>
+        <p className="text-xs text-gray-500">{attendance.club?.name || "Club"}</p>
+        <p className="text-xs text-gray-500">
+          {new Date(attendance.date).toLocaleDateString()}
+        </p>
+        <p className="text-xs text-gray-500">
+          Attendance Rate: {attendance.stats?.attendanceRate?.toFixed(2) || 0}%
+        </p>
+      </div>
+      <div className="flex gap-1">
+        <button
+          onClick={() => onView(attendance)}
+          className="p-1 bg-[#456882]/20 rounded-full hover:bg-[#456882]/30"
+        >
+          <Eye className="w-4 h-4 text-[#456882]" />
+        </button>
+        <button
+          onClick={() => onDownload(attendance)}
+          className="p-1 bg-[#456882]/20 rounded-full hover:bg-[#456882]/30"
+        >
+          <FileText className="w-4 h-4 text-[#456882]" />
+        </button>
+      </div>
+    </div>
+  </motion.div>
+));
+
+// Practice Attendance Card Component
+const PracticeAttendanceCard = memo(({ attendance, onView, onDownload }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="bg-white rounded-xl shadow-sm p-4 border border-gray-100"
+  >
+    <div className="flex items-center justify-between mb-2">
+      <div>
+        <h4 className="text-sm font-semibold text-gray-900">
+          {attendance.title || "Practice Session"}
+        </h4>
+        <p className="text-xs text-gray-500">{attendance.club?.name || "Club"}</p>
+        <p className="text-xs text-gray-500">
+          {new Date(attendance.date).toLocaleDateString()}
+        </p>
+        <p className="text-xs text-gray-500">
+          Room: {attendance.roomNo || "N/A"}
+        </p>
+        <p className="text-xs text-gray-500">
+          Attendance Rate: {attendance.stats?.attendanceRate?.toFixed(2) || 0}%
+        </p>
+      </div>
+      <div className="flex gap-1">
+        <button
+          onClick={() => onView(attendance)}
+          className="p-1 bg-[#456882]/20 rounded-full hover:bg-[#456882]/30"
+        >
+          <Eye className="w-4 h-4 text-[#456882]" />
+        </button>
+        <button
+          onClick={() => onDownload(attendance)}
+          className="p-1 bg-[#456882]/20 rounded-full hover:bg-[#456882]/30"
+        >
+          <FileText className="w-4 h-4 text-[#456882]" />
+        </button>
+      </div>
+    </div>
+  </motion.div>
+));
+
 const SuperAdminDashboard = () => {
   const [user, setUser] = useState(null);
   const [clubs, setClubs] = useState([]);
   const [membershipRequests, setMembershipRequests] = useState([]);
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [practiceAttendanceRecords, setPracticeAttendanceRecords] = useState([]);
   const [categories, setCategories] = useState(["all"]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -236,11 +323,19 @@ const SuperAdminDashboard = () => {
           "http://localhost:5000/api/clubs",
           config
         );
-        const processedClubs = clubsResponse.data.map((club) => ({
-          ...club,
-          memberCount: Number(club.memberCount) || 0,
-          eventsCount: Number(club.eventsCount) || 0,
-        }));
+        const processedClubs = clubsResponse.data
+          .filter((club) =>
+            club.creator?._id?.toString() === userData._id?.toString() ||
+            club.superAdmins?.some(
+              (admin) => admin?._id?.toString() === userData._id?.toString()
+            ) ||
+            userData.headCoordinatorClubs?.includes(club.name)
+          )
+          .map((club) => ({
+            ...club,
+            memberCount: Number(club.memberCount) || 0,
+            eventsCount: Number(club.eventsCount) || 0,
+          }));
         setClubs(processedClubs);
 
         // Debug logging for clubs
@@ -249,6 +344,7 @@ const SuperAdminDashboard = () => {
           name: userData.name,
           email: userData.email,
           isAdmin: userData.isAdmin,
+          headCoordinatorClubs: userData.headCoordinatorClubs,
         });
         console.log("SuperAdminDashboard - Clubs:", processedClubs);
         processedClubs.forEach((club, index) => {
@@ -259,6 +355,7 @@ const SuperAdminDashboard = () => {
             category: club.category,
             memberCount: club.memberCount,
             eventsCount: club.eventsCount,
+            creator: club.creator?._id,
             superAdmins: club.superAdmins?.map((admin) => ({
               id: admin._id,
               name: admin.name,
@@ -267,20 +364,9 @@ const SuperAdminDashboard = () => {
           });
         });
 
-        // Check if user is a super admin
-        const isSuperAdmin =
-          userData.isAdmin ||
-          clubsResponse.data.some((club) =>
-            club.superAdmins?.some(
-              (admin) => admin?._id?.toString() === userData._id?.toString()
-            )
-          );
-        console.log("SuperAdminDashboard - Is super admin:", isSuperAdmin);
-
-        if (!isSuperAdmin) {
-          setError("You do not have super admin access.");
-          navigate("/dashboard");
-          return;
+        // Check if user has access
+        if (processedClubs.length === 0) {
+          setError("You do not have access to manage any clubs.");
         }
 
         // Fetch membership requests
@@ -288,13 +374,30 @@ const SuperAdminDashboard = () => {
           "http://localhost:5000/api/membership-requests",
           config
         );
-        setMembershipRequests(requestsResponse.data);
+        const filteredRequests = requestsResponse.data.filter((request) =>
+          processedClubs.some((club) => club.name === request.clubName)
+        );
+        setMembershipRequests(filteredRequests);
+
+        // Fetch attendance records
+        const attendanceResponse = await axios.get(
+          "http://localhost:5000/api/attendance",
+          config
+        );
+        setAttendanceRecords(attendanceResponse.data);
+
+        // Fetch practice attendance records
+        const practiceAttendanceResponse = await axios.get(
+          "http://localhost:5000/api/practice-attendance",
+          config
+        );
+        setPracticeAttendanceRecords(practiceAttendanceResponse.data);
 
         // Set categories
         setCategories([
           "all",
           ...new Set(
-            clubsResponse.data
+            processedClubs
               .map((club) => club.category?.toLowerCase())
               .filter(Boolean)
           ),
@@ -379,6 +482,58 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const handleDownloadAttendance = async (attendance) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:5000/api/attendance/${attendance._id}/report`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: "blob",
+        }
+      );
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `Attendance_Report_${attendance.event?.title || "Event"}.docx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      setSuccess("Attendance report downloaded successfully.");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.error || "Failed to download attendance report.");
+      setTimeout(() => setError(""), 3000);
+    }
+  };
+
+  const handleDownloadPracticeAttendance = async (attendance) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:5000/api/practice-attendance/${attendance._id}/report`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: "blob",
+        }
+      );
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `Practice_Attendance_Report_${attendance.title || "Session"}.docx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      setSuccess("Practice attendance report downloaded successfully.");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.error || "Failed to download practice attendance report.");
+      setTimeout(() => setError(""), 3000);
+    }
+  };
+
   const filteredClubs = useMemo(
     () =>
       clubs.filter(
@@ -402,14 +557,37 @@ const SuperAdminDashboard = () => {
     [membershipRequests, searchTerm]
   );
 
+  const filteredAttendanceRecords = useMemo(
+    () =>
+      attendanceRecords.filter(
+        (record) =>
+          record.event?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          record.club?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          new Date(record.date).toLocaleDateString().toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+    [attendanceRecords, searchTerm]
+  );
+
+  const filteredPracticeAttendanceRecords = useMemo(
+    () =>
+      practiceAttendanceRecords.filter(
+        (record) =>
+          record.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          record.club?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          new Date(record.date).toLocaleDateString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+          record.roomNo?.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+    [practiceAttendanceRecords, searchTerm]
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="animate-pulse">
           <div className="h-16 bg-white shadow-sm"></div>
           <div className="max-w-7xl mx-auto px-4 py-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              {[...Array(4)].map((_, i) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+              {[...Array(5)].map((_, i) => (
                 <div key={i} className="h-20 bg-gray-200 rounded-xl"></div>
               ))}
             </div>
@@ -419,6 +597,18 @@ const SuperAdminDashboard = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[...Array(4)].map((_, i) => (
                     <div key={i} className="h-48 bg-gray-200 rounded-xl"></div>
+                  ))}
+                </div>
+                <div className="h-8 bg-gray-200 rounded"></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="h-32 bg-gray-200 rounded-xl"></div>
+                  ))}
+                </div>
+                <div className="h-8 bg-gray-200 rounded"></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="h-32 bg-gray-200 rounded-xl"></div>
                   ))}
                 </div>
                 <div className="h-8 bg-gray-200 rounded"></div>
@@ -452,8 +642,7 @@ const SuperAdminDashboard = () => {
                   Super Admin Dashboard
                 </h1>
                 <p className="text-sm text-gray-600">
-                  Welcome, {user?.name || "Super Admin"}! Manage clubs and
-                  membership requests.
+                  Welcome, {user?.name || "Super Admin"}! Manage clubs, membership requests, and attendance.
                 </p>
               </div>
               <div className="flex gap-2">
@@ -470,6 +659,13 @@ const SuperAdminDashboard = () => {
                 >
                   <Calendar className="w-4 h-4" />
                   Manage Events
+                </Link>
+                <Link
+                  to="/manage-attendance"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#456882] text-white rounded-lg hover:bg-[#334d5e]"
+                >
+                  <FileText className="w-4 h-4" />
+                  Manage Attendance
                 </Link>
               </div>
             </div>
@@ -512,7 +708,7 @@ const SuperAdminDashboard = () => {
           </AnimatePresence>
 
           {/* Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
             <StatsCard title="Total Clubs" value={clubs.length} icon={Users} />
             <StatsCard
               title="Total Members"
@@ -538,6 +734,11 @@ const SuperAdminDashboard = () => {
               )}
               icon={Calendar}
             />
+            <StatsCard
+              title="Attendance Records"
+              value={attendanceRecords.length + practiceAttendanceRecords.length}
+              icon={FileText}
+            />
           </div>
 
           {/* Main Content */}
@@ -552,7 +753,7 @@ const SuperAdminDashboard = () => {
                       <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                       <input
                         type="text"
-                        placeholder="Search clubs or requests..."
+                        placeholder="Search clubs, requests, or attendance..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full sm:w-64 pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
@@ -632,6 +833,58 @@ const SuperAdminDashboard = () => {
                         request={request}
                         onApprove={handleApprove}
                         onReject={handleReject}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Event Attendance */}
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Event Attendance Records
+                </h2>
+                {filteredAttendanceRecords.length === 0 ? (
+                  <div className="bg-white rounded-xl shadow-sm p-6 text-center">
+                    <FileText className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">
+                      No event attendance records.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {filteredAttendanceRecords.map((attendance) => (
+                      <AttendanceCard
+                        key={attendance._id}
+                        attendance={attendance}
+                        onView={() => navigate(`/attendance/${attendance._id}`)}
+                        onDownload={handleDownloadAttendance}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Practice Attendance */}
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Practice Attendance Records
+                </h2>
+                {filteredPracticeAttendanceRecords.length === 0 ? (
+                  <div className="bg-white rounded-xl shadow-sm p-6 text-center">
+                    <FileText className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">
+                      No practice attendance records.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {filteredPracticeAttendanceRecords.map((attendance) => (
+                      <PracticeAttendanceCard
+                        key={attendance._id}
+                        attendance={attendance}
+                        onView={() => navigate(`/practice-attendance/${attendance._id}`)}
+                        onDownload={handleDownloadPracticeAttendance}
                       />
                     ))}
                   </div>
