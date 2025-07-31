@@ -40,8 +40,12 @@ const EditEventPage = () => {
   const [event, setEvent] = useState({
     title: "",
     date: "",
+    time: "",
+    location: "",
     description: "",
     clubId: "",
+    banner: null,
+    type: "",
   });
   const [clubs, setClubs] = useState([]);
   const [error, setError] = useState("");
@@ -68,7 +72,11 @@ const EditEventPage = () => {
         ]);
 
         const userData = userResponse.data;
-        setUser(userData);
+        setUser({
+          ...userData,
+          isACEMStudent: userData.isACEMStudent || false,
+          rollNo: userData.rollNo || "N/A",
+        });
 
         // Debug logging
         console.log("EditEventPage - User:", {
@@ -76,6 +84,8 @@ const EditEventPage = () => {
           name: userData.name,
           isAdmin: userData.isAdmin,
           headCoordinatorClubs: userData.headCoordinatorClubs,
+          isACEMStudent: userData.isACEMStudent || false,
+          rollNo: userData.rollNo || "N/A",
         });
         console.log("EditEventPage - Event:", eventResponse.data);
         console.log("EditEventPage - All Clubs:", clubsResponse.data);
@@ -124,15 +134,19 @@ const EditEventPage = () => {
 
         setClubs(filteredClubs);
 
-        // Set event data with formatted date
+        // Set event data with formatted fields
         const eventData = eventResponse.data;
         setEvent({
           title: eventData.title || "",
           date: eventData.date
             ? new Date(eventData.date).toISOString().split("T")[0]
             : "",
+          time: eventData.time || "",
+          location: eventData.location || "",
           description: eventData.description || "",
-          clubId: eventData.clubId?._id || eventData.clubId || "",
+          clubId: eventData.club?._id || eventData.clubId || "",
+          banner: null, // File input is not pre-filled
+          type: eventData.type || "",
         });
 
         // Validate access
@@ -141,7 +155,7 @@ const EditEventPage = () => {
           !filteredClubs.some(
             (club) =>
               club._id.toString() ===
-              (eventData.clubId?._id || eventData.clubId)?.toString()
+              (eventData.club?._id || eventData.clubId)?.toString()
           )
         ) {
           setError("You do not have permission to edit this event.");
@@ -168,15 +182,38 @@ const EditEventPage = () => {
     try {
       setIsSubmitting(true);
       const token = localStorage.getItem("token");
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      await axios.put(`http://localhost:5000/api/events/${id}`, event, config);
+      const formData = new FormData();
+      Object.entries(event).forEach(([key, value]) => {
+        if (key === "banner" && value) {
+          formData.append("banner", value);
+        } else if (value && key !== "banner") {
+          formData.append(key, value);
+        }
+      });
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      };
+      await axios.put(`http://localhost:5000/api/events/${id}`, formData, config);
       setError("Event updated successfully!");
       setTimeout(() => navigate("/manage-events"), 2000);
     } catch (err) {
+      console.error("Error updating event:", err);
       setError(err.response?.data?.error || "Failed to update event.");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value, files } = e.target;
+    setEvent((prev) => ({
+      ...prev,
+      [name]: files ? files[0] : value,
+    }));
   };
 
   return (
@@ -192,7 +229,7 @@ const EditEventPage = () => {
             <FaSpinner className="text-4xl text-[#456882] animate-spin" />
           </motion.div>
         )}
-        <Navbar user={user} role={user?.isAdmin ? "admin" : "superAdmin"} />
+        <Navbar user={user} role={user?.isAdmin ? "admin" : user?.headCoordinatorClubs?.length > 0 ? "admin" : "superAdmin"} />
         <motion.section
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
@@ -220,14 +257,39 @@ const EditEventPage = () => {
                 <input
                   id="event-title"
                   type="text"
+                  name="title"
                   value={event.title}
-                  onChange={(e) =>
-                    setEvent({ ...event, title: e.target.value })
-                  }
+                  onChange={handleInputChange}
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#456882]"
                   required
                   aria-label="Event Title"
                 />
+              </div>
+              <div className="mb-4">
+                <label
+                  className="block text-gray-700 text-sm font-semibold mb-2"
+                  htmlFor="event-type"
+                >
+                  Event Type
+                </label>
+                <select
+                  id="event-type"
+                  name="type"
+                  value={event.type}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#456882]"
+                  required
+                  aria-label="Select Event Type"
+                >
+                  <option value="">Select Event Type</option>
+                  <option value="seminar">Seminar</option>
+                  <option value="competition">Competition</option>
+                  <option value="workshop">Workshop</option>
+                  <option value="cultural">Cultural</option>
+                  <option value="technical">Technical</option>
+                  <option value="literary">Literary</option>
+                  <option value="entrepreneurial">Entrepreneurial</option>
+                </select>
               </div>
               <div className="mb-4">
                 <label
@@ -239,11 +301,48 @@ const EditEventPage = () => {
                 <input
                   id="event-date"
                   type="date"
+                  name="date"
                   value={event.date}
-                  onChange={(e) => setEvent({ ...event, date: e.target.value })}
+                  onChange={handleInputChange}
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#456882]"
                   required
                   aria-label="Event Date"
+                />
+              </div>
+              <div className="mb-4">
+                <label
+                  className="block text-gray-700 text-sm font-semibold mb-2"
+                  htmlFor="event-time"
+                >
+                  Time
+                </label>
+                <input
+                  id="event-time"
+                  type="time"
+                  name="time"
+                  value={event.time}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#456882]"
+                  required
+                  aria-label="Event Time"
+                />
+              </div>
+              <div className="mb-4">
+                <label
+                  className="block text-gray-700 text-sm font-semibold mb-2"
+                  htmlFor="event-location"
+                >
+                  Location
+                </label>
+                <input
+                  id="event-location"
+                  type="text"
+                  name="location"
+                  value={event.location}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#456882]"
+                  required
+                  aria-label="Event Location"
                 />
               </div>
               <div className="mb-4">
@@ -255,10 +354,9 @@ const EditEventPage = () => {
                 </label>
                 <textarea
                   id="event-description"
+                  name="description"
                   value={event.description}
-                  onChange={(e) =>
-                    setEvent({ ...event, description: e.target.value })
-                  }
+                  onChange={handleInputChange}
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#456882]"
                   rows="4"
                   required
@@ -274,10 +372,9 @@ const EditEventPage = () => {
                 </label>
                 <select
                   id="event-club"
+                  name="clubId"
                   value={event.clubId}
-                  onChange={(e) =>
-                    setEvent({ ...event, clubId: e.target.value })
-                  }
+                  onChange={handleInputChange}
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#456882]"
                   required
                   aria-label="Select Club"
@@ -289,6 +386,23 @@ const EditEventPage = () => {
                     </option>
                   ))}
                 </select>
+              </div>
+              <div className="mb-4">
+                <label
+                  className="block text-gray-700 text-sm font-semibold mb-2"
+                  htmlFor="event-banner"
+                >
+                  Banner Image
+                </label>
+                <input
+                  id="event-banner"
+                  type="file"
+                  name="banner"
+                  onChange={handleInputChange}
+                  accept="image/*"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#456882]"
+                  aria-label="Upload Banner Image"
+                />
               </div>
               <motion.button
                 type="submit"
