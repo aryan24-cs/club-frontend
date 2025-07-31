@@ -6,6 +6,7 @@ import axios from 'axios';
 const EditClubPage = () => {
   const { clubName } = useParams();
   const [club, setClub] = useState(null);
+  const [user, setUser] = useState(null);
   const [icon, setIcon] = useState(null);
   const [banner, setBanner] = useState(null);
   const [iconPreview, setIconPreview] = useState('');
@@ -44,30 +45,74 @@ const EditClubPage = () => {
     return () => document.removeEventListener('click', createRipple);
   }, []);
 
-  // Fetch club details
+  // Fetch user and club details
   useEffect(() => {
-    const fetchClub = async () => {
+    const fetchData = async () => {
       try {
+        setLoading(true);
         const token = localStorage.getItem('token');
-        const response = await axios.get(`http://localhost:5000/api/clubs?name=${clubName}`, {
-          headers: { Authorization: `Bearer ${token}` },
+        if (!token) {
+          setError('No authentication token found. Please log in.');
+          navigate('/login');
+          return;
+        }
+
+        const config = { headers: { Authorization: `Bearer ${token}` } };
+        const [userResponse, clubResponse] = await Promise.all([
+          axios.get('http://localhost:5000/api/auth/user', config),
+          axios.get(`http://localhost:5000/api/clubs?name=${clubName}`, config),
+        ]);
+
+        const userData = userResponse.data;
+        setUser({
+          ...userData,
+          isACEMStudent: userData.isACEMStudent || false,
+          rollNo: userData.rollNo || 'N/A',
         });
-        const clubData = response.data[0];
+
+        const clubData = clubResponse.data[0];
+        if (!clubData) {
+          setError('Club not found.');
+          setLoading(false);
+          return;
+        }
+
+        // Check authorization
+        const isAuthorized =
+          clubData.creator?._id?.toString() === userData._id?.toString() ||
+          clubData.superAdmins?.some(
+            (admin) => admin?._id?.toString() === userData._id?.toString()
+          ) ||
+          userData.headCoordinatorClubs?.includes(clubData.name);
+
+        if (!isAuthorized) {
+          setError('You are not authorized to edit this club.');
+          navigate('/manage-clubs');
+          return;
+        }
+
         setClub(clubData);
         setIconPreview(clubData.icon);
         setBannerPreview(clubData.banner || '');
         setDescription(clubData.description);
         setCategory(clubData.category);
         setContactEmail(clubData.contactEmail || '');
-        setHeadCoordinators(clubData.headCoordinators.join(', '));
+        setHeadCoordinators(clubData.headCoordinators?.join(', ') || '');
         setLoading(false);
       } catch (err) {
-        setError('Failed to load club details.');
+        console.error('Error fetching data:', err);
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          localStorage.removeItem('token');
+          setError('Session expired or unauthorized. Please log in again.');
+          navigate('/login');
+        } else {
+          setError(err.response?.data?.error || 'Failed to load club details.');
+        }
         setLoading(false);
       }
     };
-    fetchClub();
-  }, [clubName]);
+    fetchData();
+  }, [clubName, navigate]);
 
   // Handle file input changes
   const handleIconChange = (e) => {
@@ -196,9 +241,7 @@ const EditClubPage = () => {
             />
           </div>
           <div>
-            <label htmlFor="icon" className="block вік
-
-System: block text-gray-600 font-medium">
+            <label htmlFor="icon" className="block text-gray-600 font-medium">
               Club Icon (JPEG/PNG, max 5MB)
             </label>
             <input
