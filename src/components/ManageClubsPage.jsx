@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { FaBuilding, FaSpinner, FaEdit, FaTrash } from "react-icons/fa";
+import { FaBuilding, FaSpinner, FaEdit, FaTrash, FaFilter } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Navbar from "./Navbar";
@@ -38,10 +38,16 @@ const ClubCard = ({ club, handleDelete }) => (
     <p className="text-gray-600 text-sm mb-2 line-clamp-2">
       {club.description}
     </p>
-    <p className="text-gray-500 text-sm">Members: {club.memberCount || 0}</p>
+    <p className="text-gray-500 text-sm mb-2">Members: {club.memberCount || 0}</p>
+    <p className="text-gray-500 text-sm mb-2">
+      Created By: {club.createdBy?.name || "Unknown"} (Roll No: {club.createdBy?.rollNo || "N/A"})
+    </p>
+    <p className="text-gray-500 text-sm mb-3">
+      {club.createdBy?.isACEMStudent ? "ACEM Student" : "Non-ACEM Student"}
+    </p>
     <div className="flex gap-2 mt-3">
       <Link
-        to={`/clubs/${club._id}/edit`} // Changed to use _id for consistency
+        to={`/clubs/${club._id}/edit`}
         className="px-4 py-1 rounded-full font-semibold text-[#456882] hover:bg-[#456882]/10 transition"
         aria-label={`Edit ${club.name}`}
       >
@@ -66,6 +72,7 @@ const ManageClubsPage = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [clubFilter, setClubFilter] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -85,7 +92,11 @@ const ManageClubsPage = () => {
         ]);
 
         const userData = userResponse.data;
-        setUser(userData);
+        setUser({
+          ...userData,
+          isACEMStudent: userData.isACEMStudent || false,
+          rollNo: userData.rollNo || "N/A",
+        });
 
         // Debug logging
         console.log("ManageClubsPage - User:", {
@@ -93,58 +104,62 @@ const ManageClubsPage = () => {
           name: userData.name,
           isAdmin: userData.isAdmin,
           headCoordinatorClubs: userData.headCoordinatorClubs,
+          isACEMStudent: userData.isACEMStudent || false,
+          rollNo: userData.rollNo || "N/A",
         });
         console.log("ManageClubsPage - All Clubs:", clubsResponse.data);
 
         // Filter clubs based on user role
-        let filteredClubs = [];
-        if (userData.isAdmin) {
-          // Global admin sees all clubs
-          filteredClubs = clubsResponse.data;
-          console.log("ManageClubsPage - Showing all clubs for global admin");
-        } else if (
-          clubsResponse.data.some((club) =>
-            club.superAdmins?.some(
-              (admin) => admin?._id?.toString() === userData._id?.toString()
-            )
-          )
-        ) {
-          // SuperAdmin sees clubs where they are listed in superAdmins
-          filteredClubs = clubsResponse.data.filter((club) =>
-            club.superAdmins?.some(
-              (admin) => admin?._id?.toString() === userData._id?.toString()
-            )
-          );
-          console.log(
-            "ManageClubsPage - Showing clubs for SuperAdmin based on superAdmins"
-          );
-        } else if (userData.headCoordinatorClubs?.length > 0) {
-          // Admin sees clubs in headCoordinatorClubs
-          filteredClubs = clubsResponse.data.filter((club) =>
+        let managedClubs = [];
+        const isHeadCoordinator = (userData.headCoordinatorClubs || []).length > 0;
+        if (isHeadCoordinator) {
+          managedClubs = clubsResponse.data.filter((club) =>
             userData.headCoordinatorClubs.includes(club.name)
           );
-          console.log(
-            "ManageClubsPage - Showing clubs for Admin based on headCoordinatorClubs"
-          );
+          console.log("ManageClubsPage - Filtered clubs for Head Coordinator:", managedClubs);
         } else {
-          console.log("ManageClubsPage - No eligible clubs found for user");
+          // For both global admins and super admins, only show clubs they created or are super admins for
+          managedClubs = clubsResponse.data.filter(
+            (club) =>
+              club.creator?._id?.toString() === userData._id?.toString() ||
+              club.superAdmins?.some(
+                (admin) => admin?._id?.toString() === userData._id?.toString()
+              )
+          );
+          console.log("ManageClubsPage - Filtered clubs for Admin/Super Admin:", managedClubs);
         }
 
-        // Fetch member counts for filtered clubs
+        // Fetch member counts and enhance clubs with createdBy details
         const clubsWithMembers = await Promise.all(
-          filteredClubs.map(async (club) => {
+          managedClubs.map(async (club) => {
             try {
               const membersResponse = await axios.get(
                 `http://localhost:5000/api/clubs/${club._id}/members`,
                 config
               );
-              return { ...club, memberCount: membersResponse.data.length };
+              return {
+                ...club,
+                memberCount: membersResponse.data.length,
+                createdBy: {
+                  name: club.createdBy?.name || "Unknown",
+                  rollNo: club.createdBy?.rollNo || "N/A",
+                  isACEMStudent: club.createdBy?.isACEMStudent || false,
+                },
+              };
             } catch (err) {
               console.warn(
                 `Failed to fetch members for club ${club.name}:`,
                 err
               );
-              return { ...club, memberCount: 0 };
+              return {
+                ...club,
+                memberCount: 0,
+                createdBy: {
+                  name: club.createdBy?.name || "Unknown",
+                  rollNo: club.createdBy?.rollNo || "N/A",
+                  isACEMStudent: club.createdBy?.isACEMStudent || false,
+                },
+              };
             }
           })
         );
@@ -155,16 +170,18 @@ const ManageClubsPage = () => {
           clubsWithMembers
         );
 
-        if (clubsWithMembers.length === 0) {
-          setError("No clubs found for your role.");
+        // Set error if no clubs are available
+        if (managedClubs.length === 0) {
+          setError("You do not have access to manage any clubs.");
         }
       } catch (err) {
         console.error("Error fetching data:", err);
-        setError(err.response?.data?.error || "Failed to load clubs.");
         if (err.response?.status === 401 || err.response?.status === 403) {
           localStorage.removeItem("token");
           setError("Session expired or unauthorized. Please log in again.");
           navigate("/login");
+        } else {
+          setError(err.response?.data?.error || "Failed to load clubs.");
         }
       } finally {
         setIsLoading(false);
@@ -186,6 +203,13 @@ const ManageClubsPage = () => {
     }
   };
 
+  // Filter clubs based on category
+  const filteredClubs = clubs.filter(
+    (club) =>
+      clubFilter === "" ||
+      club.category.toLowerCase() === clubFilter.toLowerCase()
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 font-[Poppins]">
       {isLoading && (
@@ -198,7 +222,16 @@ const ManageClubsPage = () => {
           <FaSpinner className="text-4xl text-[#456882] animate-spin" />
         </motion.div>
       )}
-      <Navbar user={user} role={user?.isAdmin ? "admin" : "superAdmin"} />
+      <Navbar
+        user={user}
+        role={
+          user?.headCoordinatorClubs?.length > 0
+            ? "headCoordinator"
+            : user?.isAdmin
+            ? "admin"
+            : "superAdmin"
+        }
+      />
       <motion.section
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
@@ -206,10 +239,27 @@ const ManageClubsPage = () => {
         className="py-12 bg-gradient-to-br from-[#456882]/10 to-gray-50"
       >
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-8 text-[#456882]">
-            Manage Clubs
-          </h2>
-          {clubs.length === 0 ? (
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
+            <h2 className="text-3xl font-bold text-[#456882]">
+              Manage Clubs
+            </h2>
+            <div className="relative mt-4 sm:mt-0">
+              <FaFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+              <select
+                value={clubFilter}
+                onChange={(e) => setClubFilter(e.target.value)}
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:ring-[#456882] focus:border-[#456882] bg-gray-50 text-sm"
+                aria-label="Filter clubs by category"
+              >
+                <option value="">All Categories</option>
+                <option value="cultural">Cultural</option>
+                <option value="technical">Technical</option>
+                <option value="literary">Literary</option>
+                <option value="entrepreneurial">Entrepreneurial</option>
+              </select>
+            </div>
+          </div>
+          {filteredClubs.length === 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -223,7 +273,7 @@ const ManageClubsPage = () => {
             </motion.div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {clubs.map((club) => (
+              {filteredClubs.map((club) => (
                 <ClubCard
                   key={club._id}
                   club={club}
