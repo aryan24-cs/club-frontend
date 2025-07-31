@@ -43,7 +43,9 @@ class ErrorBoundary extends React.Component {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="bg-red-50 border border-red-200 rounded-xl p-8 max-w-md mx-auto text-center">
             <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-red-700 mb-2">Something went wrong</h2>
+            <h2 className="text-xl font-semibold text-red-700 mb-2">
+              Something went wrong
+            </h2>
             <p className="text-red-600 mb-4">Please try refreshing the page.</p>
             <button
               onClick={() => window.location.reload()}
@@ -60,170 +62,232 @@ class ErrorBoundary extends React.Component {
 }
 
 // Stats Card Component
-const StatsCard = memo(({ title, value, icon: Icon, color = "text-[#456882]", bgColor = "bg-white", trend = null }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    className={`${bgColor} rounded-xl shadow-sm p-6 border border-gray-100 transition-all duration-300 hover:shadow-md`}
-  >
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-sm text-gray-600 mb-1">{title}</p>
-        <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
-        {trend && (
-          <p className={`text-xs mt-1 ${trend.positive ? 'text-green-600' : 'text-red-600'}`}>
-            {trend.positive ? '↗' : '↘'} {trend.value} from last week
-          </p>
-        )}
-      </div>
-      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br from-[#456882] to-[#5a7a98] flex items-center justify-center`}>
-        <Icon className="w-6 h-6 text-white" />
-      </div>
-    </div>
-  </motion.div>
-));
-
-// Message Card Component
-const MessageCard = memo(({ message, onView, onReply, onMarkRead, onArchive, onDelete, index }) => {
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'high': return 'bg-red-100 text-red-700 border-red-200';
-      case 'medium': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-      case 'low': return 'bg-green-100 text-green-700 border-green-200';
-      default: return 'bg-gray-100 text-gray-700 border-gray-200';
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'new': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'read': return 'bg-gray-100 text-gray-700 border-gray-200';
-      case 'replied': return 'bg-green-100 text-green-700 border-green-200';
-      case 'archived': return 'bg-purple-100 text-purple-700 border-purple-200';
-      default: return 'bg-gray-100 text-gray-700 border-gray-200';
-    }
-  };
-
-  return (
+const StatsCard = memo(
+  ({
+    title,
+    value,
+    icon: Icon,
+    color = "text-[#456882]",
+    bgColor = "bg-white",
+    trend = null,
+  }) => (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      className={`
-        bg-white rounded-xl shadow-sm border border-gray-200 p-6 transition-all duration-300 hover:shadow-md group
-        ${message.status === 'new' ? 'border-l-4 border-l-blue-500' : ''}
-      `}
+      className={`${bgColor} rounded-xl shadow-sm p-6 border border-gray-100 transition-all duration-300 hover:shadow-md`}
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-start gap-4 flex-1">
-          <div className="w-12 h-12 bg-gradient-to-br from-[#456882] to-[#5a7a98] rounded-xl flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
-            {message.name.charAt(0).toUpperCase()}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-semibold text-gray-900 truncate">{message.name}</h3>
-              {message.isStarred && <Star className="w-4 h-4 text-yellow-500 fill-current" />}
-            </div>
-            <p className="text-sm text-gray-600 truncate">{message.email}</p>
-            <div className="flex items-center gap-2 mt-2">
-              <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(message.status)}`}>
-                {message.status}
-              </span>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(message.priority)}`}>
-                {message.priority} priority
-              </span>
-            </div>
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-gray-600 mb-1">{title}</p>
+          <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
+          {trend && (
+            <p
+              className={`text-xs mt-1 ${
+                trend.positive ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {trend.positive ? "↗" : "↘"} {trend.value} from last week
+            </p>
+          )}
         </div>
-        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={() => onView(message)}
-            className="p-2 text-gray-400 hover:text-[#456882] hover:bg-gray-100 rounded-lg transition-colors"
-            title="View message"
-          >
-            <Eye className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => onReply(message)}
-            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-            title="Reply"
-          >
-            <Reply className="w-4 h-4" />
-          </button>
-          <div className="relative group/more">
-            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-              <MoreHorizontal className="w-4 h-4" />
-            </button>
-            <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 opacity-0 invisible group-hover/more:opacity-100 group-hover/more:visible transition-all duration-200 z-10">
-              <button
-                onClick={() => onMarkRead(message)}
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-              >
-                <CheckCircle className="w-4 h-4" />
-                Mark as {message.status === 'read' ? 'unread' : 'read'}
-              </button>
-              <button
-                onClick={() => onArchive(message)}
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-              >
-                <Archive className="w-4 h-4" />
-                Archive
-              </button>
-              <button
-                onClick={() => onDelete(message)}
-                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete
-              </button>
-            </div>
-          </div>
+        <div
+          className={`w-12 h-12 rounded-xl bg-gradient-to-br from-[#456882] to-[#5a7a98] flex items-center justify-center`}
+        >
+          <Icon className="w-6 h-6 text-white" />
         </div>
-      </div>
-      
-      <div className="mb-4">
-        <p className="text-gray-700 line-clamp-2">{message.message}</p>
-      </div>
-      
-      <div className="flex items-center justify-between text-sm text-gray-500">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1">
-            <Calendar className="w-4 h-4" />
-            <span>{new Date(message.createdAt).toLocaleDateString()}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Clock className="w-4 h-4" />
-            <span>{new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-          </div>
-        </div>
-        {message.club && (
-          <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
-            {message.club}
-          </span>
-        )}
       </div>
     </motion.div>
-  );
-});
+  )
+);
+
+// Message Card Component
+const MessageCard = memo(
+  ({
+    message,
+    onView,
+    onReply,
+    onMarkRead,
+    onArchive,
+    onDelete,
+    onToggleStar,
+    index,
+  }) => {
+    const getPriorityColor = (priority) => {
+      switch (priority) {
+        case "high":
+          return "bg-red-100 text-red-700 border-red-200";
+        case "medium":
+          return "bg-yellow-100 text-yellow-700 border-yellow-200";
+        case "low":
+          return "bg-green-100 text-green-700 border-green-200";
+        default:
+          return "bg-gray-100 text-gray-700 border-gray-200";
+      }
+    };
+
+    const getStatusColor = (status) => {
+      switch (status) {
+        case "new":
+          return "bg-blue-100 text-blue-700 border-blue-200";
+        case "read":
+          return "bg-gray-100 text-gray-700 border-gray-200";
+        case "replied":
+          return "bg-green-100 text-green-700 border-green-200";
+        case "archived":
+          return "bg-purple-100 text-purple-700 border-purple-200";
+        default:
+          return "bg-gray-100 text-gray-700 border-gray-200";
+      }
+    };
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.05 }}
+        className={`
+        bg-white rounded-xl shadow-sm border border-gray-200 p-6 transition-all duration-300 hover:shadow-md group
+        ${message.status === "new" ? "border-l-4 border-l-blue-500" : ""}
+      `}
+      >
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-start gap-4 flex-1">
+            <div className="w-12 h-12 bg-gradient-to-br from-[#456882] to-[#5a7a98] rounded-xl flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
+              {message.name.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-semibold text-gray-900 truncate">
+                  {message.name}
+                </h3>
+                <button
+                  onClick={() => onToggleStar(message)}
+                  className="text-yellow-500 hover:text-yellow-600 transition-colors"
+                >
+                  <Star
+                    className={`w-4 h-4 ${
+                      message.isStarred ? "fill-current" : ""
+                    }`}
+                  />
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 truncate">{message.email}</p>
+              <div className="flex items-center gap-2 mt-2">
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(
+                    message.status
+                  )}`}
+                >
+                  {message.status}
+                </span>
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(
+                    message.priority
+                  )}`}
+                >
+                  {message.priority} priority
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={() => onView(message)}
+              className="p-2 text-gray-400 hover:text-[#456882] hover:bg-gray-100 rounded-lg transition-colors"
+              title="View message"
+            >
+              <Eye className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => onReply(message)}
+              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              title="Reply"
+            >
+              <Reply className="w-4 h-4" />
+            </button>
+            <div className="relative group/more">
+              <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+              <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 opacity-0 invisible group-hover/more:opacity-100 group-hover/more:visible transition-all duration-200 z-10">
+                <button
+                  onClick={() => onMarkRead(message)}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  Mark as {message.status === "read" ? "unread" : "read"}
+                </button>
+                <button
+                  onClick={() => onArchive(message)}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <Archive className="w-4 h-4" />
+                  Archive
+                </button>
+                <button
+                  onClick={() => onDelete(message)}
+                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <p className="text-gray-700 line-clamp-2">{message.message}</p>
+        </div>
+
+        <div className="flex items-center justify-between text-sm text-gray-500">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1">
+              <Calendar className="w-4 h-4" />
+              <span>{new Date(message.createdAt).toLocaleDateString()}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Clock className="w-4 h-4" />
+              <span>
+                {new Date(message.createdAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
+          </div>
+          {message.club && (
+            <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+              {message.club}
+            </span>
+          )}
+        </div>
+      </motion.div>
+    );
+  }
+);
 
 // Message Detail Modal Component
 const MessageDetailModal = memo(({ message, isOpen, onClose, onReply }) => {
-  const [replyText, setReplyText] = useState('');
+  const [replyText, setReplyText] = useState("");
   const [isReplying, setIsReplying] = useState(false);
 
   const handleReply = async () => {
     if (!replyText.trim()) return;
-    
+
     setIsReplying(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Reply sent:', replyText);
-      setReplyText('');
-      onReply(message, replyText);
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `http://localhost:5000/api/contact/messages/${message._id}/reply`,
+        { reply: replyText },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setReplyText("");
+      onReply(message, replyText, response.data.contactMessage);
       onClose();
     } catch (err) {
-      console.error('Reply error:', err);
+      console.error("Reply error:", err);
     } finally {
       setIsReplying(false);
     }
@@ -256,13 +320,15 @@ const MessageDetailModal = memo(({ message, isOpen, onClose, onReply }) => {
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
               </button>
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">Message Details</h2>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Message Details
+                </h2>
                 <p className="text-sm text-gray-600">From {message.name}</p>
               </div>
             </div>
           </div>
         </div>
-        
+
         <div className="p-6">
           <div className="mb-6">
             <div className="bg-gray-50 rounded-xl p-4 mb-4">
@@ -282,10 +348,37 @@ const MessageDetailModal = memo(({ message, isOpen, onClose, onReply }) => {
                 {message.message}
               </div>
             </div>
+            {message.replies && message.replies.length > 0 && (
+              <div className="mt-4">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Replies
+                </h3>
+                {message.replies.map((reply, index) => (
+                  <div key={index} className="bg-gray-100 rounded-xl p-4 mb-2">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-8 h-8 bg-gradient-to-br from-[#456882] to-[#5a7a98] rounded-lg flex items-center justify-center text-white font-semibold">
+                        {reply.repliedBy?.name?.charAt(0).toUpperCase() || "A"}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {reply.repliedBy?.name || "Admin"}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(reply.repliedAt).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-gray-800">{reply.reply}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          
+
           <div className="border-t border-gray-200 pt-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Reply to {message.name}</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Reply to {message.name}
+            </h3>
             <div className="space-y-4">
               <div>
                 <textarea
@@ -302,9 +395,10 @@ const MessageDetailModal = memo(({ message, isOpen, onClose, onReply }) => {
                   disabled={!replyText.trim() || isReplying}
                   className={`
                     flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-300
-                    ${!replyText.trim() || isReplying
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-[#456882] text-white hover:bg-[#334d5e] shadow-lg hover:shadow-xl'
+                    ${
+                      !replyText.trim() || isReplying
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : "bg-[#456882] text-white hover:bg-[#334d5e] shadow-lg hover:shadow-xl"
                     }
                   `}
                 >
@@ -340,125 +434,75 @@ const AdminContactPanel = () => {
   const [user, setUser] = useState(null);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [priorityFilter, setPriorityFilter] = useState('all');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [starredFilter, setStarredFilter] = useState("all");
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-
-  // Sample data - replace with your actual API calls
-  const [sampleMessages] = useState([
-    {
-      id: 1,
-      name: 'Alice Johnson',
-      email: 'alice@college.edu',
-      message: 'I am having trouble accessing the coding club dashboard. The login page keeps redirecting me back to the homepage. Can you please help me resolve this issue?',
-      status: 'new',
-      priority: 'high',
-      createdAt: new Date().toISOString(),
-      club: 'Coding Club',
-      isStarred: true,
-    },
-    {
-      id: 2,
-      name: 'Bob Smith',
-      email: 'bob@college.edu',
-      message: 'Hello, I would like to know more about the photography club events and how to participate in upcoming workshops.',
-      status: 'read',
-      priority: 'medium',
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-      club: 'Photography Club',
-      isStarred: false,
-    },
-    {
-      id: 3,
-      name: 'Carol Davis',
-      email: 'carol@college.edu',
-      message: 'The attendance system is not working properly. When I try to mark attendance, it shows a server error.',
-      status: 'replied',
-      priority: 'high',
-      createdAt: new Date(Date.now() - 172800000).toISOString(),
-      club: 'Drama Club',
-      isStarred: false,
-    },
-    {
-      id: 4,
-      name: 'David Wilson',
-      email: 'david@college.edu',
-      message: 'Can you provide information about membership fees and payment options for joining multiple clubs?',
-      status: 'read',
-      priority: 'low',
-      createdAt: new Date(Date.now() - 259200000).toISOString(),
-      club: null,
-      isStarred: false,
-    },
-    {
-      id: 5,
-      name: 'Eve Brown',
-      email: 'eve@college.edu',
-      message: 'I accidentally deleted my profile information. Is there a way to recover it or do I need to re-enter everything?',
-      status: 'new',
-      priority: 'medium',
-      createdAt: new Date(Date.now() - 345600000).toISOString(),
-      club: 'Music Club',
-      isStarred: false,
-    },
-  ]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         if (!token) {
-          setError('No authentication token found. Please log in.');
-          navigate('/login');
+          setError("No authentication token found. Please log in.");
+          navigate("/login");
           return;
         }
 
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
         // Fetch user data
-        const userResponse = await axios.get('http://localhost:5000/api/auth/user', config);
+        const userResponse = await axios.get(
+          "http://localhost:5000/api/auth/user",
+          config
+        );
         setUser(userResponse.data);
 
         // Check if user is admin
         if (!userResponse.data.isAdmin) {
-          setError('You do not have admin access.');
-          navigate('/dashboard');
+          setError("You do not have admin access.");
+          navigate("/dashboard");
           return;
         }
 
         // Fetch contact messages
-        // const messagesResponse = await axios.get('http://localhost:5000/api/admin/contact-messages', config);
-        // setMessages(messagesResponse.data);
-        
-        // For now, use sample data
-        setMessages(sampleMessages);
+        const messagesResponse = await axios.get(
+          "http://localhost:5000/api/contact/messages",
+          {
+            ...config,
+            params: {
+              starred: starredFilter === "all" ? undefined : starredFilter,
+            },
+          }
+        );
+        setMessages(messagesResponse.data);
 
         setLoading(false);
       } catch (err) {
         if (err.response?.status === 401 || err.response?.status === 403) {
-          localStorage.removeItem('token');
-          setError('Session expired or unauthorized. Please log in again.');
-          navigate('/login');
+          localStorage.removeItem("token");
+          setError("Session expired or unauthorized. Please log in again.");
+          navigate("/login");
         } else {
-          setError(err.response?.data?.error || 'Failed to load data.');
+          setError(err.response?.data?.error || "Failed to load data.");
         }
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [navigate, sampleMessages]);
+  }, [navigate, starredFilter]);
 
   const stats = useMemo(() => {
     const total = messages.length;
-    const newMessages = messages.filter(m => m.status === 'new').length;
-    const replied = messages.filter(m => m.status === 'replied').length;
-    const highPriority = messages.filter(m => m.priority === 'high').length;
-    
+    const newMessages = messages.filter((m) => m.status === "new").length;
+    const replied = messages.filter((m) => m.status === "replied").length;
+    const highPriority = messages.filter((m) => m.priority === "high").length;
+
     return {
       total,
       new: newMessages,
@@ -468,97 +512,220 @@ const AdminContactPanel = () => {
   }, [messages]);
 
   const filteredMessages = useMemo(() => {
-    return messages.filter(message => {
-      const matchesSearch = message.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           message.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           message.message.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesStatus = statusFilter === 'all' || message.status === statusFilter;
-      const matchesPriority = priorityFilter === 'all' || message.priority === priorityFilter;
-      
-      return matchesSearch && matchesStatus && matchesPriority;
-    });
-  }, [messages, searchTerm, statusFilter, priorityFilter]);
+    return messages.filter((message) => {
+      const matchesSearch =
+        message.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        message.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        message.message.toLowerCase().includes(searchTerm.toLowerCase());
 
-  const handleViewMessage = useCallback((message) => {
+      const matchesStatus =
+        statusFilter === "all" || message.status === statusFilter;
+      const matchesPriority =
+        priorityFilter === "all" || message.priority === priorityFilter;
+      const matchesStarred =
+        starredFilter === "all" ||
+        (starredFilter === "true" && message.isStarred) ||
+        (starredFilter === "false" && !message.isStarred);
+
+      return (
+        matchesSearch && matchesStatus && matchesPriority && matchesStarred
+      );
+    });
+  }, [messages, searchTerm, statusFilter, priorityFilter, starredFilter]);
+
+  const handleViewMessage = useCallback(async (message) => {
     setSelectedMessage(message);
     setShowDetailModal(true);
-    
+
     // Mark as read if it's new
-    if (message.status === 'new') {
-      setMessages(prev => prev.map(m => 
-        m.id === message.id ? { ...m, status: 'read' } : m
-      ));
+    if (message.status === "new") {
+      try {
+        const token = localStorage.getItem("token");
+        await axios.patch(
+          `http://localhost:5000/api/contact/messages/${message._id}`,
+          { status: "read" },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setMessages((prev) =>
+          prev.map((m) =>
+            m._id === message._id ? { ...m, status: "read" } : m
+          )
+        );
+      } catch (err) {
+        console.error("Error marking message as read:", err);
+      }
     }
   }, []);
 
-  const handleReplyMessage = useCallback((message, replyText = '') => {
-    if (replyText) {
-      // Update message status to replied
-      setMessages(prev => prev.map(m => 
-        m.id === message.id ? { ...m, status: 'replied' } : m
-      ));
-      setSuccess(`Reply sent to ${message.name} successfully!`);
-    } else {
-      setSelectedMessage(message);
-      setShowDetailModal(true);
+  const handleReplyMessage = useCallback(
+    async (message, replyText, updatedMessage) => {
+      if (replyText) {
+        try {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m._id === message._id
+                ? {
+                    ...m,
+                    status: "replied",
+                    replies: updatedMessage.replies,
+                  }
+                : m
+            )
+          );
+          setSuccess(`Reply sent to ${message.name} successfully!`);
+        } catch (err) {
+          setError("Failed to send reply.");
+          console.error("Reply error:", err);
+        }
+      } else {
+        setSelectedMessage(message);
+        setShowDetailModal(true);
+      }
+    },
+    []
+  );
+
+  const handleMarkRead = useCallback(async (message) => {
+    const newStatus = message.status === "read" ? "new" : "read";
+    try {
+      const token = localStorage.getItem("token");
+      await axios.patch(
+        `http://localhost:5000/api/contact/messages/${message._id}`,
+        { status: newStatus },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === message._id ? { ...m, status: newStatus } : m
+        )
+      );
+      setSuccess(`Message marked as ${newStatus}!`);
+    } catch (err) {
+      setError("Failed to update message status.");
+      console.error("Status update error:", err);
     }
   }, []);
 
-  const handleMarkRead = useCallback((message) => {
-    const newStatus = message.status === 'read' ? 'new' : 'read';
-    setMessages(prev => prev.map(m => 
-      m.id === message.id ? { ...m, status: newStatus } : m
-    ));
-    setSuccess(`Message marked as ${newStatus}!`);
+  const handleToggleStar = useCallback(async (message) => {
+    const newStarredStatus = !message.isStarred;
+    try {
+      const token = localStorage.getItem("token");
+      await axios.patch(
+        `http://localhost:5000/api/contact/messages/${message._id}`,
+        { isStarred: newStarredStatus },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === message._id ? { ...m, isStarred: newStarredStatus } : m
+        )
+      );
+      setSuccess(
+        `Message ${newStarredStatus ? "starred" : "unstarred"} successfully!`
+      );
+    } catch (err) {
+      setError("Failed to update starred status.");
+      console.error("Star toggle error:", err);
+    }
   }, []);
 
-  const handleArchiveMessage = useCallback((message) => {
-    setMessages(prev => prev.map(m => 
-      m.id === message.id ? { ...m, status: 'archived' } : m
-    ));
-    setSuccess(`Message from ${message.name} archived!`);
+  const handleArchiveMessage = useCallback(async (message) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.patch(
+        `http://localhost:5000/api/contact/messages/${message._id}`,
+        { status: "archived" },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === message._id ? { ...m, status: "archived" } : m
+        )
+      );
+      setSuccess(`Message from ${message.name} archived!`);
+    } catch (err) {
+      setError("Failed to archive message.");
+      console.error("Archive error:", err);
+    }
   }, []);
 
-  const handleDeleteMessage = useCallback((message) => {
-    if (window.confirm(`Delete message from ${message.name}? This cannot be undone.`)) {
-      setMessages(prev => prev.filter(m => m.id !== message.id));
-      setSuccess(`Message from ${message.name} deleted!`);
+  const handleDeleteMessage = useCallback(async (message) => {
+    if (
+      window.confirm(
+        `Delete message from ${message.name}? This cannot be undone.`
+      )
+    ) {
+      try {
+        const token = localStorage.getItem("token");
+        await axios.delete(
+          `http://localhost:5000/api/contact/messages/${message._id}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setMessages((prev) => prev.filter((m) => m._id !== message._id));
+        setSuccess(`Message from ${message.name} deleted!`);
+      } catch (err) {
+        setError("Failed to delete message.");
+        console.error("Delete error:", err);
+      }
     }
   }, []);
 
   const handleRefresh = useCallback(async () => {
     setLoading(true);
     try {
-      // Simulate API refresh
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setSuccess('Messages refreshed successfully!');
+      const token = localStorage.getItem("token");
+      const messagesResponse = await axios.get(
+        "http://localhost:5000/api/contact/messages",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params: {
+            starred: starredFilter === "all" ? undefined : starredFilter,
+          },
+        }
+      );
+      setMessages(messagesResponse.data);
+      setSuccess("Messages refreshed successfully!");
     } catch (err) {
-      setError('Failed to refresh messages.');
+      setError("Failed to refresh messages.");
+      console.error("Refresh error:", err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [starredFilter]);
 
   const handleExportMessages = useCallback(() => {
     const csvContent = [
-      ['Name', 'Email', 'Status', 'Priority', 'Club', 'Date', 'Message'],
-      ...filteredMessages.map(message => [
+      [
+        "Name",
+        "Email",
+        "Status",
+        "Priority",
+        "Starred",
+        "Club",
+        "Date",
+        "Message",
+      ],
+      ...filteredMessages.map((message) => [
         message.name,
         message.email,
         message.status,
         message.priority,
-        message.club || 'N/A',
+        message.isStarred ? "Yes" : "No",
+        message.club || "N/A",
         new Date(message.createdAt).toLocaleDateString(),
-        message.message.replace(/,/g, ';') // Replace commas to avoid CSV issues
-      ])
-    ].map(row => row.join(',')).join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+        message.message.replace(/,/g, ";"), // Replace commas to avoid CSV issues
+      ]),
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = `contact_messages_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `contact_messages_${
+      new Date().toISOString().split("T")[0]
+    }.csv`;
     link.click();
     window.URL.revokeObjectURL(url);
   }, [filteredMessages]);
@@ -587,7 +754,7 @@ const AdminContactPanel = () => {
 
   return (
     <ErrorBoundary>
-      <Navbar  />
+      <Navbar />
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
           {/* Header */}
@@ -637,7 +804,10 @@ const AdminContactPanel = () => {
                 <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
                   <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
                   <p className="text-sm text-red-700 flex-1">{error}</p>
-                  <button onClick={() => setError('')} className="text-red-600 hover:text-red-800">
+                  <button
+                    onClick={() => setError("")}
+                    className="text-red-600 hover:text-red-800"
+                  >
                     <XCircle className="w-5 h-5" />
                   </button>
                 </div>
@@ -653,7 +823,10 @@ const AdminContactPanel = () => {
                 <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
                   <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
                   <p className="text-sm text-green-700 flex-1">{success}</p>
-                  <button onClick={() => setSuccess('')} className="text-green-600 hover:text-green-800">
+                  <button
+                    onClick={() => setSuccess("")}
+                    className="text-green-600 hover:text-green-800"
+                  >
                     <XCircle className="w-5 h-5" />
                   </button>
                 </div>
@@ -701,7 +874,7 @@ const AdminContactPanel = () => {
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#456882] focus:border-[#456882] transition-all duration-300"
                 />
               </div>
-              
+
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <select
@@ -717,7 +890,7 @@ const AdminContactPanel = () => {
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>
-                
+
                 <div className="relative">
                   <select
                     value={priorityFilter}
@@ -728,6 +901,19 @@ const AdminContactPanel = () => {
                     <option value="high">High</option>
                     <option value="medium">Medium</option>
                     <option value="low">Low</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                </div>
+
+                <div className="relative">
+                  <select
+                    value={starredFilter}
+                    onChange={(e) => setStarredFilter(e.target.value)}
+                    className="appearance-none pl-4 pr-10 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#456882] focus:border-[#456882] bg-white"
+                  >
+                    <option value="all">All Starred</option>
+                    <option value="true">Starred</option>
+                    <option value="false">Not Starred</option>
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>
@@ -743,26 +929,32 @@ const AdminContactPanel = () => {
               </h2>
               {filteredMessages.length !== messages.length && (
                 <p className="text-sm text-gray-600">
-                  Showing {filteredMessages.length} of {messages.length} messages
+                  Showing {filteredMessages.length} of {messages.length}{" "}
+                  messages
                 </p>
               )}
             </div>
-            
+
             {filteredMessages.length === 0 ? (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
                 <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No messages found</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No messages found
+                </h3>
                 <p className="text-gray-600">
-                  {searchTerm || statusFilter !== 'all' || priorityFilter !== 'all'
-                    ? 'Try adjusting your filters or search terms.'
-                    : 'No contact messages have been received yet.'}
+                  {searchTerm ||
+                  statusFilter !== "all" ||
+                  priorityFilter !== "all" ||
+                  starredFilter !== "all"
+                    ? "Try adjusting your filters or search terms."
+                    : "No contact messages have been received yet."}
                 </p>
               </div>
             ) : (
               <div className="space-y-4">
                 {filteredMessages.map((message, index) => (
                   <MessageCard
-                    key={message.id}
+                    key={message._id}
                     message={message}
                     index={index}
                     onView={handleViewMessage}
@@ -770,6 +962,7 @@ const AdminContactPanel = () => {
                     onMarkRead={handleMarkRead}
                     onArchive={handleArchiveMessage}
                     onDelete={handleDeleteMessage}
+                    onToggleStar={handleToggleStar}
                   />
                 ))}
               </div>
