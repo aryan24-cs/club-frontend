@@ -12,6 +12,7 @@ import {
   Edit3,
   Trash2,
   X,
+  Filter,
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 
@@ -51,11 +52,19 @@ const Events = () => {
   const [isHeadCoordinator, setIsHeadCoordinator] = useState(false);
   const [registerLoading, setRegisterLoading] = useState({});
   const [toasts, setToasts] = useState([]);
-  const [showJoinClubPrompt, setShowJoinClubPrompt] = useState(null); // { eventId, clubId, clubName }
+  const [showJoinClubPrompt, setShowJoinClubPrompt] = useState(null);
+  const [showRegisterModal, setShowRegisterModal] = useState(null);
   const [userClubs, setUserClubs] = useState([]);
+  const [eventFilter, setEventFilter] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    rollNo: "",
+    college: "",
+  });
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
-  const [userId, setUserId] = useState(localStorage.getItem("userId"));
+  const [user, setUser] = useState(null);
 
   // Add toast notification
   const addToast = (message, type = "success") => {
@@ -71,9 +80,9 @@ const Events = () => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   };
 
-  // Validate token and fetch user data
+  // Fetch user and events data
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchData = async () => {
       if (!token) {
         setError("No authentication token found. Please log in.");
         localStorage.removeItem("token");
@@ -84,29 +93,47 @@ const Events = () => {
 
       try {
         // Fetch user data
-        const userResponse = await axios.get(
-          "http://localhost:5000/api/auth/user",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        const userResponse = await axios.get("http://localhost:5000/api/auth/user", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         const userData = userResponse.data;
-        if (!userId || userId !== userData._id) {
-          setUserId(userData._id);
-          localStorage.setItem("userId", userData._id);
-        }
+        setUser({
+          ...userData,
+          isACEMStudent: userData.isACEMStudent || false,
+          rollNo: userData.rollNo || "N/A",
+        });
         setIsAdmin(userData.isAdmin || false);
-        setIsHeadCoordinator(userData.isHeadCoordinator || false);
-        setUserClubs(userData.clubs || []); // Assuming user data includes clubs
+        setIsHeadCoordinator(userData.headCoordinatorClubs?.length > 0 || false);
+        setUserClubs(userData.clubs?.map((club) => club._id || club) || []);
+
+        // Initialize form data with user details
+        setFormData({
+          name: userData.name || "",
+          email: userData.email || "",
+          rollNo: userData.rollNo || "",
+          college: userData.isACEMStudent ? "ACEM" : "",
+        });
+
+        console.log("Events - User:", {
+          _id: userData._id,
+          name: userData.name,
+          email: userData.email,
+          isAdmin: userData.isAdmin,
+          headCoordinatorClubs: userData.headCoordinatorClubs,
+          clubs: userData.clubs,
+          isACEMStudent: userData.isACEMStudent,
+          rollNo: userData.rollNo,
+        });
 
         // Fetch all events
-        const eventsResponse = await axios.get(
-          "http://localhost:5000/api/events",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        const fetchedEvents = eventsResponse.data || [];
+        const eventsResponse = await axios.get("http://localhost:5000/api/events", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const fetchedEvents = (eventsResponse.data || []).map((event) => ({
+          ...event,
+          category: event.category || "Event",
+          club: event.club || { _id: "", name: "Unknown" },
+        }));
         setEvents(fetchedEvents);
         setFilteredEvents(fetchedEvents);
 
@@ -115,27 +142,20 @@ const Events = () => {
           (event) =>
             Array.isArray(event.registeredUsers) &&
             event.registeredUsers.some(
-              (user) => user && user._id && user._id.toString() === userData._id
+              (reg) => reg?.userId?._id.toString() === userData._id
             )
         );
         setMyEvents(myEvents);
 
+        console.log("Events - All Events:", fetchedEvents);
+        console.log("Events - My Events:", myEvents);
+
         setLoading(false);
       } catch (err) {
-        console.error("Error fetching data:", {
-          message: err.message,
-          response: err.response?.data,
-          status: err.response?.status,
-        });
-        setError(
-          err.response?.data?.error || err.message || "Failed to load events."
-        );
+        console.error("Error fetching data:", err.response?.data);
+        setError(err.response?.data?.error || "Failed to load events. Please try again.");
         setLoading(false);
-        if (
-          err.response?.status === 401 ||
-          err.message.includes("Unauthorized") ||
-          err.message.includes("Invalid token")
-        ) {
+        if (err.response?.status === 401) {
           localStorage.removeItem("token");
           localStorage.removeItem("userId");
           navigate("/login");
@@ -143,50 +163,38 @@ const Events = () => {
       }
     };
 
-    fetchUserData();
+    fetchData();
   }, [navigate, token]);
 
-  // Filter events based on search query
+  // Filter events
   useEffect(() => {
     const eventsToFilter = activeTab === "all" ? events : myEvents;
     setFilteredEvents(
       eventsToFilter.filter(
         (event) =>
-          (event.title || "")
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()) ||
-          (event.club?.name || "")
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase())
+          ((event.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (event.club?.name || "").toLowerCase().includes(searchQuery.toLowerCase())) &&
+          (eventFilter === "" || event.category.toLowerCase() === eventFilter.toLowerCase())
       )
     );
-  }, [searchQuery, events, myEvents, activeTab]);
+  }, [searchQuery, eventFilter, events, myEvents, activeTab]);
 
-  // Handle joining a club and registering for an event
+  // Handle joining club and registering
   const handleJoinClubAndRegister = async (eventId, clubId) => {
     try {
-      // Join the club
       await axios.post(
         `http://localhost:5000/api/clubs/${clubId}/join`,
         {},
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         }
       );
-      // Update user clubs
       setUserClubs((prev) => [...prev, clubId]);
-      // Automatically register for the event
       await handleRegister(eventId, true);
       setShowJoinClubPrompt(null);
       addToast("Joined club and registered for the event!");
     } catch (err) {
-      console.error("Error joining club:", {
-        message: err.message,
-        response: err.response?.data,
-      });
+      console.error("Error joining club:", err.response?.data);
       addToast(err.response?.data?.error || "Failed to join club.", "error");
       if (err.response?.status === 401) {
         localStorage.removeItem("token");
@@ -200,90 +208,75 @@ const Events = () => {
   const handleRegister = async (eventId, isAutoRegister = false) => {
     setRegisterLoading((prev) => ({ ...prev, [eventId]: true }));
     try {
-      // Find the event
       const event = events.find((e) => e._id === eventId);
       if (!event || !event.club?._id) {
         throw new Error("Event or club not found.");
       }
 
-      // Check if user is a member of the club
       if (!userClubs.includes(event.club._id.toString()) && !isAutoRegister) {
         setShowJoinClubPrompt({
           eventId,
           clubId: event.club._id,
           clubName: event.club.name,
         });
+        setShowRegisterModal(null);
         setRegisterLoading((prev) => ({ ...prev, [eventId]: false }));
         return;
       }
 
-      // Register for the event
       const response = await axios.post(
         `http://localhost:5000/api/events/${eventId}/register`,
-        {},
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+          name: formData.name,
+          email: formData.email,
+          rollNo: formData.rollNo,
+          isACEMStudent: user.isACEMStudent,
+          ...(user.isACEMStudent ? {} : { college: formData.college }),
+        },
+        {
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         }
       );
-      addToast(
-        response.data.message || "Successfully registered for the event!"
-      );
+      addToast(response.data.message || "Successfully registered for the event!");
 
-      // Update events state
       const updatedEvents = events.map((event) =>
         event._id === eventId
           ? {
               ...event,
               registeredUsers: [
-                ...(Array.isArray(event.registeredUsers)
-                  ? event.registeredUsers
-                  : []),
-                { _id: userId },
+                ...(Array.isArray(event.registeredUsers) ? event.registeredUsers : []),
+                {
+                  userId: { _id: user._id },
+                  name: formData.name,
+                  email: formData.email,
+                  rollNo: formData.rollNo,
+                  isACEMStudent: user.isACEMStudent,
+                },
               ],
             }
           : event
       );
       setEvents(updatedEvents);
-      setMyEvents([
-        ...myEvents,
-        updatedEvents.find((event) => event._id === eventId),
-      ]);
+      setMyEvents([...myEvents, updatedEvents.find((event) => event._id === eventId)]);
       setFilteredEvents(
         activeTab === "all"
           ? updatedEvents.filter(
               (event) =>
-                (event.title || "")
-                  .toLowerCase()
-                  .includes(searchQuery.toLowerCase()) ||
-                (event.club?.name || "")
-                  .toLowerCase()
-                  .includes(searchQuery.toLowerCase())
+                ((event.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  (event.club?.name || "").toLowerCase().includes(searchQuery.toLowerCase())) &&
+                (eventFilter === "" || event.category.toLowerCase() === eventFilter.toLowerCase())
             )
-          : [
-              ...myEvents,
-              updatedEvents.find((event) => event._id === eventId),
-            ].filter(
+          : [...myEvents, updatedEvents.find((event) => event._id === eventId)].filter(
               (event) =>
-                (event.title || "")
-                  .toLowerCase()
-                  .includes(searchQuery.toLowerCase()) ||
-                (event.club?.name || "")
-                  .toLowerCase()
-                  .includes(searchQuery.toLowerCase())
+                ((event.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  (event.club?.name || "").toLowerCase().includes(searchQuery.toLowerCase())) &&
+                (eventFilter === "" || event.category.toLowerCase() === eventFilter.toLowerCase())
             )
       );
+      setShowRegisterModal(null);
     } catch (err) {
-      console.error("Error registering for event:", {
-        message: err.message,
-        response: err.response?.data,
-      });
-      addToast(
-        err.response?.data?.error || "Failed to register for event.",
-        "error"
-      );
+      console.error("Error registering for event:", err.response?.data);
+      addToast(err.response?.data?.error || "Failed to register for event.", "error");
       if (err.response?.status === 401) {
         localStorage.removeItem("token");
         localStorage.removeItem("userId");
@@ -291,6 +284,19 @@ const Events = () => {
       }
     }
     setRegisterLoading((prev) => ({ ...prev, [eventId]: false }));
+  };
+
+  // Handle form input changes
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Open registration modal
+  const openRegisterModal = (eventId) => {
+    const event = events.find((e) => e._id === eventId);
+    if (!event) return;
+    setShowRegisterModal({ eventId, eventTitle: event.title });
   };
 
   // Handle event deletion
@@ -307,21 +313,22 @@ const Events = () => {
         activeTab === "all"
           ? updatedEvents.filter(
               (event) =>
-                (event.title || "")
-                  .toLowerCase()
-                  .includes(searchQuery.toLowerCase()) ||
-                (event.club?.name || "")
-                  .toLowerCase()
-                  .includes(searchQuery.toLowerCase())
+                ((event.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  (event.club?.name || "").toLowerCase().includes(searchQuery.toLowerCase())) &&
+                (eventFilter === "" || event.category.toLowerCase() === eventFilter.toLowerCase())
             )
-          : myEvents.filter((event) => event._id !== eventId)
+          : myEvents
+              .filter((event) => event._id !== eventId)
+              .filter(
+                (event) =>
+                  ((event.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    (event.club?.name || "").toLowerCase().includes(searchQuery.toLowerCase())) &&
+                  (eventFilter === "" || event.category.toLowerCase() === eventFilter.toLowerCase())
+              )
       );
       addToast("Event deleted successfully!");
     } catch (err) {
-      console.error("Error deleting event:", {
-        message: err.message,
-        response: err.response?.data,
-      });
+      console.error("Error deleting event:", err.response?.data);
       addToast(err.response?.data?.error || "Failed to delete event.", "error");
     }
   };
@@ -375,9 +382,8 @@ const Events = () => {
 
   return (
     <div>
-      <Navbar />
+      <Navbar user={user} role={isAdmin || isHeadCoordinator ? "admin" : "user"} />
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
-        {/* Toasts */}
         <div className="fixed top-4 right-4 z-50">
           <AnimatePresence>
             {toasts.map((toast) => (
@@ -392,7 +398,6 @@ const Events = () => {
           </AnimatePresence>
         </div>
 
-        {/* Join Club Prompt */}
         <AnimatePresence>
           {showJoinClubPrompt && (
             <motion.div
@@ -421,9 +426,7 @@ const Events = () => {
                 </div>
                 <p className="text-gray-600 mb-4">
                   You need to join{" "}
-                  <span className="font-medium">
-                    {showJoinClubPrompt.clubName}
-                  </span>{" "}
+                  <span className="font-medium">{showJoinClubPrompt.clubName}</span>{" "}
                   to register for this event.
                 </p>
                 <div className="flex gap-4">
@@ -454,7 +457,134 @@ const Events = () => {
           )}
         </AnimatePresence>
 
-        {/* Hero Section */}
+        <AnimatePresence>
+          {showRegisterModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 flex items-center justify-center z-40"
+            >
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                className="bg-white rounded-2xl p-6 max-w-md mx-4 w-full"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-[#456882]">
+                    Register for {showRegisterModal.eventTitle}
+                  </h3>
+                  <button
+                    onClick={() => setShowRegisterModal(null)}
+                    className="text-gray-500 hover:text-gray-700"
+                    aria-label="Close modal"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Name
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleFormChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#456882]"
+                      placeholder="Enter your name"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleFormChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#456882]"
+                      placeholder="Enter your email"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Roll Number
+                    </label>
+                    <input
+                      type="text"
+                      name="rollNo"
+                      value={formData.rollNo}
+                      onChange={handleFormChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#456882]"
+                      placeholder="Enter your roll number"
+                      required
+                    />
+                  </div>
+                  {!user.isACEMStudent && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        College
+                      </label>
+                      <input
+                        type="text"
+                        name="college"
+                        value={formData.college}
+                        onChange={handleFormChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#456882]"
+                        placeholder="Enter your college name"
+                        required
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-4 mt-6">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleRegister(showRegisterModal.eventId)}
+                    disabled={
+                      !formData.name ||
+                      !formData.email ||
+                      !formData.rollNo ||
+                      (!user.isACEMStudent && !formData.college) ||
+                      registerLoading[showRegisterModal.eventId]
+                    }
+                    className={`flex-1 px-4 py-2 rounded-full text-white font-medium ${
+                      !formData.name ||
+                      !formData.email ||
+                      !formData.rollNo ||
+                      (!user.isACEMStudent && !formData.college) ||
+                      registerLoading[showRegisterModal.eventId]
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-[#456882] hover:bg-[#334d5e]"
+                    }`}
+                  >
+                    {registerLoading[showRegisterModal.eventId] ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
+                    ) : (
+                      "Submit"
+                    )}
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowRegisterModal(null)}
+                    className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300"
+                  >
+                    Cancel
+                  </motion.button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="relative h-96 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-[#456882] to-[#5a7a98]">
             <img
@@ -465,7 +595,6 @@ const Events = () => {
           </div>
           <div className="absolute inset-0 bg-black/20"></div>
 
-          {/* Navigation */}
           <div className="absolute top-6 left-6">
             <Link
               to="/clubs"
@@ -476,7 +605,6 @@ const Events = () => {
             </Link>
           </div>
 
-          {/* Admin Controls */}
           {(isAdmin || isHeadCoordinator) && (
             <div className="absolute top-6 right-6">
               <Link
@@ -489,7 +617,6 @@ const Events = () => {
             </div>
           )}
 
-          {/* Events Header */}
           <div className="absolute bottom-8 left-6 right-6">
             <motion.h1
               initial={{ y: 30, opacity: 0 }}
@@ -517,9 +644,7 @@ const Events = () => {
           </div>
         </div>
 
-        {/* Content */}
         <div className="max-w-7xl mx-auto px-6 py-8">
-          {/* Tabs */}
           <div className="mb-8">
             <div className="flex space-x-1 bg-gray-100 p-1 rounded-2xl">
               {tabs.map((tab) => {
@@ -542,9 +667,8 @@ const Events = () => {
             </div>
           </div>
 
-          {/* Search Bar */}
-          <div className="mb-8">
-            <div className="relative">
+          <div className="mb-8 flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
@@ -554,9 +678,21 @@ const Events = () => {
                 className="pl-10 pr-4 py-2 border border-gray-300 rounded-full w-full focus:outline-none focus:ring-2 focus:ring-[#456882] focus:border-transparent"
               />
             </div>
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
+              <select
+                value={eventFilter}
+                onChange={(e) => setEventFilter(e.target.value)}
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:ring-[#456882] focus:border-[#456882] bg-gray-50 text-sm"
+                aria-label="Filter events by category"
+              >
+                <option value="">All Event Categories</option>
+                <option value="Seminar">Seminar</option>
+                <option value="Competition">Competition</option>
+              </select>
+            </div>
           </div>
 
-          {/* Events Content */}
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -586,11 +722,11 @@ const Events = () => {
                   <div className="text-center py-12">
                     <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                      {searchQuery ? "No events found" : "No events yet"}
+                      {searchQuery || eventFilter ? "No events found" : "No events yet"}
                     </h3>
                     <p className="text-gray-500">
-                      {searchQuery
-                        ? "Try adjusting your search terms"
+                      {searchQuery || eventFilter
+                        ? "Try adjusting your search or filter"
                         : activeTab === "all"
                         ? "Check back later for upcoming events!"
                         : "You haven't registered for any events yet."}
@@ -607,9 +743,22 @@ const Events = () => {
                         className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all"
                       >
                         <div className="flex items-start justify-between mb-4">
-                          <h3 className="text-lg font-semibold text-[#456882] flex-1">
-                            {event.title || "Untitled Event"}
-                          </h3>
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold text-[#456882]">
+                              {event.title || "Untitled Event"}
+                            </h3>
+                            <span
+                              className={`inline-block mt-1 px-2 py-1 rounded-full text-xs font-semibold ${
+                                event.category === "Seminar"
+                                  ? "bg-blue-100 text-blue-600"
+                                  : event.category === "Competition"
+                                  ? "bg-green-100 text-green-600"
+                                  : "bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              {event.category.charAt(0).toUpperCase() + event.category.slice(1)}
+                            </span>
+                          </div>
                           {(isAdmin || isHeadCoordinator) && (
                             <div className="flex gap-2">
                               <Link
@@ -630,14 +779,13 @@ const Events = () => {
                         <div className="flex items-center gap-2 text-gray-600 mb-3">
                           <Clock className="w-4 h-4" />
                           <span className="text-sm">
-                            {event.date || "TBD"} {event.time || ""}
+                            {event.date ? new Date(event.date).toLocaleDateString() : "TBD"}{" "}
+                            {event.time || ""}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-gray-600 mb-3">
                           <MapPin className="w-4 h-4" />
-                          <span className="text-sm">
-                            {event.location || "TBD"}
-                          </span>
+                          <span className="text-sm">{event.location || "TBD"}</span>
                         </div>
                         <p className="text-gray-600 text-sm mb-3">
                           <span className="font-medium">Club:</span>{" "}
@@ -649,24 +797,18 @@ const Events = () => {
                         <motion.button
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
-                          onClick={() => handleRegister(event._id)}
+                          onClick={() => openRegisterModal(event._id)}
                           disabled={
                             (Array.isArray(event.registeredUsers) &&
                               event.registeredUsers.some(
-                                (user) =>
-                                  user &&
-                                  user._id &&
-                                  user._id.toString() === userId
+                                (reg) => reg?.userId?._id.toString() === user._id
                               )) ||
                             registerLoading[event._id]
                           }
                           className={`w-full py-2 px-4 rounded-full text-white font-medium transition-colors shadow-lg ${
                             Array.isArray(event.registeredUsers) &&
                             event.registeredUsers.some(
-                              (user) =>
-                                user &&
-                                user._id &&
-                                user._id.toString() === userId
+                              (reg) => reg?.userId?._id.toString() === user._id
                             )
                               ? "bg-gray-400 cursor-not-allowed"
                               : "bg-gradient-to-r from-[#456882] to-[#5a7a98] hover:from-[#334d5e] hover:to-[#456882]"
@@ -676,10 +818,7 @@ const Events = () => {
                             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
                           ) : Array.isArray(event.registeredUsers) &&
                             event.registeredUsers.some(
-                              (user) =>
-                                user &&
-                                user._id &&
-                                user._id.toString() === userId
+                              (reg) => reg?.userId?._id.toString() === user._id
                             ) ? (
                             "Already Registered"
                           ) : (
