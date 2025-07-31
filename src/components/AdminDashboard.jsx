@@ -65,14 +65,13 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="text-center p-8 text-teal-600">
+        <div className="text-center p-8 text-[#456882]">
           <h2 className="text-2xl font-bold">Something went wrong.</h2>
           <p>Please try refreshing the page or contact support.</p>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="mt-4 px-6 py-2 bg-teal-600 text-white rounded-full"
-            style={{ backgroundColor: "#456882" }}
+            className="mt-4 px-6 py-2 bg-[#456882] text-white rounded-full"
             onClick={() => window.location.reload()}
           >
             Retry
@@ -92,7 +91,7 @@ const ClubCard = ({ club }) => (
     viewport={{ once: true }}
     transition={{ type: "spring", stiffness: 100, damping: 15 }}
     whileHover={{ scale: 1.05, boxShadow: "0 10px 20px rgba(0,0,0,0.1)" }}
-    className="relative flex flex-col items-center p-6 bg-gradient-to-br from-teal-200 to-teal-400 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden"
+    className="relative flex flex-col items-center p-6 bg-gradient-to-br from-[#456882]/20 to-[#5a7a98]/20 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden"
   >
     <div className="absolute inset-0 bg-white opacity-10 transform skew-y-6"></div>
     <motion.div
@@ -115,6 +114,23 @@ const ClubCard = ({ club }) => (
       )}
     </motion.div>
     <h3 className="text-lg font-semibold text-gray-900 z-10">{club.name}</h3>
+    <span
+      className={`inline-block mt-1 px-2 py-1 rounded-full text-xs font-semibold ${
+        club.type === "technical"
+          ? "bg-teal-100 text-teal-600"
+          : club.type === "cultural"
+          ? "bg-yellow-100 text-yellow-600"
+          : club.type === "literary"
+          ? "bg-indigo-100 text-indigo-600"
+          : club.type === "entrepreneurial"
+          ? "bg-orange-100 text-orange-600"
+          : "bg-gray-100 text-gray-600"
+      }`}
+    >
+      {club.type
+        ? club.type.charAt(0).toUpperCase() + club.type.slice(1)
+        : "Club"}
+    </span>
     <p className="text-sm text-gray-700 mt-2 text-center z-10">
       {club.description}
     </p>
@@ -123,8 +139,7 @@ const ClubCard = ({ club }) => (
     </p>
     <Link
       to={`/clubs/${club._id}/edit`}
-      className="mt-2 text-teal-600 hover:text-teal-700 font-medium transition z-10"
-      style={{ color: "#456882" }}
+      className="mt-2 text-[#456882] hover:text-[#334d5e] font-medium transition z-10"
       aria-label={`Edit ${club.name}`}
     >
       Edit Club
@@ -159,10 +174,26 @@ const AdminDashboard = () => {
           axios.get("http://localhost:5000/api/clubs", config),
         ]);
 
-        setUser(userResponse.data);
+        const userData = userResponse.data;
+        setUser({
+          ...userData,
+          isACEMStudent: userData.isACEMStudent || false,
+          rollNo: userData.rollNo || "N/A",
+        });
+
+        // Debug logging
+        console.log("AdminDashboard - User:", {
+          _id: userData._id,
+          name: userData.name,
+          isAdmin: userData.isAdmin,
+          headCoordinatorClubs: userData.headCoordinatorClubs,
+          isACEMStudent: userData.isACEMStudent || false,
+          rollNo: userData.rollNo || "N/A",
+        });
+
         const filteredClubs = clubsResponse.data
           .filter((club) =>
-            userResponse.data.headCoordinatorClubs?.includes(club.name)
+            userData.headCoordinatorClubs?.includes(club.name)
           )
           .map(async (club) => {
             try {
@@ -170,15 +201,23 @@ const AdminDashboard = () => {
                 `http://localhost:5000/api/clubs/${club._id}/members`,
                 config
               );
-              return { ...club, memberCount: membersResponse.data.length };
+              return {
+                ...club,
+                memberCount: membersResponse.data.length,
+                type: club.type || "club", // Ensure type is set
+              };
             } catch (err) {
-              return { ...club, memberCount: 0 };
+              return { ...club, memberCount: 0, type: club.type || "club" };
             }
           });
         const clubsWithMembers = await Promise.all(filteredClubs);
         setClubs(clubsWithMembers);
+        console.log("AdminDashboard - Clubs:", clubsWithMembers);
       } catch (err) {
-        console.error("Error fetching data:", err);
+        console.error("Error fetching data:", {
+          message: err.message,
+          response: err.response?.data,
+        });
         if (err.response?.status === 401 || err.response?.status === 403) {
           localStorage.removeItem("token");
           navigate("/login");
@@ -211,15 +250,14 @@ const AdminDashboard = () => {
             className="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50"
           >
             <FaSpinner
-              className="text-4xl text-teal-60026 animate-spin"
-              style={{ color: "#456882" }}
+              className="text-4xl text-[#456882] animate-spin"
             />
           </motion.div>
         )}
         <Navbar user={user} role="admin" />
         <motion.section
           style={{ opacity, scale }}
-          className="min-h-[70vh] flex items-center justify-center bg-gradient-to-br from-teal-50 to-gray-50 pt-20 relative overflow-hidden"
+          className="min-h-[70vh] flex items-center justify-center bg-gradient-to-br from-[#456882]/10 to-gray-50 pt-20 relative overflow-hidden"
         >
           <motion.div className="absolute inset-0 z-0" style={{ y: bgY }}>
             <img
@@ -228,7 +266,7 @@ const AdminDashboard = () => {
               className="w-full h-full object-cover opacity-20"
               loading="lazy"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-teal-600/30 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-[#456882]/30 to-transparent"></div>
           </motion.div>
           {bubbles.map((bubble, index) => (
             <Bubble key={index} size={bubble.size} delay={bubble.delay} />
@@ -241,8 +279,7 @@ const AdminDashboard = () => {
               transition={{ duration: 1, delay: 0.5 }}
             >
               <FaUser
-                className="text-6xl sm:text-8xl text-teal-600 mx-auto"
-                style={{ color: "#456882" }}
+                className="text-6xl sm:text-8xl text-[#456882] mx-auto"
               />
             </motion.div>
             <div className="min-h-[100px] flex items-center justify-center">
@@ -255,8 +292,7 @@ const AdminDashboard = () => {
                 ]}
                 wrapper="h1"
                 repeat={Infinity}
-                className="text-4xl sm:text-5xl md:text-6xl font-bold text-teal-600 mb-4"
-                style={{ color: "#456882" }}
+                className="text-4xl sm:text-5xl md:text-6xl font-bold text-[#456882] mb-4"
               />
             </div>
             <motion.p
@@ -275,32 +311,28 @@ const AdminDashboard = () => {
             >
               <Link
                 to="/admin/events"
-                className="px-6 py-3 bg-teal-600 text-white rounded-full font-semibold hover:bg-teal-700 transition-all"
-                style={{ backgroundColor: "#456882" }}
+                className="px-6 py-3 bg-[#456882] text-white rounded-full font-semibold hover:bg-[#334d5e] transition-all"
                 aria-label="Manage Events"
               >
                 Manage Events
               </Link>
               <Link
                 to="/admin/activities"
-                className="px-6 py-3 border border-teal-600 text-teal-600 rounded-full font-semibold hover:bg-teal-50 transition-all"
-                style={{ borderColor: "#456882", color: "#456882" }}
+                className="px-6 py-3 border border-[#456882] text-[#456882] rounded-full font-semibold hover:bg-[#456882]/10 transition-all"
                 aria-label="Manage Activities"
               >
                 Manage Activities
               </Link>
               <Link
                 to="/admin/users"
-                className="px-6 py-3 border border-teal-600 text-teal-600 rounded-full font-semibold hover:bg-teal-50 transition-all"
-                style={{ borderColor: "#456882", color: "#456882" }}
+                className="px-6 py-3 border border-[#456882] text-[#456882] rounded-full font-semibold hover:bg-[#456882]/10 transition-all"
                 aria-label="Manage Users"
               >
                 Manage Users
               </Link>
               <Link
                 to="/manage-clubs"
-                className="px-6 py-3 border border-teal-600 text-teal-600 rounded-full font-semibold hover:bg-teal-50 transition-all"
-                style={{ borderColor: "#456882", color: "#456882" }}
+                className="px-6 py-3 border border-[#456882] text-[#456882] rounded-full font-semibold hover:bg-[#456882]/10 transition-all"
                 aria-label="Manage Clubs"
               >
                 Manage Clubs
@@ -313,8 +345,7 @@ const AdminDashboard = () => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="fixed bottom-4 right-4 bg-teal-600 text-white rounded-lg p-4 shadow-lg"
-            style={{ backgroundColor: "#456882" }}
+            className="fixed bottom-4 right-4 bg-[#456882] text-white rounded-lg p-4 shadow-lg"
           >
             <p className="text-sm">{error}</p>
             <motion.button
@@ -334,8 +365,7 @@ const AdminDashboard = () => {
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
-              className="text-3xl font-bold text-center mb-8 text-teal-600"
-              style={{ color: "#456882" }}
+              className="text-3xl font-bold text-center mb-8 text-[#456882]"
             >
               Your Managed Clubs
             </motion.h2>
@@ -358,8 +388,7 @@ const AdminDashboard = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-6 py-3 bg-teal-600 text-white rounded-full transition-all"
-                  style={{ backgroundColor: "#456882" }}
+                  className="px-6 py-3 bg-[#456882] text-white rounded-full transition-all"
                   onClick={() => navigate("/manage-clubs")}
                   aria-label="Manage Clubs"
                 >
