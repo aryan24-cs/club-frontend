@@ -839,57 +839,7 @@ const SuperAdminDashboard = () => {
                 )}
               </div>
 
-              {/* Event Attendance */}
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Event Attendance Records
-                </h2>
-                {filteredAttendanceRecords.length === 0 ? (
-                  <div className="bg-white rounded-xl shadow-sm p-6 text-center">
-                    <FileText className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500">
-                      No event attendance records.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {filteredAttendanceRecords.map((attendance) => (
-                      <AttendanceCard
-                        key={attendance._id}
-                        attendance={attendance}
-                        onView={() => navigate(`/attendance/${attendance._id}`)}
-                        onDownload={handleDownloadAttendance}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Practice Attendance */}
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Practice Attendance Records
-                </h2>
-                {filteredPracticeAttendanceRecords.length === 0 ? (
-                  <div className="bg-white rounded-xl shadow-sm p-6 text-center">
-                    <FileText className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500">
-                      No practice attendance records.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {filteredPracticeAttendanceRecords.map((attendance) => (
-                      <PracticeAttendanceCard
-                        key={attendance._id}
-                        attendance={attendance}
-                        onView={() => navigate(`/practice-attendance/${attendance._id}`)}
-                        onDownload={handleDownloadPracticeAttendance}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
+              {/* {Removed the attendance schema} */}
             </div>
           </div>
         </div>
