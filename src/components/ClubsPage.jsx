@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Search, Users, Calendar, Award, ChevronRight } from "lucide-react";
 import Navbar from "../components/Navbar";
@@ -13,41 +13,65 @@ const ClubsPage = () => {
   const [error, setError] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [categories, setCategories] = useState(["all"]);
+  const [userClubs, setUserClubs] = useState([]);
+  const [joinLoading, setJoinLoading] = useState({});
+  const [searchFocused, setSearchFocused] = useState(false);
+  const navigate = useNavigate();
+  const token = localStorage.getItem("token");
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!token) {
+        setError("Please log in to view clubs.");
+        localStorage.removeItem("token");
+        localStorage.removeItem("userId");
+        navigate("/login");
+        return;
+      }
+
       try {
         setLoading(true);
-        const token = localStorage.getItem("token");
 
-        // Fetch clubs
+        // Fetch user data for clubs
+        const userResponse = await axios.get(
+          "http://localhost:5000/api/auth/user",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        const userData = userResponse.data;
+        setUserClubs(userData.clubs?.map((club) => club._id || club) || []);
+
+        // Fetch all clubs
         const clubsResponse = await axios.get(
           "http://localhost:5000/api/clubs",
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
+        const clubData = clubsResponse.data || [];
 
-        // Fetch activities to derive eventsCount
-        const activitiesResponse = await axios.get(
-          "http://localhost:5000/api/activities",
+        // Fetch all events
+        const eventsResponse = await axios.get(
+          "http://localhost:5000/api/events",
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
+        const eventsData = eventsResponse.data || [];
 
-        // Process clubs with eventsCount
-        const processedClubs = clubsResponse.data.map((club) => {
-          const eventsCount = activitiesResponse.data.filter(
-            (activity) =>
-              activity.club.toLowerCase() === club.name.toLowerCase()
-          ).length;
-          return {
-            ...club,
-            eventsCount,
-            memberCount: club.memberCount || 50, // Fallback if not in backend
-          };
-        });
+        // Process clubs with eventsCount, memberCount, and image fallbacks
+        const processedClubs = clubData.map((club) => ({
+          ...club,
+          eventsCount: eventsData.filter(
+            (event) => event.club?._id.toString() === club._id.toString()
+          ).length,
+          memberCount: club.members?.length || 0,
+          category: club.category || "General",
+          description: club.description || "No description available.",
+          icon: club.icon || "https://via.placeholder.com/150?text=Club+Icon",
+          banner: club.banner || null,
+        }));
 
         setClubs(processedClubs);
         setFilteredClubs(processedClubs);
@@ -55,9 +79,7 @@ const ClubsPage = () => {
         // Extract unique categories
         const uniqueCategories = [
           "all",
-          ...new Set(
-            clubsResponse.data.map((club) => club.category.toLowerCase())
-          ),
+          ...new Set(processedClubs.map((club) => club.category.toLowerCase())),
         ];
         setCategories(uniqueCategories);
 
@@ -67,15 +89,60 @@ const ClubsPage = () => {
           err.response?.data?.error || "Failed to load clubs. Please try again."
         );
         setLoading(false);
+        if (err.response?.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("userId");
+          navigate("/login");
+        }
       }
     };
 
     fetchData();
-  }, []);
+  }, [navigate, token]);
+
+  const handleJoinClub = async (clubId) => {
+    setJoinLoading((prev) => ({ ...prev, [clubId]: true }));
+    try {
+      await axios.post(
+        `http://localhost:5000/api/clubs/${clubId}/join`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      setUserClubs((prev) => [...prev, clubId]);
+      setClubs((prev) =>
+        prev.map((club) =>
+          club._id === clubId
+            ? { ...club, memberCount: club.memberCount + 1 }
+            : club
+        )
+      );
+      setFilteredClubs((prev) =>
+        prev.map((club) =>
+          club._id === clubId
+            ? { ...club, memberCount: club.memberCount + 1 }
+            : club
+        )
+      );
+      alert("Successfully joined the club!");
+    } catch (err) {
+      alert(err.response?.data?.error || "Failed to join club.");
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("userId");
+        navigate("/login");
+      }
+    }
+    setJoinLoading((prev) => ({ ...prev, [clubId]: false }));
+  };
 
   useEffect(() => {
     let filtered = clubs.filter((club) =>
-      club.name.toLowerCase().includes(searchTerm.toLowerCase())
+      (club.name || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     if (selectedCategory !== "all") {
@@ -90,95 +157,95 @@ const ClubsPage = () => {
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 },
-    },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
   };
 
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5 },
-    },
-    exit: {
-      opacity: 0,
-      scale: 0.95,
-      transition: { duration: 0.3 },
-    },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+    exit: { opacity: 0, scale: 0.95, transition: { duration: 0.3 } },
+  };
+
+  const labelVariants = {
+    resting: { y: 0, fontSize: "0.875rem", color: "#6B7280" },
+    floating: { y: -20, fontSize: "0.75rem", color: "#456882" },
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+    <div className="min-h-screen bg-gray-50 font-sans">
       <Navbar />
-      {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-r from-[#456882] to-[#5a7a98] py-16">
         <div className="absolute inset-0 bg-black opacity-10"></div>
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="relative max-w-7xl mx-auto px-6 text-center"
+          className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center"
         >
-          <h1 className="text-5xl font-bold text-white mb-4">
+          <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">
             Explore Our <span className="text-yellow-300">Clubs</span>
           </h1>
-          <p className="text-xl text-gray-100 mb-8 max-w-2xl mx-auto">
-            Discover vibrant communities, build connections, and unlock your
-            potential at ACEM!
+          <p className="text-lg sm:text-xl text-gray-100 mb-8 max-w-2xl mx-auto">
+            Discover vibrant communities and unlock your potential at ACEM!
           </p>
-
-          {/* Search Bar */}
           <div className="relative max-w-lg mx-auto">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <motion.label
+              htmlFor="search"
+              className="absolute left-12 top-3 text-gray-500 font-medium transition-all"
+              animate={searchFocused || searchTerm ? "floating" : "resting"}
+              variants={labelVariants}
+              transition={{ duration: 0.2 }}
+            >
+              Search clubs
+            </motion.label>
             <input
+              id="search"
               type="text"
               placeholder="Search clubs..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-12 py-3 bg-white/90 backdrop-blur-sm border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-[#456882] text-gray-700 placeholder-gray-500 shadow-lg"
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(!!searchTerm)}
+              className="w-full p-3 pt-6 pl-12 bg-white/90 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#456882] text-gray-700 placeholder-gray-500 shadow-sm"
               aria-label="Search clubs"
             />
           </div>
         </motion.div>
       </div>
 
-      {/* Category Filter Dropdown */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="mb-8"
+          className="mb-8 flex flex-col sm:flex-row gap-4 items-center justify-center"
         >
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
-            <label
-              htmlFor="category-filter"
-              className="text-gray-700 font-medium text-sm"
-            >
-              Filter by Category
-            </label>
-            <select
-              id="category-filter"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-4 py-3 w-full sm:w-64 bg-white border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#456882] text-gray-700 shadow-sm"
-              aria-label="Filter clubs by category"
-            >
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
-                </option>
-              ))}
-            </select>
-          </div>
+          <motion.label
+            htmlFor="category-filter"
+            className="text-gray-700 font-medium text-sm"
+            animate={selectedCategory ? "floating" : "resting"}
+            variants={{ resting: { opacity: 1 }, floating: { opacity: 1 } }}
+          >
+            Filter by Category
+          </motion.label>
+          <select
+            id="category-filter"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="px-4 py-3 w-full sm:w-64 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#456882] text-gray-700 shadow-sm"
+            aria-label="Filter clubs by category"
+          >
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category.charAt(0).toUpperCase() + category.slice(1)}
+              </option>
+            ))}
+          </select>
         </motion.div>
 
-        {/* Clubs Grid */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
               <div
                 key={i}
@@ -189,7 +256,7 @@ const ClubsPage = () => {
                   <div className="h-6 bg-gray-200 rounded animate-pulse mb-3"></div>
                   <div className="h-4 bg-gray-200 rounded animate-pulse mb-2"></div>
                   <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4 mb-4"></div>
-                  <div className="h-10 bg-gray-200 rounded-full animate-pulse"></div>
+                  <div className="h-10 bg-gray-200 rounded-lg animate-pulse"></div>
                 </div>
               </div>
             ))}
@@ -204,7 +271,7 @@ const ClubsPage = () => {
               <p className="text-red-600 text-lg font-medium">{error}</p>
               <button
                 onClick={() => window.location.reload()}
-                className="mt-4 px-6 py-3 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
+                className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
                 Try Again
               </button>
@@ -215,7 +282,7 @@ const ClubsPage = () => {
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
           >
             <AnimatePresence>
               {filteredClubs.map((club) => (
@@ -226,33 +293,35 @@ const ClubsPage = () => {
                   animate="visible"
                   exit="exit"
                   whileHover={{ y: -8, transition: { duration: 0.3 } }}
-                  className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 group"
+                  className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 group"
                 >
-                  <div className="relative overflow-hidden">
+                  <div className="relative overflow-hidden h-48">
                     <img
-                      src={club.icon || "https://via.placeholder.com/400x200"}
-                      alt={club.name}
-                      className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
+                      src={club.icon}
+                      alt={`${club.name} icon`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    <div className="absolute top-4 right-4">
-                      <span className="bg-[#456882] text-white px-3 py-1 rounded-full text-sm font-medium">
+                    {club.banner && (
+                      <img
+                        src={club.banner}
+                        alt={`${club.name} banner`}
+                        className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                      />
+                    )}
+                    <div className="absolute top-3 right-3">
+                      <span className="bg-[#456882] text-white px-2 py-1 rounded-full text-xs font-medium">
                         {club.category}
                       </span>
                     </div>
                   </div>
-
                   <div className="p-6">
                     <h3 className="text-xl font-bold text-[#456882] mb-2 group-hover:text-[#334d5e] transition-colors">
                       {club.name}
                     </h3>
                     <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                      {club.description ||
-                        "Discover amazing opportunities and connect with like-minded students."}
+                      {club.description}
                     </p>
-
-                    {/* Club Stats */}
-                    <div className="flex items-center justify-between mb-4 text-sm text-gray-500">
+                    <div className="grid grid-cols-3 gap-2 text-sm text-gray-500 mb-4">
                       <div className="flex items-center gap-1">
                         <Users className="w-4 h-4" />
                         <span>{club.memberCount} members</span>
@@ -266,14 +335,33 @@ const ClubsPage = () => {
                         <span>Active</span>
                       </div>
                     </div>
-
-                    <Link
-                      to={`/clubs/${club._id}`}
-                      className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#456882] to-[#5a7a98] text-white rounded-full hover:from-[#334d5e] hover:to-[#456882] transition-all duration-300 group-hover:shadow-lg transform group-hover:scale-105"
-                    >
-                      <span className="font-medium">Explore Club</span>
-                      <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </Link>
+                    {userClubs.includes(club._id) ? (
+                      <Link
+                        to={`/clubs/${club._id}`}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-[#456882] to-[#5a7a98] text-white rounded-lg hover:from-[#334d5e] hover:to-[#456882] transition-all duration-300 group-hover:shadow-md transform group-hover:scale-100"
+                      >
+                        <span className="font-medium">Explore Club</span>
+                        <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </Link>
+                    ) : (
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => handleJoinClub(club._id)}
+                        disabled={joinLoading[club._id]}
+                        className={`w-full py-2 px-4 rounded-lg text-white font-medium transition-colors shadow-md ${
+                          joinLoading[club._id]
+                            ? "bg-gray-400 cursor-not-allowed"
+                            : "bg-gradient-to-r from-[#456882] to-[#5a7a98] hover:from-[#334d5e] hover:to-[#456882]"
+                        }`}
+                      >
+                        {joinLoading[club._id] ? (
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
+                        ) : (
+                          "Join Club"
+                        )}
+                      </motion.button>
+                    )}
                   </div>
                 </motion.div>
               ))}
@@ -281,16 +369,15 @@ const ClubsPage = () => {
           </motion.div>
         )}
 
-        {/* No Results */}
         {!loading && !error && filteredClubs.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="text-center py-16"
           >
-            <div className="bg-gray-100 rounded-2xl p-12 max-w-md mx-auto">
-              <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">
+            <div className="bg-gray-50 rounded-2xl p-8 max-w-md mx-auto">
+              <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">
                 No clubs found
               </h3>
               <p className="text-gray-500 mb-6">
@@ -301,7 +388,7 @@ const ClubsPage = () => {
                   setSearchTerm("");
                   setSelectedCategory("all");
                 }}
-                className="px-4 py-3 bg-[#456882] text-white rounded-full hover:bg-[#334d5e] transition-colors"
+                className="px-4 py-2 bg-[#456882] text-white rounded-lg hover:bg-[#334d5e] transition-colors"
               >
                 Clear Filters
               </button>
