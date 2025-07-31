@@ -8,7 +8,6 @@ import {
   Crown,
   TrendingUp,
   Users,
-  Calendar,
   Award,
   Filter,
   Search,
@@ -17,7 +16,9 @@ import {
   AlertTriangle,
   ChevronUp,
   Minus,
-  RefreshCw
+  RefreshCw,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import { debounce } from 'lodash';
@@ -184,10 +185,6 @@ const StudentRankCard = ({ student, index, onViewDetails }) => {
             <Users className="w-3 h-3" />
             Clubs: {student.clubNames || "None"}
           </p>
-          {/* <p className="text-xs text-gray-500 flex items-center gap-1">
-            <Hash className="w-3 h-3" />
-            Roll No: {student.rollNo || "N/A"}
-          </p> */}
         </div>
       </div>
       
@@ -363,6 +360,7 @@ const RankingSystem = () => {
         return;
       }
 
+      // Process users (backend already filters member-only clubs)
       const processedRankings = response.data.map((user, index) => ({
         id: user.userId || user._id || 'unknown',
         name: user.name || 'Unknown',
@@ -373,8 +371,8 @@ const RankingSystem = () => {
         rank: index + 1,
         avatar: user.avatar || 'https://via.placeholder.com/60/60',
         level: user.totalPoints >= 900 ? 'Platinum' :
-          user.totalPoints >= 800 ? 'Gold' :
-          user.totalPoints >= 700 ? 'Silver' : 'Bronze',
+               user.totalPoints >= 800 ? 'Gold' :
+               user.totalPoints >= 700 ? 'Silver' : 'Bronze',
         previousRank: index + 1 // Mock previous rank for demonstration
       }));
 
@@ -412,7 +410,7 @@ const RankingSystem = () => {
 
   const handleExportCSV = () => {
     if (!filteredRankings.length) {
-      setError("No student data to export.");
+      setError("No member data to export.");
       return;
     }
 
@@ -438,7 +436,7 @@ const RankingSystem = () => {
 
     const csvContent = [headers, ...rows].map((row) => row.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    saveAs(blob, `global_rankings_${new Date().toISOString().split("T")[0]}.csv`);
+    saveAs(blob, `member_rankings_${new Date().toISOString().split("T")[0]}.csv`);
     setSuccess("Rankings exported as CSV!");
   };
 
@@ -460,7 +458,7 @@ const RankingSystem = () => {
 
   const stats = useMemo(() => {
     return {
-      totalStudents: rankings.length,
+      totalMembers: rankings.length,
       avgPoints: rankings.length > 0 
         ? Math.round((rankings.reduce((sum, s) => sum + s.totalPoints, 0) / rankings.length) * 100) / 100
         : 0,
@@ -489,7 +487,7 @@ const RankingSystem = () => {
           >
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
               <Trophy className="w-8 h-8 text-[#456882]" />
-              Global Points Table
+              Member Rankings
             </h1>
             <div className="flex gap-2">
               <button
@@ -613,8 +611,8 @@ const RankingSystem = () => {
                 className="space-y-4"
               >
                 <StatsCard 
-                  title="Total Students" 
-                  value={stats.totalStudents} 
+                  title="Total Members" 
+                  value={stats.totalMembers} 
                   icon={Users} 
                 />
                 <StatsCard 
@@ -650,7 +648,7 @@ const RankingSystem = () => {
                 >
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <Crown className="w-5 h-5 text-yellow-500" />
-                    Top 3 Students
+                    Top 3 Members
                   </h3>
                   <div className="space-y-3">
                     {rankings.slice(0, 3).map((student, index) => (
@@ -680,12 +678,12 @@ const RankingSystem = () => {
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
+                className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 min-h-[calc(100vh-120px)]"
               >
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
                     <Trophy className="w-5 h-5 text-[#456882]" />
-                    Global Rankings
+                    Member Rankings
                     {filteredRankings.length !== rankings.length && (
                       <span className="text-sm text-gray-500">({filteredRankings.length} of {rankings.length})</span>
                     )}
@@ -698,7 +696,7 @@ const RankingSystem = () => {
                       onChange={(e) => debouncedSetSearchQuery(e.target.value)}
                       className="pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-[#456882] focus:border-[#456882] w-64"
                       disabled={isLoading.rankings}
-                      aria-label="Search students"
+                      aria-label="Search members"
                     />
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   </div>
@@ -707,17 +705,17 @@ const RankingSystem = () => {
                 {isLoading.rankings ? (
                   <div className="text-center py-8">
                     <div className="w-8 h-8 border-4 border-[#456882] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading global rankings...</p>
+                    <p className="text-gray-600">Loading member rankings...</p>
                   </div>
                 ) : filteredRankings.length === 0 ? (
                   <div className="text-center py-8">
                     <Trophy className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                     <p className="text-gray-500 text-lg">
-                      {searchQuery ? "No students match your search." : "No student data available."}
+                      {searchQuery ? "No members match your search." : "No member data available."}
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-4 max-h-[calc(100vh-300px)] overflow-y-auto scrollbar-thin scrollbar-thumb-[#456882] scrollbar-track-gray-100">
+                  <div className="space-y-4 h-[calc(100vh-220px)] overflow-y-auto scrollbar-thin scrollbar-thumb-[#456882] scrollbar-track-gray-200">
                     {filteredRankings.map((student, index) => (
                       <StudentRankCard
                         key={student.id}
