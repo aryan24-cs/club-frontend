@@ -16,7 +16,8 @@ import {
   FaCrown,
   FaChartLine,
   FaWhatsapp,
-  FaEnvelope
+  FaEnvelope,
+  FaCoins
 } from 'react-icons/fa';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -45,7 +46,8 @@ const ProfilePage = () => {
       totalMembers: 0,
       seminarsAttended: 0,
       competitionsAttended: 0,
-      workshopsAttended: 0
+      workshopsAttended: 0,
+      totalPoints: 0 // Added totalPoints
     }
   });
   const [error, setError] = useState('');
@@ -83,8 +85,13 @@ const ProfilePage = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        // Fetch attendance
-        const attendanceResponse = await axios.get('http://localhost:5000/api/attendance', {
+        // Fetch event attendance
+        const attendanceResponse = await axios.get('http://localhost:5000/api/attendance/user', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        // Fetch practice attendance
+        const practiceAttendanceResponse = await axios.get('http://localhost:5000/api/practice-attendance/user', {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -122,17 +129,36 @@ const ProfilePage = () => {
         // Calculate stats
         const userEvents = eventsResponse.data.filter(event =>
           userData.clubName.includes(event.club.name));
-        const attendanceRecords = attendanceResponse.data;
-        const userAttendance = attendanceRecords.flatMap((record) =>
-          record.attendance.filter((a) => a.userId._id === userData._id)
-        );
-        const presentCount = userAttendance.filter((a) => a.status === "present").length;
-        const totalCount = userAttendance.length;
-        const attendanceRate = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
+        const eventAttendanceRecords = attendanceResponse.data;
+        const practiceAttendanceRecords = practiceAttendanceResponse.data;
+
+        // Calculate event attendance stats
+        const eventAttendance = eventAttendanceRecords.filter(record =>
+          record.status === 'present');
+        const eventPresentCount = eventAttendance.length;
+        const eventTotalCount = eventAttendanceRecords.length;
+        const eventAttendanceRate = eventTotalCount > 0 ? Math.round((eventPresentCount / eventTotalCount) * 100) : 0;
+        const eventPoints = eventAttendance.reduce((sum, record) => sum + (record.points || 0), 0);
+
+        // Calculate practice attendance stats
+        const practiceAttendance = practiceAttendanceRecords.filter(record =>
+          record.status === 'present');
+        const practicePresentCount = practiceAttendance.length;
+        const practiceTotalCount = practiceAttendanceRecords.length;
+        const practiceAttendanceRate = practiceTotalCount > 0 ? Math.round((practicePresentCount / practiceTotalCount) * 100) : 0;
+        const practicePoints = practiceAttendance.reduce((sum, record) => sum + (record.points || 0), 0);
+
+        // Combined stats
+        const totalAttendanceCount = eventTotalCount + practiceTotalCount;
+        const totalPresentCount = eventPresentCount + practicePresentCount;
+        const combinedAttendanceRate = totalAttendanceCount > 0
+          ? Math.round((totalPresentCount / totalAttendanceCount) * 100)
+          : 0;
+        const totalPoints = eventPoints + practicePoints;
 
         const stats = {
           totalEvents: userEvents.length,
-          attendanceRate,
+          attendanceRate: combinedAttendanceRate,
           eventsOrganized: eventsResponse.data.filter(event =>
             event.createdBy._id === userData._id).length,
           overallRank: 0, // Implement ranking logic if needed
@@ -140,7 +166,8 @@ const ProfilePage = () => {
             sum + (userData.clubName.includes(club.name) ? club.memberCount : 0), 0),
           seminarsAttended: userEvents.filter(event => event.type === 'seminar').length,
           competitionsAttended: userEvents.filter(event => event.type === 'competition').length,
-          workshopsAttended: userEvents.filter(event => event.type === 'workshop').length
+          workshopsAttended: userEvents.filter(event => event.type === 'workshop').length,
+          totalPoints
         };
 
         // Format achievements based on activities and events
@@ -601,9 +628,9 @@ const ProfilePage = () => {
                     <p className="text-sm text-gray-600">Competitions Attended</p>
                   </div>
                   <div className="text-center p-4 bg-orange-50 rounded-lg">
-                    <FaTrophy className="text-2xl text-orange-500 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-orange-600">{profileData?.stats?.workshopsAttended}</p>
-                    <p className="text-sm text-gray-600">Workshops Attended</p>
+                    <FaCoins className="text-2xl text-orange-500 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-orange-600">{profileData?.stats?.totalPoints}</p>
+                    <p className="text-sm text-gray-600">Total Points</p>
                   </div>
                 </div>
               </motion.div>
@@ -630,6 +657,10 @@ const ProfilePage = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Events Organized</span>
                   <span className="font-semibold text-teal-600">{profileData?.stats?.eventsOrganized}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Total Points</span>
+                  <span className="font-semibold text-teal-600">{profileData?.stats?.totalPoints}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Rank</span>
