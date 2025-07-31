@@ -40,7 +40,6 @@ import {
 } from "react-icons/fa";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
-// import debounce from "lodash/debounce";
 
 // Theme configuration
 const theme = {
@@ -105,9 +104,8 @@ const LoadingSpinner = () => (
       >
         Loading your dashboard...
       </motion.p>
-      
     </motion.div>
-    </div>
+  </div>
 );
 
 // Stats Card Component
@@ -207,7 +205,7 @@ const ClubCard = memo(({ club, user, handleJoinClub, joiningClub }) => {
           </div>
           <div className="flex justify-between">
             <span>Head Coordinator:</span>
-            <span className="font-medium">{club.headCoordinator || club.headCoordinators[0] || "N/A"}</span>
+            <span className="font-medium">{club.headCoordinator || club.headCoordinators?.[0] || "N/A"}</span>
           </div>
         </div>
         <div className="flex gap-3">
@@ -259,7 +257,7 @@ const ClubCard = memo(({ club, user, handleJoinClub, joiningClub }) => {
               whileHover="hover"
               className="p-2 text-green-500 hover:bg-green-50 rounded-lg transition"
               title="WhatsApp Group"
-              onClick={() => window.open(club.whatsappLink, "_blank")}
+              onClick={() => window.open(club.whatsappLink || "https://wa.me", "_blank")}
               aria-label="Join WhatsApp group"
             >
               <FaWhatsapp />
@@ -269,7 +267,7 @@ const ClubCard = memo(({ club, user, handleJoinClub, joiningClub }) => {
               whileHover="hover"
               className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition"
               title="Email Coordinator"
-              onClick={() => window.location.href = `mailto:${club.contactEmail || club.headCoordinator}`}
+              onClick={() => window.location.href = `mailto:${club.contactEmail || club.headCoordinator || "no-email@example.com"}`}
               aria-label="Email coordinator"
             >
               <FaEnvelope />
@@ -289,7 +287,7 @@ const ActivityCard = memo(({ activity }) => {
     <motion.div
       variants={itemVariants}
       whileHover={cardVariants.hover}
-      className="bg-white rounded-xl shadow-lg overflow-hidden"
+      className="relative bg-white rounded-xl shadow-lg overflow-hidden"
     >
       {activity.featured && (
         <div className="absolute top-4 left-4 z-10">
@@ -300,7 +298,7 @@ const ActivityCard = memo(({ activity }) => {
       )}
       <div className="relative h-48 overflow-hidden">
         <img
-          src={activity.images[0] || "https://images.unsplash.com/photo-1523240795612-9a054b0db644"}
+          src={activity.images?.[0] || "https://images.unsplash.com/photo-1523240795612-9a054b0db644"}
           alt={activity.title}
           loading="lazy"
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
@@ -319,11 +317,13 @@ const ActivityCard = memo(({ activity }) => {
         <div className="flex items-start justify-between mb-3">
           <h4 className="text-lg font-bold text-gray-900 line-clamp-2">{activity.title}</h4>
           <span
-            className={`px-2 py-1 rounded-full text-xs font-semibold ${activity.type === "workshop"
+            className={`px-2 py-1 rounded-full text-xs font-semibold ${activity.type === "seminar"
                 ? "bg-blue-100 text-blue-600"
                 : activity.type === "competition"
                   ? "bg-green-100 text-green-600"
-                  : "bg-purple-100 text-purple-600"
+                  : activity.type === "workshop"
+                    ? "bg-purple-100 text-purple-600"
+                    : "bg-gray-100 text-gray-600"
               }`}
           >
             {activity.type || "event"}
@@ -438,7 +438,7 @@ const UserProfileCard = memo(({ user }) => {
             <div className="flex-1">
               <h3 className="text-2xl font-bold">{user?.name || "User"}</h3>
               <p className="opacity-90">{user?.course}</p>
-              <p className="opacity-90 text-sm">Semester {user?.semester || "N/A"} • {user?.batch || "N/A"}</p>
+              <p className="opacity-90 text-sm">Semester {user?.semester || "N/A"} • Roll No: {user?.rollNo || "N/A"}</p>
               <div className="flex items-center gap-2 mt-2">
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-semibold ${badge.color} flex items-center gap-1`}
@@ -448,6 +448,9 @@ const UserProfileCard = memo(({ user }) => {
                 </span>
                 <span className="px-2 py-1 bg-white/20 rounded-full text-xs">
                   Rank #{user?.overallRank || "N/A"}
+                </span>
+                <span className="px-2 py-1 bg-white/20 rounded-full text-xs">
+                  {user?.isACEMStudent ? "ACEM Student" : "Non-ACEM Student"}
                 </span>
               </div>
             </div>
@@ -556,20 +559,17 @@ const UserDashboard = () => {
   const heroOpacity = useTransform(scrollY, [0, 300], [1, 0.8]);
   const heroScale = useTransform(scrollY, [0, 300], [1, 0.95]);
 
-  // Debounced search handler
-  // const debouncedSearch = useCallback(
-  //   debounce((value) => {
-  //     setActivityFilters((prev) => ({ ...prev, search: value }));
-  //   }, 300),
-  //   []
-  // );
-
   // Fetch data from backend
   useEffect(() => {
     const loadData = async () => {
       try {
         setIsLoading(true);
         const token = localStorage.getItem("token");
+        if (!token) {
+          setError("No authentication token found. Please log in.");
+          navigate("/login");
+          return;
+        }
 
         // Fetch user data
         const userResponse = await axios.get("http://localhost:5000/api/auth/user", {
@@ -641,16 +641,23 @@ const UserDashboard = () => {
           overallRank: 5, // Placeholder until backend supports ranking
           attendanceRate,
           pendingClubs,
+          isACEMStudent: userData.isACEMStudent || false,
+          rollNo: userData.rollNo || "N/A",
         });
       } catch (err) {
+        console.error("Fetch error:", err);
         setError(err.response?.data?.error || "Failed to load dashboard data");
+        if (err.response?.status === 401) {
+          localStorage.removeItem("token");
+          navigate("/login");
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     loadData();
-  }, []);
+  }, [navigate]);
 
   const handleJoinClub = useCallback(async (clubId) => {
     try {
@@ -774,7 +781,7 @@ const UserDashboard = () => {
                 variants={itemVariants}
                 className="text-xl md:text-2xl mb-8 text-gray-200"
               >
-                Continue your amazing journey at ACEM
+                Continue your amazing journey at {user?.isACEMStudent ? "ACEM" : "your institution"}
               </motion.p>
               <motion.div
                 variants={itemVariants}
@@ -796,6 +803,7 @@ const UserDashboard = () => {
                   whileHover="hover"
                   whileTap="tap"
                   className="px-8 py-4 border-2 border-white text-white rounded-full font-bold text-lg hover:bg-white hover:text-[#456882] transition-all"
+                  onClick={() => navigate("/events")}
                   aria-label="View events"
                 >
                   View Events
@@ -954,7 +962,7 @@ const UserDashboard = () => {
                     type="text"
                     placeholder="Search clubs..."
                     className="w-full pl-10 pr-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-[#456882] focus:ring-offset-2 text-gray-800 placeholder-gray-500"
-                    onChange={(e) => debouncedSearch(e.target.value)}
+                    onChange={(e) => setActivityFilters({ ...activityFilters, search: e.target.value })}
                     aria-label="Search clubs"
                   />
                 </div>
@@ -965,10 +973,13 @@ const UserDashboard = () => {
                   aria-label="Filter by category"
                 >
                   <option value="">All Categories</option>
-                  <option value="Technical">Technical</option>
-                  <option value="Cultural">Cultural</option>
-                  <option value="Literary">Literary</option>
-                  <option value="Entrepreneurial">Entrepreneurial</option>
+                  <option value="seminar">Seminar</option>
+                  <option value="competition">Competition</option>
+                  <option value="workshop">Workshop</option>
+                  <option value="cultural">Cultural</option>
+                  <option value="technical">Technical</option>
+                  <option value="literary">Literary</option>
+                  <option value="entrepreneurial">Entrepreneurial</option>
                 </select>
               </div>
             </motion.div>
@@ -1052,6 +1063,7 @@ const UserDashboard = () => {
                   whileHover="hover"
                   whileTap="tap"
                   className="px-8 py-4 border-2 border-white text-white rounded-full font-bold text-lg hover:bg-white hover:text-[#456882] transition-all"
+                  onClick={() => navigate("/hall-of-fame")}
                   aria-label="View hall of fame"
                 >
                   View Hall of Fame
