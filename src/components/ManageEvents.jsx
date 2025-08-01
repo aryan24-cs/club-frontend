@@ -1,6 +1,6 @@
 import React, { memo, useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import {
   Calendar,
@@ -25,16 +25,15 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="text-center p-8 text-[#456882]">
+        <div className="text-center p-8 text-gray-700">
           <h2 className="text-2xl font-bold">Something went wrong.</h2>
-          <p>
-            {this.state.error?.message ||
-              "Please try refreshing the page or contact support."}
+          <p className="mt-2">
+            {this.state.error?.message || "Please try refreshing the page or contact support."}
           </p>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="mt-4 px-6 py-2 bg-[#456882] text-white rounded-full"
+            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition"
             onClick={() => window.location.reload()}
           >
             Retry
@@ -47,89 +46,288 @@ class ErrorBoundary extends React.Component {
 }
 
 // Memoized EventCard Component
-const EventCard = memo(({ event, onDelete }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 50 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true }}
-    transition={{ type: "spring", stiffness: 100, damping: 15 }}
-    whileHover={{ scale: 1.03, boxShadow: "0 8px 16px rgba(0,0,0,0.1)" }}
-    className="p-6 bg-white rounded-xl shadow-md border border-gray-200"
-  >
-    <div className="flex items-center justify-between gap-3 mb-3">
-      <div className="flex items-center gap-3">
-        <Calendar className="text-[#456882] text-xl" />
-        <h4 className="text-lg font-semibold text-gray-900">
-          {event.title || "Untitled Event"}
-        </h4>
+const EventCard = memo(({ event, user, onRegister, onDelete }) => {
+  const canManage =
+    user?.isAdmin ||
+    user?.headCoordinatorClubs?.includes(event.clubName) ||
+    event.club?.superAdmins?.some((admin) => admin?._id?.toString() === user?._id?.toString());
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 50 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ type: "spring", stiffness: 100, damping: 15 }}
+      whileHover={{ scale: 1.03, boxShadow: "0 8px 16px rgba(0,0,0,0.1)" }}
+      className="p-6 bg-white rounded-xl shadow-md border border-gray-200 relative"
+    >
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="flex items-center gap-3">
+          <Calendar className="text-blue-600 text-xl" />
+          <h4 className="text-lg font-semibold text-gray-900">
+            {event.title || "Untitled Event"}
+          </h4>
+        </div>
+        <span
+          className={`px-2 py-1 rounded-full text-xs font-semibold ${
+            event.category === "Seminar"
+              ? "bg-blue-100 text-blue-600"
+              : event.category === "Competition"
+              ? "bg-green-100 text-green-600"
+              : "bg-gray-100 text-gray-600"
+          }`}
+        >
+          {event.category || "Event"}
+        </span>
       </div>
-      <span
-        className={`px-2 py-1 rounded-full text-xs font-semibold ${
-          event.category === "Seminar"
-            ? "bg-blue-100 text-blue-600"
-            : event.category === "Competition"
-            ? "bg-green-100 text-green-600"
-            : "bg-gray-100 text-gray-600"
-        }`}
+      <img
+        src={
+          event.banner ||
+          "https://content3.jdmagicbox.com/v2/comp/faridabad/c2/011pxx11.xx11.180720042429.n1c2/catalogue/aravali-college-of-engineering-and-management-jasana-faridabad-colleges-5hhqg5d110.jpg"
+        }
+        alt={event.title || "Event Banner"}
+        className="w-full h-24 object-cover rounded-lg mb-3"
+        onError={(e) => {
+          e.target.src =
+            "https://content3.jdmagicbox.com/v2/comp/faridabad/c2/011pxx11.xx11.180720042429.n1c2/catalogue/aravali-college-of-engineering-and-management-jasana-faridabad-colleges-5hhqg5d110.jpg";
+          console.warn(`Failed to load banner for event ${event.title || "Untitled"}: ${event.banner || "No banner"}`);
+        }}
+      />
+      <p className="text-gray-600 text-sm mb-2">
+        {event.date ? new Date(event.date).toLocaleDateString() : "No date"} at{" "}
+        {event.time || "No time"}
+      </p>
+      <p className="text-gray-600 text-sm mb-2">Location: {event.location || "No location"}</p>
+      <p className="text-gray-600 text-sm mb-2">Type: {event.eventType || "Intra-College"}</p>
+      {event.eventType === "Inter-College" && (
+        <p className="text-gray-600 text-sm mb-2">
+          Registration Fee: {event.hasRegistrationFee ? `ACEM: ₹${event.acemFee || 0}, Non-ACEM: ₹${event.nonAcemFee || 0}` : "Free"}
+        </p>
+      )}
+      <p className="text-gray-700 mb-3 line-clamp-2">{event.description || "No description"}</p>
+      <p className="text-gray-500 text-sm mb-3">Club: {event.clubName || "Unknown Club"}</p>
+      <div className="flex gap-2">
+        {canManage && (
+          <>
+            <Link
+              to={`/events/${event._id}/edit`}
+              className="flex items-center gap-1 text-blue-600 hover:text-blue-700 font-medium transition text-sm"
+              aria-label={`Edit ${event.title || "event"}`}
+            >
+              <Edit3 className="w-4 h-4" />
+              Edit
+            </Link>
+            <button
+              onClick={() => onDelete(event._id, event.title)}
+              className="flex items-center gap-1 text-red-600 hover:text-red-700 font-medium transition text-sm"
+              aria-label={`Delete ${event.title || "event"}`}
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
+            </button>
+          </>
+        )}
+      </div>
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => onRegister(event)}
+        className="absolute top-4 right-4 px-3 py-1 bg-green-600 text-white rounded-sm text-xs hover:bg-green-700 transition"
+        aria-label={`Register for ${event.title}`}
       >
-        {event.category || "Event"}
-      </span>
-    </div>
-    <img
-      src={
-        event.banner
-          ? `http://localhost:5000${event.banner.startsWith("/") ? "" : "/"}${
-              event.banner
-            }`
-          : "https://content3.jdmagicbox.com/v2/comp/faridabad/c2/011pxx11.xx11.180720042429.n1c2/catalogue/aravali-college-of-engineering-and-management-jasana-faridabad-colleges-5hhqg5d110.jpg"
+        Register
+      </motion.button>
+    </motion.div>
+  );
+});
+
+// Event Registration Modal
+const EventRegistrationModal = memo(({ event, user, onClose, onSuccess, onError }) => {
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [qrCode, setQrCode] = useState(null);
+  const [paymentDetails, setPaymentDetails] = useState({
+    cardNumber: "",
+    expiry: "",
+    cvv: "",
+  });
+  const [formError, setFormError] = useState("");
+  const navigate = useNavigate();
+
+  const handlePaymentChange = (e) => {
+    const { name, value } = e.target;
+    setPaymentDetails((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleRegister = async () => {
+    if (!user) {
+      onError("Please log in to register for the event.");
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("No authentication token found");
+
+      if (event.hasRegistrationFee && event.eventType === "Inter-College") {
+        if (!paymentDetails.cardNumber || !paymentDetails.expiry || !paymentDetails.cvv) {
+          setFormError("Please fill in all payment details.");
+          return;
+        }
+        setPaymentProcessing(true);
+        // Simulate payment (replace with actual payment gateway integration)
+        console.log("Simulating payment:", paymentDetails);
       }
-      alt={event.title || "Event Banner"}
-      className="w-full h-24 object-cover rounded-lg mb-3"
-      onError={(e) => {
-        e.target.src = "https://content3.jdmagicbox.com/v2/comp/faridabad/c2/011pxx11.xx11.180720042429.n1c2/catalogue/aravali-college-of-engineering-and-management-jasana-faridabad-colleges-5hhqg5d110.jpg";
-        console.warn(
-          `Failed to load banner for event ${event.title || "Untitled"}: ${
-            event.banner || "No banner"
-          }`
-        );
-      }}
-    />
-    <p className="text-gray-600 text-sm mb-2">
-      {event.date ? new Date(event.date).toLocaleDateString() : "No date"} at{" "}
-      {event.time || "No time"}
-    </p>
-    <p className="text-gray-600 text-sm mb-2">
-      Location: {event.location || "No location"}
-    </p>
-    <p className="text-gray-700 mb-3 line-clamp-2">
-      {event.description || "No description"}
-    </p>
-    <p className="text-gray-500 text-sm mb-3">
-      Club: {event.clubName || "Unknown Club"}
-    </p>
-    <div className="flex gap-2">
-      <Link
-        to={`/events/${event._id}/edit`}
-        className="flex items-center gap-1 text-[#456882] hover:text-[#334d5e] font-medium transition text-sm"
-        aria-label={`Edit ${event.title || "event"}`}
-      >
-        <Edit3 className="w-4 h-4" />
-        Edit
-      </Link>
-      <button
-        onClick={() => onDelete(event._id, event.title)}
-        className="flex items-center gap-1 text-red-600 hover:text-red-700 font-medium transition text-sm"
-        aria-label={`Delete ${event.title || "event"}`}
-      >
-        <Trash2 className="w-4 h-4" />
-        Delete
-      </button>
-    </div>
-  </motion.div>
-));
+
+      const response = await axios.post(
+        'http://localhost:5000/api/events/:id/register',
+        {
+          name: user.name,
+          email: user.email,
+          rollNo: user.isACEMStudent ? user.rollNo : undefined,
+          isACEMStudent: user.isACEMStudent,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (!user.isACEMStudent && event.eventType === "Inter-College") {
+        setQrCode(response.data.qrCode);
+      }
+      onSuccess(
+        user.isACEMStudent
+          ? "Successfully joined the club and registered for the event!"
+          : "Registration successful! Check your QR code."
+      );
+    } catch (err) {
+      console.error("Event registration error:", err);
+      setFormError(err.response?.data?.error || err.message || "Failed to register for event.");
+      onError(err.response?.data?.error || err.message || "Failed to register for event.");
+    } finally {
+      setPaymentProcessing(false);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.3, ease: "easeInOut" }}
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+    >
+      <div className="bg-white p-6 rounded-xl shadow-lg max-w-md w-full">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-blue-600">Register for {event.title}</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+            aria-label="Close modal"
+          >
+            <XCircle className="w-6 h-6" />
+          </button>
+        </div>
+        {formError && (
+          <div className="bg-red-100 text-red-700 p-3 rounded-sm text-sm flex items-center gap-2 mb-4">
+            <AlertTriangle className="w-4 h-4" />
+            {formError}
+          </div>
+        )}
+        {qrCode ? (
+          <div className="text-center">
+            <img src={qrCode} alt="Registration QR Code" className="mx-auto mb-4" />
+            <p className="text-sm text-gray-600">Scan this QR code at the event.</p>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onClose}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700 transition"
+            >
+              Close
+            </motion.button>
+          </div>
+        ) : (
+          <>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600">
+                Name: {user?.name || "N/A"}
+              </p>
+              <p className="text-sm text-gray-600">
+                Email: {user?.email || "N/A"}
+              </p>
+              {user?.isACEMStudent && (
+                <p className="text-sm text-gray-600">
+                  Roll No: {user?.rollNo || "N/A"}
+                </p>
+              )}
+            </div>
+            {event.hasRegistrationFee && event.eventType === "Inter-College" && (
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-2">
+                  Registration fee: ₹{user?.isACEMStudent ? event.acemFee : event.nonAcemFee}
+                </p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Card Number</label>
+                  <input
+                    type="text"
+                    name="cardNumber"
+                    value={paymentDetails.cardNumber}
+                    onChange={handlePaymentChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
+                    placeholder="1234 5678 9012 3456"
+                    required
+                  />
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700">Expiry</label>
+                    <input
+                      type="text"
+                      name="expiry"
+                      value={paymentDetails.expiry}
+                      onChange={handlePaymentChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
+                      placeholder="MM/YY"
+                      required
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700">CVV</label>
+                    <input
+                      type="text"
+                      name="cvv"
+                      value={paymentDetails.cvv}
+                      onChange={handlePaymentChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
+                      placeholder="123"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            <motion.button
+              onClick={handleRegister}
+              disabled={paymentProcessing}
+              whileHover={{ scale: paymentProcessing ? 1 : 1.05 }}
+              whileTap={{ scale: paymentProcessing ? 1 : 0.95 }}
+              className={`w-full px-4 py-2 rounded-sm text-sm font-semibold transition-colors ${
+                paymentProcessing
+                  ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                  : "bg-blue-600 text-white hover:bg-blue-700"
+              }`}
+              aria-label={paymentProcessing ? "Processing registration" : "Register for event"}
+            >
+              {paymentProcessing ? "Processing..." : "Register"}
+            </motion.button>
+          </>
+        )}
+      </div>
+    </motion.div>
+  );
+});
 
 // Host Event Form Component
-const HostEventForm = memo(({ user, clubs, onSuccess, onError }) => {
+const HostEventForm = memo(({ user, clubs, onSuccess, onError, onClose }) => {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -139,32 +337,29 @@ const HostEventForm = memo(({ user, clubs, onSuccess, onError }) => {
     club: "",
     banner: null,
     category: "",
+    eventType: "Intra-College",
+    hasRegistrationFee: false,
+    acemFee: "",
+    nonAcemFee: "",
   });
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
-  // Skip rendering if user or clubs are not available
   if (!user || !clubs) {
-    console.log(
-      "HostEventForm - Skipping render: user or clubs not available",
-      { user, clubs }
-    );
+    console.log("HostEventForm - Skipping render: user or clubs not available", { user, clubs });
     return null;
   }
 
-  // Filter clubs where user is a creator or super admin (or head coordinator for specific clubs)
   const eligibleClubs = clubs.filter((club) => {
     if (!club) return false;
     return (
       club.creator?._id?.toString() === user._id?.toString() ||
-      club.superAdmins?.some(
-        (admin) => admin?._id?.toString() === user._id?.toString()
-      ) ||
+      club.superAdmins?.some((admin) => admin?._id?.toString() === user._id?.toString()) ||
       (user.headCoordinatorClubs || []).includes(club.name)
     );
   });
 
-  // Debug logging for user and clubs
   useEffect(() => {
     console.log("HostEventForm - User:", {
       _id: user._id || "null",
@@ -182,18 +377,34 @@ const HostEventForm = memo(({ user, clubs, onSuccess, onError }) => {
     e.preventDefault();
     setFormError("");
     setSubmitting(true);
+    setIsUploading(true);
 
-    // Validate form data
-    const { title, description, date, time, location, club, category } = formData;
+    const { title, description, date, time, location, club, category, eventType, hasRegistrationFee, acemFee, nonAcemFee } = formData;
     if (!title || !description || !date || !time || !location || !club || !category) {
-      setFormError("All fields including category are required.");
+      setFormError("All required fields must be filled.");
       setSubmitting(false);
+      setIsUploading(false);
       return;
     }
     if (!["Seminar", "Competition"].includes(category)) {
       setFormError("Invalid category. Please select Seminar or Competition.");
       setSubmitting(false);
+      setIsUploading(false);
       return;
+    }
+    if (!["Intra-College", "Inter-College"].includes(eventType)) {
+      setFormError("Invalid event type.");
+      setSubmitting(false);
+      setIsUploading(false);
+      return;
+    }
+    if (eventType === "Inter-College" && hasRegistrationFee) {
+      if (!acemFee || !nonAcemFee || isNaN(acemFee) || isNaN(nonAcemFee) || acemFee < 0 || nonAcemFee < 0) {
+        setFormError("Valid registration fees are required for Inter-College events.");
+        setSubmitting(false);
+        setIsUploading(false);
+        return;
+      }
     }
 
     try {
@@ -204,28 +415,23 @@ const HostEventForm = memo(({ user, clubs, onSuccess, onError }) => {
       Object.entries(formData).forEach(([key, value]) => {
         if (key === "banner" && value) {
           formPayload.append("banner", value);
-        } else if (value) {
-          formPayload.append(key, key === "date" ? new Date(value).toISOString().split("T")[0] : value);
+        } else if (value !== null && value !== undefined) {
+          formPayload.append(key, value);
         }
       });
 
-      // Debug: Log form payload
       const payloadEntries = [];
       for (let [key, value] of formPayload.entries()) {
         payloadEntries.push({ key, value: value instanceof File ? value.name : value });
       }
       console.log("HostEventForm - Form Payload:", payloadEntries);
 
-      const response = await axios.post(
-        "http://localhost:5000/api/events",
-        formPayload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      const response = await axios.post('http://localhost:5000/api/events', formPayload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       setFormData({
         title: "",
@@ -236,33 +442,33 @@ const HostEventForm = memo(({ user, clubs, onSuccess, onError }) => {
         club: "",
         banner: null,
         category: "",
+        eventType: "Intra-College",
+        hasRegistrationFee: false,
+        acemFee: "",
+        nonAcemFee: "",
       });
-      onSuccess("Event created successfully!", response.data);
+      onSuccess("Event created successfully!", response.data.event);
+      onClose();
     } catch (err) {
       console.error("Event creation error:", err);
-      const errorMsg =
-        err.response?.data?.error || err.message || "Failed to create event.";
+      const errorMsg = err.response?.data?.error || err.message || "Failed to create event.";
       setFormError(errorMsg);
       onError(errorMsg);
     } finally {
       setSubmitting(false);
+      setIsUploading(false);
     }
   };
 
   const handleInputChange = (e) => {
-    const { name, value, files } = e.target;
+    const { name, value, files, type, checked } = e.target;
     if (name === "banner" && files && files[0]) {
       if (files[0].size > 5 * 1024 * 1024) {
         setFormError("Banner image must be less than 5MB.");
         return;
       }
     }
-    const newValue =
-      name === "category" && value
-        ? value.charAt(0).toUpperCase() + value.slice(1)
-        : files
-        ? files[0]
-        : value;
+    const newValue = type === "checkbox" ? checked : files ? files[0] : value;
     setFormData((prev) => ({
       ...prev,
       [name]: newValue,
@@ -271,167 +477,227 @@ const HostEventForm = memo(({ user, clubs, onSuccess, onError }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8 }}
-      className="max-w-xl mx-auto bg-white p-6 rounded-xl shadow-lg border border-gray-200"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.3, ease: "easeInOut" }}
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
     >
-      <h2 className="text-2xl font-semibold text-[#456882] mb-4">
-        Host a New Event
-      </h2>
-      {eligibleClubs.length === 0 ? (
-        <p className="text-sm text-gray-600">
-          You are not authorized to host events for any club.
-        </p>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {formError && (
-            <div className="bg-red-100 text-red-700 p-3 rounded-sm text-sm flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4" />
-              {formError}
-            </div>
-          )}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Event Title
-            </label>
-            <input
-              type="text"
-              name="title"
-              value={formData.title || ""}
-              onChange={handleInputChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-[#456882] focus:border-[#456882] bg-gray-50 text-sm"
-              placeholder="Enter event title"
-              aria-label="Event title"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Description
-            </label>
-            <textarea
-              name="description"
-              value={formData.description || ""}
-              onChange={handleInputChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-[#456882] focus:border-[#456882] bg-gray-50 text-sm"
-              placeholder="Describe the event"
-              rows="4"
-              aria-label="Event description"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Event Category
-            </label>
-            <select
-              name="category"
-              value={formData.category || ""}
-              onChange={handleInputChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-[#456882] bg-gray-50 text-sm"
-              aria-label="Event category"
-            >
-              <option value="">Select event category</option>
-              <option value="Seminar">Seminar</option>
-              <option value="Competition">Competition</option>
-            </select>
-          </div>
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700">
-                Date
-              </label>
+      <div className="bg-white p-6 rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-semibold text-blue-600">Host a New Event</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700" aria-label="Close modal">
+            <XCircle className="w-6 h-6" />
+          </button>
+        </div>
+        {eligibleClubs.length === 0 ? (
+          <p className="text-sm text-gray-600">You are not authorized to host events for any club.</p>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {formError && (
+              <div className="bg-red-100 text-red-700 p-3 rounded-sm text-sm flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                {formError}
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Event Title</label>
               <input
-                type="date"
-                name="date"
-                value={formData.date || ""}
+                type="text"
+                name="title"
+                value={formData.title || ""}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-[#456882] focus:border-[#456882] bg-gray-50 text-sm"
-                aria-label="Event date"
+                className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
+                placeholder="Enter event title"
+                aria-label="Event title"
               />
             </div>
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700">
-                Time
-              </label>
-              <input
-                type="time"
-                name="time"
-                value={formData.time || ""}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Description</label>
+              <textarea
+                name="description"
+                value={formData.description || ""}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-[#456882] focus:border-[#456882] bg-gray-50 text-sm"
-                aria-label="Event time"
+                className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
+                placeholder="Describe the event"
+                rows="4"
+                aria-label="Event description"
               />
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Location
-            </label>
-            <input
-              type="text"
-              name="location"
-              value={formData.location || ""}
-              onChange={handleInputChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-[#456882] focus:border-[#456882] bg-gray-50 text-sm"
-              placeholder="Enter event location"
-              aria-label="Event location"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Club
-            </label>
-            <select
-              name="club"
-              value={formData.club || ""}
-              onChange={handleInputChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-[#456882] bg-gray-50 text-sm"
-              aria-label="Select club"
-            >
-              <option value="">Select a club</option>
-              {eligibleClubs.map((club, index) => (
-                <option key={club?._id || `club-${index}`} value={club?._id}>
-                  {club?.name || "Unknown Club"}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Banner Image
-            </label>
-            <input
-              type="file"
-              name="banner"
-              onChange={handleInputChange}
-              accept="image/jpeg,image/png"
-              className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-gray-100 bg-gray-50 text-sm"
-              aria-label="Upload banner image"
-            />
-          </div>
-          <motion.button
-            type="submit"
-            disabled={submitting}
-            whileHover={{ scale: submitting ? 1 : 1.05 }}
-            whileTap={{ scale: submitting ? 1 : 0.95 }}
-            className={`w-full px-4 py-2 rounded-sm text-sm font-semibold transition-colors ${
-              submitting
-                ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                : "bg-[#456882] text-white hover:bg-[#334d5e]"
-            }`}
-            aria-label={submitting ? "Creating event" : "Create event"}
-          >
-            {submitting ? "Creating..." : "Create Event"}
-          </motion.button>
-        </form>
-      )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Event Category</label>
+              <select
+                name="category"
+                value={formData.category || ""}
+                onChange={handleInputChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
+                aria-label="Event category"
+              >
+                <option value="">Select event category</option>
+                <option value="Seminar">Seminar</option>
+                <option value="Competition">Competition</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Event Type</label>
+              <select
+                name="eventType"
+                value={formData.eventType || ""}
+                onChange={handleInputChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
+                aria-label="Event type"
+              >
+                <option value="Intra-College">Intra-College</option>
+                <option value="Inter-College">Inter-College</option>
+              </select>
+            </div>
+            {formData.eventType === "Inter-College" && (
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <input
+                    type="checkbox"
+                    name="hasRegistrationFee"
+                    checked={formData.hasRegistrationFee || false}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  Has Registration Fee
+                </label>
+                {formData.hasRegistrationFee && (
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">ACEM Student Fee (₹)</label>
+                      <input
+                        type="number"
+                        name="acemFee"
+                        value={formData.acemFee || ""}
+                        onChange={handleInputChange}
+                        required
+                        min="0"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
+                        placeholder="Enter fee for ACEM students"
+                        aria-label="ACEM student fee"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Non-ACEM Student Fee (₹)</label>
+                      <input
+                        type="number"
+                        name="nonAcemFee"
+                        value={formData.nonAcemFee || ""}
+                        onChange={handleInputChange}
+                        required
+                        min="0"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
+                        placeholder="Enter fee for non-ACEM students"
+                        aria-label="Non-ACEM student fee"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700">Date</label>
+                <input
+                  type="date"
+                  name="date"
+                  value={formData.date || ""}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
+                  aria-label="Event date"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700">Time</label>
+                <input
+                  type="time"
+                  name="time"
+                  value={formData.time || ""}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
+                  aria-label="Event time"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Location</label>
+              <input
+                type="text"
+                name="location"
+                value={formData.location || ""}
+                onChange={handleInputChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
+                placeholder="Enter event location"
+                aria-label="Event location"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Club</label>
+              <select
+                name="club"
+                value={formData.club || ""}
+                onChange={handleInputChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
+                aria-label="Select club"
+              >
+                <option value="">Select a club</option>
+                {eligibleClubs.map((club, index) => (
+                  <option key={club?._id || `club-${index}`} value={club?._id}>
+                    {club?.name || "Unknown Club"}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Banner Image</label>
+              <input
+                type="file"
+                name="banner"
+                onChange={handleInputChange}
+                accept="image/jpeg,image/png"
+                className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 bg-gray-50 text-sm"
+                aria-label="Upload banner image"
+              />
+            </div>
+            <div className="flex gap-2">
+              <motion.button
+                type="submit"
+                disabled={submitting}
+                whileHover={{ scale: submitting ? 1 : 1.05 }}
+                whileTap={{ scale: submitting ? 1 : 0.95 }}
+                className={`flex-1 px-4 py-2 rounded-sm text-sm font-semibold transition-colors ${
+                  submitting
+                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                    : "bg-blue-600 text-white hover:bg-blue-700"
+                }`}
+                aria-label={submitting ? "Creating event" : "Create event"}
+              >
+                {isUploading ? "Uploading..." : submitting ? "Creating..." : "Create Event"}
+              </motion.button>
+              <motion.button
+                type="button"
+                onClick={onClose}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex-1 px-4 py-2 rounded-sm text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
+                aria-label="Cancel event creation"
+              >
+                Cancel
+              </motion.button>
+            </div>
+          </form>
+        )}
+      </div>
     </motion.div>
   );
 });
@@ -444,9 +710,11 @@ const ManageEvents = () => {
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [eventFilter, setEventFilter] = useState("");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Debounced fetchData to prevent race conditions
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -459,15 +727,9 @@ const ManageEvents = () => {
 
       const config = { headers: { Authorization: `Bearer ${token}` } };
       const [userResponse, clubsResponse, eventsResponse] = await Promise.all([
-        axios
-          .get("http://localhost:5000/api/auth/user", config)
-          .catch(() => ({ data: null })),
-        axios
-          .get("http://localhost:5000/api/clubs", config)
-          .catch(() => ({ data: [] })),
-        axios
-          .get("http://localhost:5000/api/events", config)
-          .catch(() => ({ data: [] })),
+        axios.get('http://localhost:5000/api/auth/user', config).catch(() => ({ data: null })),
+        axios.get('http://localhost:5000/api/clubs', config).catch(() => ({ data: [] })),
+        axios.get('http://localhost:5000/api/events', config).catch(() => ({ data: [] })),
       ]);
 
       const userData = userResponse.data;
@@ -482,7 +744,6 @@ const ManageEvents = () => {
         rollNo: userData.rollNo || "N/A",
       });
 
-      // Debug logging
       console.log("ManageEvents - User:", {
         _id: userData._id || "null",
         name: userData.name || "null",
@@ -493,45 +754,35 @@ const ManageEvents = () => {
       });
       console.log("ManageEvents - All Clubs:", clubsResponse.data || []);
 
-      // Filter clubs based on user role
       let managedClubs = [];
       const isHeadCoordinator = (userData.headCoordinatorClubs || []).length > 0;
-      if (isHeadCoordinator) {
+      if (userData.isAdmin) {
+        managedClubs = clubsResponse.data || [];
+      } else if (isHeadCoordinator) {
         managedClubs = (clubsResponse.data || []).filter((club) =>
           userData.headCoordinatorClubs.includes(club.name)
         );
-        console.log("ManageEvents - Filtered clubs for Head Coordinator:", managedClubs);
       } else {
-        // For both global admins and super admins, only show clubs they created or are super admins for
         managedClubs = (clubsResponse.data || []).filter(
           (club) =>
             club.creator?._id?.toString() === userData._id?.toString() ||
-            club.superAdmins?.some(
-              (admin) => admin?._id?.toString() === userData._id?.toString()
-            )
+            club.superAdmins?.some((admin) => admin?._id?.toString() === userData._id?.toString())
         );
-        console.log("ManageEvents - Filtered clubs for Admin/Super Admin:", managedClubs);
       }
-
+      console.log("ManageEvents - Filtered clubs:", managedClubs);
       setClubs(managedClubs);
 
-      // Filter events
       let filteredEvents = eventsResponse.data || [];
-      const managedClubIds = managedClubs
-        .map((club) => club?._id?.toString())
-        .filter(Boolean);
+      const managedClubIds = managedClubs.map((club) => club?._id?.toString()).filter(Boolean);
       filteredEvents = filteredEvents.filter((event) => {
-        const clubId =
-          event.club?._id?.toString() || event.clubId?.toString();
+        const clubId = event.club?._id?.toString() || event.club?.toString();
         return clubId && managedClubIds.includes(clubId);
       });
-      console.log("ManageEvents - Filtered events:", filteredEvents);
 
-      // Enhance events with club names and category
       const eventsWithClubNames = filteredEvents.map((event, index) => {
         const club = (clubsResponse.data || []).find((c) => {
           const cId = c?._id?.toString();
-          const eId = event.club?._id?.toString() || event.clubId?.toString();
+          const eId = event.club?._id?.toString() || event.club?.toString();
           return cId === eId;
         });
         return {
@@ -540,16 +791,16 @@ const ManageEvents = () => {
           clubName: club?.name || "Unknown Club",
           banner: event.banner || null,
           category: event.category || "Event",
+          eventType: event.eventType || "Intra-College",
+          hasRegistrationFee: event.hasRegistrationFee || false,
+          acemFee: event.acemFee || 0,
+          nonAcemFee: event.nonAcemFee || 0,
         };
       });
 
       setEvents(eventsWithClubNames);
-      console.log(
-        "ManageEvents - Filtered Events with Club Names:",
-        eventsWithClubNames
-      );
+      console.log("ManageEvents - Filtered Events with Club Names:", eventsWithClubNames);
 
-      // Set error if no clubs or events are available
       if (managedClubs.length === 0 && filteredEvents.length === 0) {
         setError("You do not have access to manage any clubs or events.");
       }
@@ -560,9 +811,7 @@ const ManageEvents = () => {
         setError("Session expired or unauthorized. Please log in again.");
         navigate("/login");
       } else {
-        setError(
-          err.response?.data?.error || err.message || "Failed to load data."
-        );
+        setError(err.response?.data?.error || err.message || "Failed to load data.");
       }
     } finally {
       setIsLoading(false);
@@ -571,37 +820,31 @@ const ManageEvents = () => {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+    if (location.pathname.includes("/create")) {
+      setShowCreateModal(true);
+    }
+  }, [fetchData, location]);
 
   const handleDelete = async (eventId, eventTitle) => {
-    if (
-      !window.confirm(
-        `Delete event "${eventTitle || "Untitled"}"? This cannot be undone.`
-      )
-    ) {
+    if (!window.confirm(`Delete event "${eventTitle || "Untitled"}"? This cannot be undone.`)) {
       return;
     }
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("No authentication token found");
-      await axios.delete(`http://localhost:5000/api/events/${eventId}`, {
+      await axios.delete('http://localhost:5000/api/events/:id', {
         headers: { Authorization: `Bearer ${token}` },
       });
       setEvents((prev) => prev.filter((event) => event._id !== eventId));
       setSuccess("Event deleted successfully.");
     } catch (err) {
       console.error("Delete error:", err);
-      setError(
-        err.response?.data?.error || err.message || "Failed to delete event."
-      );
+      setError(err.response?.data?.error || err.message || "Failed to delete event.");
     }
   };
 
-  // Filter events based on category
   const filteredEvents = events.filter(
-    (event) =>
-      eventFilter === "" ||
-      event.category.toLowerCase() === eventFilter.toLowerCase()
+    (event) => eventFilter === "" || event.category.toLowerCase() === eventFilter.toLowerCase()
   );
 
   if (isLoading) {
@@ -610,7 +853,7 @@ const ManageEvents = () => {
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-8 h-8 border-4 border-[#456882] border-t-transparent rounded-full"
+          className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full"
         />
       </div>
     );
@@ -622,44 +865,13 @@ const ManageEvents = () => {
         <Navbar
           user={user}
           role={
-            user?.headCoordinatorClubs?.length > 0
-              ? "headCoordinator"
-              : user?.isAdmin
+            user?.isAdmin
               ? "admin"
+              : user?.headCoordinatorClubs?.length > 0
+              ? "headCoordinator"
               : "superAdmin"
           }
         />
-        <section className="py-12 bg-gray-100">
-          <div className="container mx-auto px-4 sm:px-6">
-            {user && clubs && (
-              <HostEventForm
-                user={user}
-                clubs={clubs}
-                onSuccess={(msg, newEvent) => {
-                  setSuccess(msg);
-                  setEvents((prev) => {
-                    const club = clubs.find(
-                      (c) =>
-                        c?._id?.toString() ===
-                        (newEvent.club?._id?.toString() ||
-                          newEvent.clubId?.toString())
-                    );
-                    return [
-                      {
-                        ...newEvent,
-                        clubName: club?.name || "Unknown Club",
-                        banner: newEvent.banner || null,
-                        category: newEvent.category || "Event",
-                      },
-                      ...prev,
-                    ];
-                  });
-                }}
-                onError={setError}
-              />
-            )}
-          </div>
-        </section>
         <section className="py-12 bg-white">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
@@ -667,22 +879,34 @@ const ManageEvents = () => {
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
-                className="text-2xl font-semibold text-[#456882]"
+                className="text-2xl font-semibold text-blue-600"
               >
                 Manage Events
               </motion.h2>
-              <div className="relative mt-4 sm:mt-0">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
-                <select
-                  value={eventFilter}
-                  onChange={(e) => setEventFilter(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:ring-[#456882] focus:border-[#456882] bg-gray-50 text-sm"
-                  aria-label="Filter events by category"
+              <div className="flex gap-4 mt-4 sm:mt-0">
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
+                  <select
+                    value={eventFilter}
+                    onChange={(e) => setEventFilter(e.target.value)}
+                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
+                    aria-label="Filter events by category"
+                  >
+                    <option value="">All Event Categories</option>
+                    <option value="Seminar">Seminar</option>
+                    <option value="Competition">Competition</option>
+                  </select>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate("/events/create")}
+                  className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 text-sm transition"
+                  aria-label="Create new event"
                 >
-                  <option value="">All Event Categories</option>
-                  <option value="Seminar">Seminar</option>
-                  <option value="Competition">Competition</option>
-                </select>
+                  <Plus className="w-4 h-4" />
+                  Create Event
+                </motion.button>
               </div>
             </div>
             {filteredEvents.length === 0 ? (
@@ -692,16 +916,12 @@ const ManageEvents = () => {
                 transition={{ duration: 0.5 }}
                 className="text-center"
               >
-                <p className="text-gray-600 text-sm sm:text-base mb-4">
-                  No events found.
-                </p>
+                <p className="text-gray-600 text-sm sm:text-base mb-4">No events found.</p>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-6 py-2 bg-[#456882] text-white rounded-lg hover:bg-[#334d5e] text-sm sm:text-sm"
-                  onClick={() =>
-                    document.querySelector('input[name="title"]')?.focus()
-                  }
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm transition"
+                  onClick={() => navigate("/events/create")}
                   aria-label="Create new event"
                 >
                   Create New Event
@@ -713,6 +933,8 @@ const ManageEvents = () => {
                   <EventCard
                     key={event._id || `event-${index}`}
                     event={event}
+                    user={user}
+                    onRegister={() => setShowRegisterModal(event)}
                     onDelete={handleDelete}
                   />
                 ))}
@@ -721,6 +943,15 @@ const ManageEvents = () => {
           </div>
         </section>
         <AnimatePresence>
+          {showRegisterModal && (
+            <EventRegistrationModal
+              event={showRegisterModal}
+              user={user}
+              onSuccess={setSuccess}
+              onError={setError}
+              onClose={() => setShowRegisterModal(null)}
+            />
+          )}
           {error && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}

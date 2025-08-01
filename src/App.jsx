@@ -35,6 +35,7 @@ import { useEffect, useState } from "react";
 import ClubPage from "./components/Admin/ClubPage";
 import RankingSystem from "./components/Admin/RankingSystem";
 import Events from "./components/Events";
+import CreateEventPage from "./components/CreateEvent";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -186,6 +187,16 @@ const AnimatedRoutes = () => {
               <ProtectedRoute>
                 <Layout>
                   <ClubDetailPage />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/sammy"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <CreateEventPage />
                 </Layout>
               </ProtectedRoute>
             }
