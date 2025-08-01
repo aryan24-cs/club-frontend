@@ -20,10 +20,10 @@ import ClubDetailPage from "./components/ClubDetailPage";
 import CreateClubPage from "./components/CreateClubPage";
 import EditClubPage from "./components/EditClubPage";
 import ManageEvents from "./components/ManageEvents";
-import ManageActivities from "./components/ManageActivities";
+// import ManageActivities from "./components/ManageActivities";
 import ManageUsers from "./components/ManageUsers";
 import EventEditPage from "./components/EventEditPage";
-import ActivityEditPage from "./components/ActivityEditPage";
+// import ActivityEditPage from "./components/ActivityEditPage";
 import NotificationsPage from "./components/NotificationsPage";
 import ContactPage from "./components/ContactPage";
 import ProfilePage from "./components/ProfilePage";
@@ -221,16 +221,6 @@ const AnimatedRoutes = () => {
             }
           />
           <Route
-            path="/admin/activities"
-            element={
-              <RoleBasedRoute roles={["super-admin", "admin"]}>
-                <Layout>
-                  <ManageActivities />
-                </Layout>
-              </RoleBasedRoute>
-            }
-          />
-          <Route
             path="/admin/users"
             element={
               <RoleBasedRoute roles={["super-admin", "admin"]}>
@@ -250,26 +240,6 @@ const AnimatedRoutes = () => {
               </RoleBasedRoute>
             }
           />
-          <Route
-            path="/activities/:id/edit"
-            element={
-              <RoleBasedRoute roles={["super-admin", "admin"]}>
-                <Layout>
-                  <ActivityEditPage />
-                </Layout>
-              </RoleBasedRoute>
-            }
-          />
-          {/* <Route
-            path="/events"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <EventsPage />
-                </Layout>
-              </ProtectedRoute>
-            }
-          /> */}
           <Route
             path="/notifications"
             element={
