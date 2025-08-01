@@ -15,6 +15,7 @@ import {
   FaSpinner,
   FaCheckCircle,
   FaArrowLeft,
+  FaUniversity,
 } from "react-icons/fa";
 
 // Floating Particle Component
@@ -132,6 +133,7 @@ const OtpInput = ({ otp, setOtp, otpFocused, setOtpFocused }) => {
 const Signup = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [collegeName, setCollegeName] = useState("");
   const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
   const [isACEMStudent, setIsACEMStudent] = useState(true);
@@ -141,6 +143,7 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const [nameFocused, setNameFocused] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
+  const [collegeFocused, setCollegeFocused] = useState(false);
   const [otpFocused, setOtpFocused] = useState(null);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const navigate = useNavigate();
@@ -160,6 +163,10 @@ const Signup = () => {
     }
     if (!name) {
       setError("Please enter your name");
+      return;
+    }
+    if (!isACEMStudent && !collegeName) {
+      setError("Please enter your college name");
       return;
     }
     setError("");
@@ -205,8 +212,11 @@ const Signup = () => {
         email,
         password,
         isACEMStudent,
+        collegeName: isACEMStudent ? "" : collegeName, // Send empty string for ACEM students
       });
       localStorage.setItem("token", res.data.token);
+      localStorage.setItem("isACEMStudent", JSON.stringify(isACEMStudent));
+      localStorage.setItem("collegeName", collegeName);
       navigate("/user-details");
     } catch (err) {
       setError(
@@ -425,7 +435,7 @@ const Signup = () => {
                       onFocus={() => setNameFocused(true)}
                       onBlur={() => setNameFocused(false)}
                       whileFocus={{ scale: 1.02 }}
-                      className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl text-gray-900 bg-gray-50/50 focus:outline-none focus:border-[#456882] focus:ring-2 focus:ring-[#456882]/20  transition-all duration-300"
+                      className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl text-gray-900 bg-gray-50/50 focus:outline-none focus:border-[#456882] focus:ring-2 focus:ring-[#456882]/20 transition-all duration-300"
                       aria-label="Full Name"
                     />
                   </div>
@@ -454,17 +464,56 @@ const Signup = () => {
                       onFocus={() => setEmailFocused(true)}
                       onBlur={() => setEmailFocused(false)}
                       whileFocus={{ scale: 1.02 }}
-                      className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl text-gray-900 bg-gray-50/50 focus:outline-none focus:border-[#456882] focus:ring-2 focus:ring-[#456882]/20  transition-all duration-300"
+                      className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl text-gray-900 bg-gray-50/50 focus:outline-none focus:border-[#456882] focus:ring-2 focus:ring-[#456882]/20 transition-all duration-300"
                       aria-label="Email Address"
                     />
                   </div>
+
+                  {/* College Name Input (for non-ACEM students) */}
+                  {!isACEMStudent && (
+                    <div className="relative">
+                      <motion.div
+                        className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        animate={{
+                          color:
+                            collegeFocused || collegeName
+                              ? "#456882"
+                              : "#9CA3AF",
+                        }}
+                      >
+                        <FaUniversity />
+                      </motion.div>
+                      <motion.label
+                        className="absolute left-12 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium pointer-events-none transition-all duration-300"
+                        animate={
+                          collegeFocused || collegeName ? "floating" : "resting"
+                        }
+                        variants={labelVariants}
+                      >
+                        College Name
+                      </motion.label>
+                      <motion.input
+                        type="text"
+                        value={collegeName}
+                        onChange={(e) => setCollegeName(e.target.value)}
+                        onFocus={() => setCollegeFocused(true)}
+                        onBlur={() => setCollegeFocused(false)}
+                        whileFocus={{ scale: 1.02 }}
+                        className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl text-gray-900 bg-gray-50/50 focus:outline-none focus:border-[#456882] focus:ring-2 focus:ring-[#456882]/20 transition-all duration-300"
+                        aria-label="College Name"
+                      />
+                    </div>
+                  )}
 
                   {/* ACEM Student Checkbox */}
                   <div className="relative flex items-center">
                     <motion.input
                       type="checkbox"
                       checked={isACEMStudent}
-                      onChange={(e) => setIsACEMStudent(e.target.checked)}
+                      onChange={(e) => {
+                        setIsACEMStudent(e.target.checked);
+                        if (e.target.checked) setCollegeName(""); // Clear college name if ACEM student
+                      }}
                       className="h-5 w-5 text-[#456882] border-gray-300 rounded focus:ring-[#456882]/50"
                       aria-label="ACEM Student Status"
                     />
@@ -670,7 +719,7 @@ const Signup = () => {
                       onFocus={() => setPasswordFocused(true)}
                       onBlur={() => setPasswordFocused(false)}
                       whileFocus={{ scale: 1.02 }}
-                      className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl text-gray-900 bg-gray-50/50 focus:outline-none focus:border-[#456882] focus:ring-2 focus:ring-[#456882]/20  transition-all duration-300"
+                      className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl text-gray-900 bg-gray-50/50 focus:outline-none focus:border-[#456882] focus:ring-2 focus:ring-[#456882]/20 transition-all duration-300"
                       aria-label="Create Password"
                     />
                   </div>

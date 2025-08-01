@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaUser, FaGraduationCap, FaCog, FaUsers, FaArrowRight, FaArrowLeft, FaCheck, FaRocket, FaIdCard } from 'react-icons/fa';
+import { FaUser, FaGraduationCap, FaCog, FaUsers, FaArrowRight, FaArrowLeft, FaCheck, FaRocket, FaIdCard, FaUniversity } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -36,6 +36,7 @@ const UserDetailsForm = () => {
   const [course, setCourse] = useState('');
   const [specialization, setSpecialization] = useState('');
   const [rollNo, setRollNo] = useState('');
+  const [collegeName, setCollegeName] = useState('');
   const [isACEMStudent, setIsACEMStudent] = useState(true);
   const [selectedClubs, setSelectedClubs] = useState([]);
   const [error, setError] = useState('');
@@ -46,6 +47,12 @@ const UserDetailsForm = () => {
   const navigate = useNavigate();
 
   const courses = ['BTech', 'BCA', 'BBA', 'MBA'];
+  const specializations = {
+    BTech: ['Computer Science', 'Mechanical Engineering', 'Civil Engineering', 'Electrical Engineering', 'Electronics and Communication'],
+    BCA: ['Data Science', 'Cyber Security', 'Web Development', 'Mobile Application Development'],
+    BBA: ['Marketing', 'Finance', 'Human Resources', 'International Business'],
+    MBA: ['Marketing', 'Finance', 'Operations', 'Human Resource Management', 'Business Analytics'],
+  };
   const clubs = [
     { name: 'Technitude', icon: '💻', description: 'Tech enthusiasts unite' },
     { name: 'Kalakriti', icon: '🎨', description: 'Art and creativity' },
@@ -55,11 +62,25 @@ const UserDetailsForm = () => {
   ];
 
   useEffect(() => {
-    setProgress((currentQuestion / 5) * 100);
+    // Fetch isACEMStudent and collegeName from localStorage
+    const storedIsACEMStudent = JSON.parse(localStorage.getItem('isACEMStudent'));
+    const storedCollegeName = localStorage.getItem('collegeName');
+    if (storedIsACEMStudent !== null) {
+      setIsACEMStudent(storedIsACEMStudent);
+    }
+    if (storedCollegeName) {
+      setCollegeName(storedCollegeName);
+    }
+
+    const totalSteps = isACEMStudent ? 5 : 4; // 4 steps for non-ACEM, 5 for ACEM
+    setProgress((currentQuestion / totalSteps) * 100);
     if (currentQuestion > 1 && !completedSteps.includes(currentQuestion - 1)) {
       setCompletedSteps(prev => [...prev, currentQuestion - 1]);
     }
-  }, [currentQuestion]);
+    if (!isACEMStudent) {
+      setRollNo('');
+    }
+  }, [currentQuestion, isACEMStudent]);
 
   useEffect(() => {
     const createRipple = (e) => {
@@ -114,29 +135,43 @@ const UserDetailsForm = () => {
   };
 
   const handleNextQuestion = () => {
-    if (currentQuestion === 1 && !semester) {
-      setError('Please enter your semester');
-      return;
+    if (currentQuestion === 1) {
+      if (!semester) {
+        setError('Please enter your semester');
+        return;
+      }
     }
     if (currentQuestion === 2 && !course) {
       setError('Please select a course');
       return;
     }
     if (currentQuestion === 3 && !specialization) {
-      setError('Please enter your specialization');
+      setError('Please select a specialization');
       return;
     }
-    if (currentQuestion === 4 && !rollNo) {
+    if (currentQuestion === 4 && isACEMStudent && !rollNo) {
       setError('Please enter your roll number');
       return;
     }
+    if (currentQuestion === 4 && !isACEMStudent && !collegeName) {
+      setError('Please enter your college name');
+      return;
+    }
     setError('');
-    setCurrentQuestion(prev => prev + 1);
+    if (currentQuestion === 3 && !isACEMStudent) {
+      setCurrentQuestion(5); // Skip roll number step
+    } else {
+      setCurrentQuestion(prev => prev + 1);
+    }
   };
 
   const handlePrevQuestion = () => {
     setError('');
-    setCurrentQuestion(prev => prev - 1);
+    if (currentQuestion === 5 && !isACEMStudent) {
+      setCurrentQuestion(3); // Skip roll number step
+    } else {
+      setCurrentQuestion(prev => prev - 1);
+    }
   };
 
   const handleClubSelection = (club) => {
@@ -168,8 +203,9 @@ const UserDetailsForm = () => {
           semester,
           course,
           specialization,
-          rollNo,
+          rollNo: isACEMStudent ? rollNo : undefined,
           isACEMStudent,
+          collegeName: isACEMStudent ? '' : collegeName,
           isClubMember: selectedClubs.length > 0,
           clubName: selectedClubs,
         },
@@ -190,7 +226,9 @@ const UserDetailsForm = () => {
   };
 
   const getStepIcon = (step) => {
-    const icons = [FaUser, FaGraduationCap, FaCog, FaIdCard, FaUsers];
+    const icons = isACEMStudent
+      ? [FaUser, FaGraduationCap, FaCog, FaIdCard, FaUsers]
+      : [FaUser, FaGraduationCap, FaCog, FaUsers];
     const Icon = icons[step - 1];
     return <Icon className="text-lg" />;
   };
@@ -215,7 +253,7 @@ const UserDetailsForm = () => {
               <p className="text-gray-600">Help us understand your academic level</p>
             </motion.div>
 
-            <motion.div variants={itemVariants} className="relative">
+            <motion.div variants={itemVariants} className="space-y-4">
               <div className="relative">
                 <input
                   type="number"
@@ -234,6 +272,16 @@ const UserDetailsForm = () => {
                   transition={{ duration: 0.3 }}
                   style={{ backgroundColor: '#456882' }}
                 />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={isACEMStudent}
+                  onChange={(e) => setIsACEMStudent(e.target.checked)}
+                  className="w-5 h-5 text-teal-600 focus:ring-teal-600 rounded"
+                  style={{ accentColor: '#456882' }}
+                />
+                <label className="text-gray-700 font-medium">I am an ACEM student</label>
               </div>
             </motion.div>
 
@@ -278,7 +326,10 @@ const UserDetailsForm = () => {
                   transition={{ delay: index * 0.1 }}
                   whileHover={{ scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => setCourse(courseOption)}
+                  onClick={() => {
+                    setCourse(courseOption);
+                    setSpecialization('');
+                  }}
                   className={`p-4 rounded-xl border-2 transition-all duration-300 ${
                     course === courseOption
                       ? 'border-teal-600 bg-teal-50 text-teal-700'
@@ -336,28 +387,29 @@ const UserDetailsForm = () => {
               <div className="inline-flex items-center justify-center w-16 h-16 bg-teal-600 rounded-full mb-4" style={{ backgroundColor: '#456882' }}>
                 <FaCog className="text-white text-2xl" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-2">Your specialization?</h3>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">Select your specialization</h3>
               <p className="text-gray-600">What's your field of study?</p>
             </motion.div>
 
             <motion.div variants={itemVariants} className="relative">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={specialization}
-                  onChange={(e) => setSpecialization(e.target.value)}
-                  placeholder="e.g., Computer Science, Mechanical Engineering"
-                  className="w-full px-6 py-4 text-lg border-0 border-b-3 border-gray-300 bg-transparent focus:border-teal-600 focus:outline-none transition-all duration-300 text-center"
-                  style={{ borderBottomColor: '#456882' }}
-                />
-                <motion.div
-                  className="absolute bottom-0 left-0 h-0.5 bg-teal-600"
-                  initial={{ width: 0 }}
-                  animate={{ width: specialization ? '100%' : '0%' }}
-                  transition={{ duration: 0.3 }}
-                  style={{ backgroundColor: '#456882' }}
-                />
-              </div>
+              <select
+                value={specialization}
+                onChange={(e) => setSpecialization(e.target.value)}
+                className="w-full px-6 py-4 text-lg border-0 border-b-3 border-gray-300 bg-transparent focus:border-teal-600 focus:outline-none transition-all duration-300 text-center font-semibold"
+                style={{ borderBottomColor: '#456882' }}
+              >
+                <option value="" disabled>Select specialization</option>
+                {course && specializations[course]?.map((spec) => (
+                  <option key={spec} value={spec}>{spec}</option>
+                ))}
+              </select>
+              <motion.div
+                className="absolute bottom-0 left-0 h-0.5 bg-teal-600"
+                initial={{ width: 0 }}
+                animate={{ width: specialization ? '100%' : '0%' }}
+                transition={{ duration: 0.3 }}
+                style={{ backgroundColor: '#456882' }}
+              />
             </motion.div>
 
             <motion.div variants={itemVariants} className="flex justify-between">
@@ -383,64 +435,125 @@ const UserDetailsForm = () => {
         );
 
       case 4:
-        return (
-          <motion.div
-            key="rollNo"
-            variants={questionVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            className="space-y-6"
-          >
-            <motion.div variants={itemVariants} className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-teal-600 rounded-full mb-4" style={{ backgroundColor: '#456882' }}>
-                <FaIdCard className="text-white text-2xl" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-2">Your roll number?</h3>
-              <p className="text-gray-600">Enter your student roll number</p>
-            </motion.div>
+        if (isACEMStudent) {
+          return (
+            <motion.div
+              key="rollNo"
+              variants={questionVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
+              <motion.div variants={itemVariants} className="text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-teal-600 rounded-full mb-4" style={{ backgroundColor: '#456882' }}>
+                  <FaIdCard className="text-white text-2xl" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-2">Your roll number?</h3>
+                <p className="text-gray-600">Enter your student roll number</p>
+              </motion.div>
 
-            <motion.div variants={itemVariants} className="relative">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={rollNo}
-                  onChange={(e) => setRollNo(e.target.value)}
-                  placeholder="e.g., ACEM12345"
-                  className="w-full px-6 py-4 text-lg border-0 border-b-3 border-gray-300 bg-transparent focus:border-teal-600 focus:outline-none transition-all duration-300 text-center"
-                  style={{ borderBottomColor: '#456882' }}
-                />
-                <motion.div
-                  className="absolute bottom-0 left-0 h-0.5 bg-teal-600"
-                  initial={{ width: 0 }}
-                  animate={{ width: rollNo ? '100%' : '0%' }}
-                  transition={{ duration: 0.3 }}
+              <motion.div variants={itemVariants} className="relative">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={rollNo}
+                    onChange={(e) => setRollNo(e.target.value)}
+                    placeholder="e.g., ACEM12345"
+                    className="w-full px-6 py-4 text-lg border-0 border-b-3 border-gray-300 bg-transparent focus:border-teal-600 focus:outline-none transition-all duration-300 text-center"
+                    style={{ borderBottomColor: '#456882' }}
+                  />
+                  <motion.div
+                    className="absolute bottom-0 left-0 h-0.5 bg-teal-600"
+                    initial={{ width: 0 }}
+                    animate={{ width: rollNo ? '100%' : '0%' }}
+                    transition={{ duration: 0.3 }}
+                    style={{ backgroundColor: '#456882' }}
+                  />
+                </div>
+              </motion.div>
+
+              <motion.div variants={itemVariants} className="flex justify-between">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handlePrevQuestion}
+                  className="px-6 py-3 text-gray-600 border border-gray-300 rounded-full font-semibold flex items-center gap-2 hover:bg-gray-50 transition-all"
+                >
+                  <FaArrowLeft /> Back
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05, boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleNextQuestion}
+                  className="ripple-btn relative overflow-hidden px-8 py-3 bg-teal-600 text-white rounded-full font-semibold flex items-center gap-2"
                   style={{ backgroundColor: '#456882' }}
-                />
-              </div>
+                >
+                  Next <FaArrowRight />
+                </motion.button>
+              </motion.div>
             </motion.div>
+          );
+        } else {
+          return (
+            <motion.div
+              key="collegeName"
+              variants={questionVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
+              <motion.div variants={itemVariants} className="text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-teal-600 rounded-full mb-4" style={{ backgroundColor: '#456882' }}>
+                  <FaUniversity className="text-white text-2xl" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-2">Your college name</h3>
+                <p className="text-gray-600">Confirm or update your college name</p>
+              </motion.div>
 
-            <motion.div variants={itemVariants} className="flex justify-between">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handlePrevQuestion}
-                className="px-6 py-3 text-gray-600 border border-gray-300 rounded-full font-semibold flex items-center gap-2 hover:bg-gray-50 transition-all"
-              >
-                <FaArrowLeft /> Back
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05, boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleNextQuestion}
-                className="ripple-btn relative overflow-hidden px-8 py-3 bg-teal-600 text-white rounded-full font-semibold flex items-center gap-2"
-                style={{ backgroundColor: '#456882' }}
-              >
-                Next <FaArrowRight />
-              </motion.button>
+              <motion.div variants={itemVariants} className="relative">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={collegeName}
+                    onChange={(e) => setCollegeName(e.target.value)}
+                    placeholder="Enter your college name"
+                    className="w-full px-6 py-4 text-lg border-0 border-b-3 border-gray-300 bg-transparent focus:border-teal-600 focus:outline-none transition-all duration-300 text-center"
+                    style={{ borderBottomColor: '#456882' }}
+                  />
+                  <motion.div
+                    className="absolute bottom-0 left-0 h-0.5 bg-teal-600"
+                    initial={{ width: 0 }}
+                    animate={{ width: collegeName ? '100%' : '0%' }}
+                    transition={{ duration: 0.3 }}
+                    style={{ backgroundColor: '#456882' }}
+                  />
+                </div>
+              </motion.div>
+
+              <motion.div variants={itemVariants} className="flex justify-between">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handlePrevQuestion}
+                  className="px-6 py-3 text-gray-600 border border-gray-300 rounded-full font-semibold flex items-center gap-2 hover:bg-gray-50 transition-all"
+                >
+                  <FaArrowLeft /> Back
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05, boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleNextQuestion}
+                  className="ripple-btn relative overflow-hidden px-8 py-3 bg-teal-600 text-white rounded-full font-semibold flex items-center gap-2"
+                  style={{ backgroundColor: '#456882' }}
+                >
+                  Next <FaArrowRight />
+                </motion.button>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        );
+          );
+        }
 
       case 5:
         return (
@@ -461,16 +574,6 @@ const UserDetailsForm = () => {
             </motion.div>
 
             <motion.div variants={itemVariants} className="space-y-4">
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={isACEMStudent}
-                  onChange={(e) => setIsACEMStudent(e.target.checked)}
-                  className="w-5 h-5 text-teal-600 focus:ring-teal-600 rounded"
-                  style={{ accentColor: '#456882' }}
-                />
-                <label className="text-gray-700 font-medium">I am an ACEM student</label>
-              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {clubs.map((club, index) => (
                   <motion.div
@@ -556,27 +659,29 @@ const UserDetailsForm = () => {
       <FloatingBubble delay={2} size="15px" />
       <FloatingBubble delay={4} size="25px" />
 
-      <style jsx>{`
-        .ripple-effect {
-          position: absolute;
-          border-radius: 50%;
-          background: rgba(69, 104, 130, 0.3);
-          transform: scale(0);
-          animation: ripple 0.6s ease-out;
-          pointer-events: none;
-        }
-
-        @keyframes ripple {
-          to {
-            transform: scale(4);
-            opacity: 0;
+      <style>
+        {`
+          .ripple-effect {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(69, 104, 130, 0.3);
+            transform: scale(0);
+            animation: ripple 0.6s ease-out;
+            pointer-events: none;
           }
-        }
 
-        .border-b-3 {
-          border-bottom-width: 3px;
-        }
-      `}</style>
+          @keyframes ripple {
+            to {
+              transform: scale(4);
+              opacity: 0;
+            }
+          }
+
+          .border-b-3 {
+            border-bottom-width: 3px;
+          }
+        `}
+      </style>
 
       <motion.div
         initial={{ opacity: 0, y: 50 }}
@@ -601,7 +706,7 @@ const UserDetailsForm = () => {
             />
           </div>
           <div className="flex justify-between items-center">
-            {[1, 2, 3, 4, 5].map((step) => (
+            {(isACEMStudent ? [1, 2, 3, 4, 5] : [1, 2, 3, 4]).map((step, index) => (
               <motion.div
                 key={step}
                 className={`flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-300 ${
