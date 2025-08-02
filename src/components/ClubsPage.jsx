@@ -2,8 +2,58 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Search, Users, Calendar, Award, ChevronRight } from "lucide-react";
+import { Search, Users, Calendar, Award, ChevronRight, X } from "lucide-react";
 import Navbar from "../components/Navbar";
+
+// Modal Component
+const Modal = ({ isOpen, onClose, message, isSuccess }) => (
+  <AnimatePresence>
+    {isOpen && (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      >
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.95, opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className={`rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl ${
+            isSuccess ? "bg-green-50" : "bg-red-50"
+          }`}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <p
+              className={`text-lg font-medium ${
+                isSuccess ? "text-green-700" : "text-red-700"
+              }`}
+            >
+              {message}
+            </p>
+            <button
+              onClick={onClose}
+              className="p-1 rounded-full hover:bg-gray-200"
+            >
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+          <button
+            onClick={onClose}
+            className={`w-full py-2 px-4 rounded-lg text-white font-medium ${
+              isSuccess
+                ? "bg-green-600 hover:bg-green-700"
+                : "bg-red-600 hover:bg-red-700"
+            }`}
+          >
+            Close
+          </button>
+        </motion.div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
 
 const ClubsPage = () => {
   const [clubs, setClubs] = useState([]);
@@ -16,6 +66,11 @@ const ClubsPage = () => {
   const [userClubs, setUserClubs] = useState([]);
   const [joinLoading, setJoinLoading] = useState({});
   const [searchFocused, setSearchFocused] = useState(false);
+  const [modal, setModal] = useState({
+    isOpen: false,
+    message: "",
+    isSuccess: false,
+  });
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
@@ -31,8 +86,7 @@ const ClubsPage = () => {
 
       try {
         setLoading(true);
-
-        // Fetch user data for clubs
+        // Fetch user data for clubs and pending clubs
         const userResponse = await axios.get(
           "http://localhost:5000/api/auth/user",
           {
@@ -41,6 +95,8 @@ const ClubsPage = () => {
         );
         const userData = userResponse.data;
         setUserClubs(userData.clubs?.map((club) => club._id || club) || []);
+        const pendingClubs =
+          userData.pendingClubs?.map((club) => club._id || club) || [];
 
         // Fetch all clubs
         const clubsResponse = await axios.get(
@@ -73,19 +129,17 @@ const ClubsPage = () => {
           banner:
             club.banner ||
             club.icon ||
-            "https://via.placeholder.com/150?text=Club+Icon",
+            "https://via.placeholder.com/150?text=Club+Banner",
+          isPending: pendingClubs.includes(club._id), // Check if club._id is in pendingClubs
         }));
 
         setClubs(processedClubs);
         setFilteredClubs(processedClubs);
-
-        // Extract unique categories
         const uniqueCategories = [
           "all",
           ...new Set(processedClubs.map((club) => club.category.toLowerCase())),
         ];
         setCategories(uniqueCategories);
-
         setLoading(false);
       } catch (err) {
         setError(
@@ -99,7 +153,6 @@ const ClubsPage = () => {
         }
       }
     };
-
     fetchData();
   }, [navigate, token]);
 
@@ -116,24 +169,29 @@ const ClubsPage = () => {
           },
         }
       );
-      setUserClubs((prev) => [...prev, clubId]);
+      // Update club to show pending status
       setClubs((prev) =>
         prev.map((club) =>
-          club._id === clubId
-            ? { ...club, memberCount: club.memberCount + 1 }
-            : club
+          club._id === clubId ? { ...club, isPending: true } : club
         )
       );
       setFilteredClubs((prev) =>
         prev.map((club) =>
-          club._id === clubId
-            ? { ...club, memberCount: club.memberCount + 1 }
-            : club
+          club._id === clubId ? { ...club, isPending: true } : club
         )
       );
-      alert("Successfully joined the club!");
+      setModal({
+        isOpen: true,
+        message: "Membership request submitted! Awaiting approval.",
+        isSuccess: true,
+      });
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to join club.");
+      setModal({
+        isOpen: true,
+        message:
+          err.response?.data?.error || "Failed to submit membership request.",
+        isSuccess: false,
+      });
       if (err.response?.status === 401) {
         localStorage.removeItem("token");
         localStorage.removeItem("userId");
@@ -143,18 +201,20 @@ const ClubsPage = () => {
     setJoinLoading((prev) => ({ ...prev, [clubId]: false }));
   };
 
+  const closeModal = () => {
+    setModal({ isOpen: false, message: "", isSuccess: false });
+  };
+
   useEffect(() => {
     let filtered = clubs.filter((club) =>
       (club.name || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
-
     if (selectedCategory !== "all") {
       filtered = filtered.filter(
         (club) =>
           club.category?.toLowerCase() === selectedCategory.toLowerCase()
       );
     }
-
     setFilteredClubs(filtered);
   }, [searchTerm, clubs, selectedCategory]);
 
@@ -177,6 +237,12 @@ const ClubsPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
       <Navbar />
+      <Modal
+        isOpen={modal.isOpen}
+        onClose={closeModal}
+        message={modal.message}
+        isSuccess={modal.isSuccess}
+      />
       <div className="relative overflow-hidden bg-gradient-to-r from-[#456882] to-[#5a7a98] py-16">
         <div className="absolute inset-0 bg-black opacity-10"></div>
         <motion.div
@@ -215,7 +281,6 @@ const ClubsPage = () => {
           </div>
         </motion.div>
       </div>
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -245,7 +310,6 @@ const ClubsPage = () => {
             ))}
           </select>
         </motion.div>
-
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
@@ -347,6 +411,13 @@ const ClubsPage = () => {
                         <span className="font-medium">Explore Club</span>
                         <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                       </Link>
+                    ) : club.isPending ? (
+                      <button
+                        disabled
+                        className="w-full py-2 px-4 rounded-lg text-white font-medium bg-gray-400 cursor-not-allowed"
+                      >
+                        Pending Approval
+                      </button>
                     ) : (
                       <motion.button
                         whileHover={{ scale: 1.02 }}
@@ -372,7 +443,6 @@ const ClubsPage = () => {
             </AnimatePresence>
           </motion.div>
         )}
-
         {!loading && !error && filteredClubs.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}

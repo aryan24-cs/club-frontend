@@ -63,7 +63,7 @@ const StatsCard = memo(({ title, value, icon: Icon }) => (
       <div>
         <p className="text-sm text-gray-600">{title}</p>
         <h3 className="text-lg font-semibold text-gray-900">
-          {typeof value === 'number' ? value : 'N/A'}
+          {typeof value === "number" ? value : "N/A"}
         </h3>
       </div>
       <Icon className="w-6 h-6 text-[#456882]" />
@@ -81,11 +81,15 @@ const ClubCard = memo(({ club, onEdit, onDelete, onView }) => (
   >
     <div className="relative overflow-hidden">
       <img
-        src={club.icon || "https://content3.jdmagicbox.com/v2/comp/faridabad/c2/011pxx11.xx11.180720042429.n1c2/catalogue/aravali-college-of-engineering-and-management-jasana-faridabad-colleges-5hhqg5d110.jpg"}
+        src={
+          club.icon ||
+          "https://content3.jdmagicbox.com/v2/comp/faridabad/c2/011pxx11.xx11.180720042429.n1c2/catalogue/aravali-college-of-engineering-and-management-jasana-faridabad-colleges-5hhqg5d110.jpg"
+        }
         alt={club.name || "Club Icon"}
         className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
         onError={(e) => {
-          e.target.src = "https://content3.jdmagicbox.com/v2/comp/faridabad/c2/011pxx11.xx11.180720042429.n1c2/catalogue/aravali-college-of-engineering-and-management-jasana-faridabad-colleges-5hhqg5d110.jpg";
+          e.target.src =
+            "https://content3.jdmagicbox.com/v2/comp/faridabad/c2/011pxx11.xx11.180720042429.n1c2/catalogue/aravali-college-of-engineering-and-management-jasana-faridabad-colleges-5hhqg5d110.jpg";
           console.warn(
             `Failed to load icon for club ${club.name}: ${club.icon}`
           );
@@ -147,56 +151,117 @@ const ClubCard = memo(({ club, onEdit, onDelete, onView }) => (
 ));
 
 // Membership Request Card Component
-const MembershipRequestCard = memo(({ request, onApprove, onReject }) => (
+const MembershipRequestCard = memo(
+  ({ request, onApprove, onReject, isLoading }) => (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-xl shadow-sm p-4 border border-gray-100"
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-[#456882] rounded-lg flex items-center justify-center text-white text-sm font-semibold">
+            {request.userId?.name?.charAt(0).toUpperCase() || "U"}
+          </div>
+          <div>
+            <h4 className="text-sm font-semibold text-gray-900">
+              {request.userId?.name || "Unknown"}
+            </h4>
+            <p className="text-xs text-gray-500">
+              {request.clubId?.name || "N/A"}
+            </p>
+            <p className="text-xs text-gray-500">
+              {request.userId?.isACEMStudent
+                ? "ACEM Student"
+                : "Non-ACEM Student"}
+            </p>
+          </div>
+        </div>
+        <span
+          className={`px-2 py-1 rounded-full text-xs ${
+            request.status === "pending"
+              ? "bg-yellow-100 text-yellow-700"
+              : request.status === "approved"
+              ? "bg-green-100 text-green-700"
+              : "bg-red-100 text-red-700"
+          }`}
+        >
+          {request.status}
+        </span>
+      </div>
+      {request.status === "pending" && (
+        <div className="flex gap-2 mt-2">
+          <button
+            onClick={() => onApprove(request._id)}
+            disabled={isLoading}
+            className={`flex-1 flex items-center justify-center gap-1 px-3 py-1 rounded-lg text-xs text-white font-medium transition-colors ${
+              isLoading
+                ? "bg-green-400 cursor-not-allowed"
+                : "bg-green-600 hover:bg-green-700"
+            }`}
+          >
+            {isLoading ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <CheckCircle className="w-3 h-3" />
+                Approve
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => onReject(request._id)}
+            disabled={isLoading}
+            className={`flex-1 flex items-center justify-center gap-1 px-3 py-1 rounded-lg text-xs text-white font-medium transition-colors ${
+              isLoading
+                ? "bg-red-400 cursor-not-allowed"
+                : "bg-red-600 hover:bg-red-700"
+            }`}
+          >
+            {isLoading ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <XCircle className="w-3 h-3" />
+                Reject
+              </>
+            )}
+          </button>
+        </div>
+      )}
+    </motion.div>
+  )
+);
+
+// Request History Card Component
+const RequestHistoryCard = memo(({ request }) => (
   <motion.div
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     className="bg-white rounded-xl shadow-sm p-4 border border-gray-100"
   >
-    <div className="flex items-center justify-between mb-2">
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 bg-[#456882] rounded-lg flex items-center justify-center text-white text-sm font-semibold">
-          {request.userId?.name?.charAt(0).toUpperCase() || "U"}
-        </div>
-        <div>
-          <h4 className="text-sm font-semibold text-gray-900">
-            {request.userId?.name || "Unknown"}
-          </h4>
-          <p className="text-xs text-gray-500">{request.clubName || "N/A"}</p>
-          <p className="text-xs text-gray-500">
-            {request.userId?.isACEMStudent ? "ACEM Student" : "Non-ACEM Student"}
-          </p>
-        </div>
+    <div className="flex items-center justify-between">
+      <div>
+        <h4 className="text-sm font-semibold text-gray-900">
+          {request.userId?.name || "Unknown"}
+        </h4>
+        <p className="text-xs text-gray-500">{request.clubId?.name || "N/A"}</p>
+        <p className="text-xs text-gray-500">
+          {new Date(request.updatedAt || request.createdAt).toLocaleString()}
+        </p>
       </div>
       <span
-        className={`px-2 py-1 rounded-full text-xs ${request.status === "pending"
+        className={`px-2 py-1 rounded-full text-xs ${
+          request.status === "pending"
             ? "bg-yellow-100 text-yellow-700"
             : request.status === "approved"
             ? "bg-green-100 text-green-700"
             : "bg-red-100 text-red-700"
-          }`}
+        }`}
       >
         {request.status}
       </span>
     </div>
-    {request.status === "pending" && (
-      <div className="flex gap-2 mt-2">
-        <button
-          onClick={() => onApprove(request._id)}
-          className="flex-1 flex items-center justify-center gap-1 px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 text-xs"
-        >
-          <CheckCircle className="w-3 h-3" />
-          Approve
-        </button>
-        <button
-          onClick={() => onReject(request._id)}
-          className="flex-1 flex items-center justify-center gap-1 px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-xs"
-        >
-          <XCircle className="w-3 h-3" />
-          Reject
-        </button>
-      </div>
-    )}
   </motion.div>
 ));
 
@@ -212,7 +277,9 @@ const AttendanceCard = memo(({ attendance, onView, onDownload }) => (
         <h4 className="text-sm font-semibold text-gray-900">
           {attendance.event?.title || "Event"}
         </h4>
-        <p className="text-xs text-gray-500">{attendance.club?.name || "Club"}</p>
+        <p className="text-xs text-gray-500">
+          {attendance.club?.name || "Club"}
+        </p>
         <p className="text-xs text-gray-500">
           {new Date(attendance.date).toLocaleDateString()}
         </p>
@@ -250,7 +317,9 @@ const PracticeAttendanceCard = memo(({ attendance, onView, onDownload }) => (
         <h4 className="text-sm font-semibold text-gray-900">
           {attendance.title || "Practice Session"}
         </h4>
-        <p className="text-xs text-gray-500">{attendance.club?.name || "Club"}</p>
+        <p className="text-xs text-gray-500">
+          {attendance.club?.name || "Club"}
+        </p>
         <p className="text-xs text-gray-500">
           {new Date(attendance.date).toLocaleDateString()}
         </p>
@@ -283,14 +352,18 @@ const SuperAdminDashboard = () => {
   const [user, setUser] = useState(null);
   const [clubs, setClubs] = useState([]);
   const [membershipRequests, setMembershipRequests] = useState([]);
+  const [allMembershipRequests, setAllMembershipRequests] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
-  const [practiceAttendanceRecords, setPracticeAttendanceRecords] = useState([]);
+  const [practiceAttendanceRecords, setPracticeAttendanceRecords] = useState(
+    []
+  );
   const [categories, setCategories] = useState(["all"]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const [requestLoading, setRequestLoading] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -324,12 +397,13 @@ const SuperAdminDashboard = () => {
           config
         );
         const processedClubs = clubsResponse.data
-          .filter((club) =>
-            club.creator?._id?.toString() === userData._id?.toString() ||
-            club.superAdmins?.some(
-              (admin) => admin?._id?.toString() === userData._id?.toString()
-            ) ||
-            userData.headCoordinatorClubs?.includes(club.name)
+          .filter(
+            (club) =>
+              club.creator?._id?.toString() === userData._id?.toString() ||
+              club.superAdmins?.some(
+                (admin) => admin?._id?.toString() === userData._id?.toString()
+              ) ||
+              userData.headCoordinatorClubs?.includes(club.name)
           )
           .map((club) => ({
             ...club,
@@ -369,13 +443,17 @@ const SuperAdminDashboard = () => {
           setError("You do not have access to manage any clubs.");
         }
 
-        // Fetch membership requests
+        // Fetch all membership requests
         const requestsResponse = await axios.get(
-          "http://localhost:5000/api/membership-requests",
+          "http://localhost:5000/api/membership-requests?all=true",
           config
         );
-        const filteredRequests = requestsResponse.data.filter((request) =>
-          processedClubs.some((club) => club.name === request.clubName)
+        const allRequests = requestsResponse.data;
+        setAllMembershipRequests(allRequests);
+        const filteredRequests = allRequests.filter(
+          (request) =>
+            request.status === "pending" &&
+            processedClubs.some((club) => club._id === request.clubId?._id)
         );
         setMembershipRequests(filteredRequests);
 
@@ -425,14 +503,30 @@ const SuperAdminDashboard = () => {
   }, [navigate]);
 
   const handleApprove = async (requestId) => {
+    setRequestLoading((prev) => ({ ...prev, [requestId]: true }));
     try {
       const token = localStorage.getItem("token");
-      await axios.patch(
+      const response = await axios.patch(
         `http://localhost:5000/api/membership-requests/${requestId}`,
         { status: "approved" },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      const request = allMembershipRequests.find(
+        (req) => req._id === requestId
+      );
+      if (request) {
+        setClubs((prev) =>
+          prev.map((club) =>
+            club._id === request.clubId?._id
+              ? { ...club, memberCount: (club.memberCount || 0) + 1 }
+              : club
+          )
+        );
+      }
       setMembershipRequests((prev) =>
+        prev.filter((req) => req._id !== requestId)
+      );
+      setAllMembershipRequests((prev) =>
         prev.map((req) =>
           req._id === requestId ? { ...req, status: "approved" } : req
         )
@@ -440,12 +534,25 @@ const SuperAdminDashboard = () => {
       setSuccess("Membership request approved successfully.");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to approve request.");
+      const errorMessage =
+        err.response?.data?.error || "Failed to approve request.";
+      setError(errorMessage);
       setTimeout(() => setError(""), 3000);
+      if (errorMessage.includes("Club") && errorMessage.includes("not found")) {
+        setMembershipRequests((prev) =>
+          prev.filter((req) => req._id !== requestId)
+        );
+        setAllMembershipRequests((prev) =>
+          prev.filter((req) => req._id !== requestId)
+        );
+      }
+    } finally {
+      setRequestLoading((prev) => ({ ...prev, [requestId]: false }));
     }
   };
 
   const handleReject = async (requestId) => {
+    setRequestLoading((prev) => ({ ...prev, [requestId]: true }));
     try {
       const token = localStorage.getItem("token");
       await axios.patch(
@@ -454,6 +561,9 @@ const SuperAdminDashboard = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMembershipRequests((prev) =>
+        prev.filter((req) => req._id !== requestId)
+      );
+      setAllMembershipRequests((prev) =>
         prev.map((req) =>
           req._id === requestId ? { ...req, status: "rejected" } : req
         )
@@ -461,8 +571,20 @@ const SuperAdminDashboard = () => {
       setSuccess("Membership request rejected successfully.");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to reject request.");
+      const errorMessage =
+        err.response?.data?.error || "Failed to reject request.";
+      setError(errorMessage);
       setTimeout(() => setError(""), 3000);
+      if (errorMessage.includes("Club") && errorMessage.includes("not found")) {
+        setMembershipRequests((prev) =>
+          prev.filter((req) => req._id !== requestId)
+        );
+        setAllMembershipRequests((prev) =>
+          prev.filter((req) => req._id !== requestId)
+        );
+      }
+    } finally {
+      setRequestLoading((prev) => ({ ...prev, [requestId]: false }));
     }
   };
 
@@ -474,6 +596,12 @@ const SuperAdminDashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setClubs((prev) => prev.filter((c) => c._id !== club._id));
+      setMembershipRequests((prev) =>
+        prev.filter((req) => req.clubId?._id !== club._id)
+      );
+      setAllMembershipRequests((prev) =>
+        prev.filter((req) => req.clubId?._id !== club._id)
+      );
       setSuccess(`Club ${club.name} deleted successfully.`);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
@@ -495,7 +623,10 @@ const SuperAdminDashboard = () => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `Attendance_Report_${attendance.event?.title || "Event"}.docx`);
+      link.setAttribute(
+        "download",
+        `Attendance_Report_${attendance.event?.title || "Event"}.docx`
+      );
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -503,7 +634,9 @@ const SuperAdminDashboard = () => {
       setSuccess("Attendance report downloaded successfully.");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to download attendance report.");
+      setError(
+        err.response?.data?.error || "Failed to download attendance report."
+      );
       setTimeout(() => setError(""), 3000);
     }
   };
@@ -521,7 +654,10 @@ const SuperAdminDashboard = () => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `Practice_Attendance_Report_${attendance.title || "Session"}.docx`);
+      link.setAttribute(
+        "download",
+        `Practice_Attendance_Report_${attendance.title || "Session"}.docx`
+      );
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -529,7 +665,10 @@ const SuperAdminDashboard = () => {
       setSuccess("Practice attendance report downloaded successfully.");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to download practice attendance report.");
+      setError(
+        err.response?.data?.error ||
+          "Failed to download practice attendance report."
+      );
       setTimeout(() => setError(""), 3000);
     }
   };
@@ -552,18 +691,47 @@ const SuperAdminDashboard = () => {
           request.userId?.name
             ?.toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
-          request.clubName?.toLowerCase().includes(searchTerm.toLowerCase())
+          request.clubId?.name?.toLowerCase().includes(searchTerm.toLowerCase())
       ),
     [membershipRequests, searchTerm]
+  );
+
+  const filteredAllRequests = useMemo(
+    () =>
+      allMembershipRequests
+        .filter(
+          (request) =>
+            (request.userId?.name
+              ?.toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
+              request.clubId?.name
+                ?.toLowerCase()
+                .includes(searchTerm.toLowerCase())) &&
+            (selectedFilter === "all" ||
+              clubs
+                .find((club) => club._id === request.clubId?._id)
+                ?.category?.toLowerCase() === selectedFilter.toLowerCase())
+        )
+        .sort(
+          (a, b) =>
+            new Date(b.updatedAt || b.createdAt) -
+            new Date(a.updatedAt || a.createdAt)
+        ),
+    [allMembershipRequests, searchTerm, selectedFilter, clubs]
   );
 
   const filteredAttendanceRecords = useMemo(
     () =>
       attendanceRecords.filter(
         (record) =>
-          record.event?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          record.event?.title
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
           record.club?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          new Date(record.date).toLocaleDateString().toLowerCase().includes(searchTerm.toLowerCase())
+          new Date(record.date)
+            .toLocaleDateString()
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase())
       ),
     [attendanceRecords, searchTerm]
   );
@@ -574,7 +742,10 @@ const SuperAdminDashboard = () => {
         (record) =>
           record.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           record.club?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          new Date(record.date).toLocaleDateString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+          new Date(record.date)
+            .toLocaleDateString()
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
           record.roomNo?.toLowerCase().includes(searchTerm.toLowerCase())
       ),
     [practiceAttendanceRecords, searchTerm]
@@ -597,12 +768,6 @@ const SuperAdminDashboard = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[...Array(4)].map((_, i) => (
                     <div key={i} className="h-48 bg-gray-200 rounded-xl"></div>
-                  ))}
-                </div>
-                <div className="h-8 bg-gray-200 rounded"></div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className="h-32 bg-gray-200 rounded-xl"></div>
                   ))}
                 </div>
                 <div className="h-8 bg-gray-200 rounded"></div>
@@ -642,7 +807,8 @@ const SuperAdminDashboard = () => {
                   Super Admin Dashboard
                 </h1>
                 <p className="text-sm text-gray-600">
-                  Welcome, {user?.name || "Super Admin"}! Manage clubs, membership requests, and attendance.
+                  Welcome, {user?.name || "Super Admin"}! Manage clubs,
+                  membership requests, and attendance.
                 </p>
               </div>
               <div className="flex gap-2">
@@ -736,7 +902,9 @@ const SuperAdminDashboard = () => {
             />
             <StatsCard
               title="Attendance Records"
-              value={attendanceRecords.length + practiceAttendanceRecords.length}
+              value={
+                attendanceRecords.length + practiceAttendanceRecords.length
+              }
               icon={FileText}
             />
           </div>
@@ -770,7 +938,7 @@ const SuperAdminDashboard = () => {
                             {category === "all"
                               ? "All Categories"
                               : category.charAt(0).toUpperCase() +
-                              category.slice(1)}
+                                category.slice(1)}
                           </option>
                         ))}
                       </select>
@@ -808,15 +976,15 @@ const SuperAdminDashboard = () => {
                   Membership Requests
                   {filteredRequests.filter((req) => req.status === "pending")
                     .length > 0 && (
-                      <span className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">
-                        {
-                          filteredRequests.filter(
-                            (req) => req.status === "pending"
-                          ).length
-                        }{" "}
-                        pending
-                      </span>
-                    )}
+                    <span className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">
+                      {
+                        filteredRequests.filter(
+                          (req) => req.status === "pending"
+                        ).length
+                      }{" "}
+                      pending
+                    </span>
+                  )}
                 </h2>
                 {filteredRequests.length === 0 ? (
                   <div className="bg-white rounded-xl shadow-sm p-6 text-center">
@@ -833,13 +1001,38 @@ const SuperAdminDashboard = () => {
                         request={request}
                         onApprove={handleApprove}
                         onReject={handleReject}
+                        isLoading={requestLoading[request._id]}
                       />
                     ))}
                   </div>
                 )}
               </div>
 
-              {/* {Removed the attendance schema} */}
+              {/* Request History */}
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Membership Request History
+                  {filteredAllRequests.length > 0 && (
+                    <span className="ml-2 px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+                      {filteredAllRequests.length} total
+                    </span>
+                  )}
+                </h2>
+                {filteredAllRequests.length === 0 ? (
+                  <div className="bg-white rounded-xl shadow-sm p-6 text-center">
+                    <FileText className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">
+                      No request history available.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {filteredAllRequests.map((request) => (
+                      <RequestHistoryCard key={request._id} request={request} />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
