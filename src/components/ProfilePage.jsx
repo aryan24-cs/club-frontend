@@ -106,29 +106,22 @@ const ProfilePage = () => {
 
         const formattedClubs = clubsResponse.data
           .filter((club) => Array.isArray(userData.clubName) && userData.clubName.includes(club.name))
-          .map((club) => ({
-            id: club._id || "",
-            name: club.name || "",
-            role:
-              userData.isHeadCoordinator &&
+          .map((club) => {
+            const isHeadCoordinator = userData.isHeadCoordinator &&
               Array.isArray(userData.headCoordinatorClubs) &&
-              userData.headCoordinatorClubs.includes(club.name)
-                ? "Head Coordinator"
-                : userData.isAdmin
-                ? "Admin"
-                : "Member",
-            joinedAt: userData.createdAt || new Date(),
-            badge:
-              club.category === "Technical"
-                ? "🚀"
-                : club.category === "Cultural"
-                ? "🎭"
-                : club.category === "Literary"
-                ? "📚"
-                : club.category === "Entrepreneurial"
-                ? "💼"
-                : "💡",
-          }));
+              userData.headCoordinatorClubs.includes(club.name);
+            return {
+              id: club._id || "",
+              name: club.name || "",
+              role: userData.isAdmin ? "Admin" : isHeadCoordinator ? "Head Coordinator" : "Member",
+              joinedAt: userData.createdAt || new Date(),
+              badge: club.category === "Technical" ? "🚀" :
+                    club.category === "Cultural" ? "🎭" :
+                    club.category === "Literary" ? "📚" :
+                    club.category === "Entrepreneurial" ? "💼" : "💡",
+              headCoordinators: club.headCoordinators || [],
+            };
+          });
 
         const userEvents = eventsResponse.data.filter((event) =>
           Array.isArray(userData.clubName) && userData.clubName.includes(event.club?.name)
@@ -537,6 +530,7 @@ const ProfilePage = () => {
                             ? "border-gray-300 focus:ring-2 focus:ring-teal-600"
                             : "border-gray-200 bg-gray-50"
                         } focus:outline-none`}
+                        placeholder="+1234567890"
                       />
                     </div>
                     <div>
@@ -752,6 +746,18 @@ const ProfilePage = () => {
                             Joined:{" "}
                             {new Date(club.joinedAt).toLocaleDateString()}
                           </p>
+                          {club.role === "Head Coordinator" && (
+                            <div className="mt-2">
+                              <p className="text-sm font-semibold text-gray-700">Coordinator Contact:</p>
+                              <ul className="text-sm text-gray-600">
+                                {club.headCoordinators.map((coordinator, index) => (
+                                  <li key={index}>
+                                    {coordinator.name} ({coordinator.email}, {coordinator.phone || "No phone"})
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex space-x-2">
