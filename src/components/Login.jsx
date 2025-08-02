@@ -20,7 +20,7 @@ import {
   FaEnvelope,
 } from "react-icons/fa";
 
-// Floating Particles Component (matching landing page)
+// Floating Particle Component (unchanged)
 const FloatingParticle = ({ delay, duration }) => {
   return (
     <motion.div
@@ -45,7 +45,7 @@ const FloatingParticle = ({ delay, duration }) => {
   );
 };
 
-// Enhanced OTP Input Component
+// Enhanced OTP Input Component (minor improvements)
 const OtpInput = ({ otp, setOtp, otpFocused, setOtpFocused }) => {
   const inputRefs = useRef([]);
   const OTP_LENGTH = 6;
@@ -70,6 +70,7 @@ const OtpInput = ({ otp, setOtp, otpFocused, setOtpFocused }) => {
     const pastedData = e.clipboardData
       .getData("text")
       .slice(0, OTP_LENGTH)
+      .replace(/\D/g, "") // Only digits
       .trim();
     if (/^\d{6}$/.test(pastedData)) {
       setOtp(pastedData);
@@ -95,13 +96,12 @@ const OtpInput = ({ otp, setOtp, otpFocused, setOtpFocused }) => {
             onBlur={() => setOtpFocused(null)}
             whileFocus={{ scale: 1.05 }}
             whileHover={{ scale: 1.02 }}
-            className={`w-12 h-12 text-center text-xl font-semibold border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#456882]/50 transition-all duration-300 bg-white/80 backdrop-blur-sm ${
-              otpFocused === index
+            className={`w-12 h-12 text-center text-xl font-semibold border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#456882]/50 transition-all duration-300 bg-white/80 backdrop-blur-sm ${otpFocused === index
                 ? "border-[#456882] shadow-lg bg-white"
                 : otp[index]
-                ? "border-green-500 bg-green-50"
-                : "border-gray-300 hover:border-gray-400"
-            }`}
+                  ? "border-green-500 bg-green-50"
+                  : "border-gray-300 hover:border-gray-400"
+              }`}
             aria-label={`OTP digit ${index + 1}`}
           />
         ))}
@@ -109,7 +109,7 @@ const OtpInput = ({ otp, setOtp, otpFocused, setOtpFocused }) => {
   );
 };
 
-// Animated Background Grid
+// Animated Background Grid (unchanged)
 const AnimatedGrid = () => {
   return (
     <div className="absolute inset-0 overflow-hidden opacity-10">
@@ -168,7 +168,6 @@ const Login = () => {
     restDelta: 0.001,
   });
 
-  // Particles array
   const particles = Array.from({ length: 12 }, (_, i) => ({
     delay: i * 1.5,
     duration: 12 + Math.random() * 8,
@@ -177,17 +176,25 @@ const Login = () => {
   const handleSendOtp = async () => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError("Please enter a valid email address");
+      setTimeout(() => setError(""), 3000);
       return;
     }
     setError("");
     setLoading(true);
     try {
+      console.log("Sending OTP to:", email);
       await axios.post("http://localhost:5000/api/auth/send-otp", { email });
       setOtpSent(true);
-      setUseOtp(true);
       setSuccess("OTP sent to your email.");
+      setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
+      console.error("Send OTP error:", {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+      });
       setError(err.response?.data?.error || "Failed to send OTP. Try again.");
+      setTimeout(() => setError(""), 3000);
     }
     setLoading(false);
   };
@@ -195,15 +202,18 @@ const Login = () => {
   const handlePasswordLogin = async () => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError("Please enter a valid email address");
+      setTimeout(() => setError(""), 3000);
       return;
     }
     if (!password) {
       setError("Please enter a password");
+      setTimeout(() => setError(""), 3000);
       return;
     }
     setError("");
     setLoading(true);
     try {
+      console.log("Attempting password login for:", email);
       const res = await axios.post(
         "http://localhost:5000/api/auth/login-password",
         { email, password }
@@ -211,7 +221,13 @@ const Login = () => {
       localStorage.setItem("token", res.data.token);
       navigate("/dashboard");
     } catch (err) {
+      console.error("Password login error:", {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+      });
       setError(err.response?.data?.error || "Invalid credentials. Try again.");
+      setTimeout(() => setError(""), 3000);
     }
     setLoading(false);
   };
@@ -219,11 +235,13 @@ const Login = () => {
   const handleVerifyOtp = async () => {
     if (!otp || !/^\d{6}$/.test(otp)) {
       setError("Please enter a valid 6-digit OTP");
+      setTimeout(() => setError(""), 3000);
       return;
     }
     setError("");
     setLoading(true);
     try {
+      console.log("Verifying OTP for:", { email, otp });
       const res = await axios.post(
         "http://localhost:5000/api/auth/verify-otp-login",
         { email, otp }
@@ -231,7 +249,13 @@ const Login = () => {
       localStorage.setItem("token", res.data.token);
       navigate("/dashboard");
     } catch (err) {
+      console.error("Verify OTP error:", {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+      });
       setError(err.response?.data?.error || "Invalid OTP. Try again.");
+      setTimeout(() => setError(""), 3000);
     }
     setLoading(false);
   };
@@ -239,20 +263,29 @@ const Login = () => {
   const handleResetPasswordRequest = async () => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resetEmail)) {
       setError("Please enter a valid email address");
+      setTimeout(() => setError(""), 3000);
       return;
     }
     setError("");
     setSuccess("");
     setLoading(true);
     try {
+      console.log("Requesting password reset OTP for:", resetEmail);
       await axios.post(
         "http://localhost:5000/api/auth/reset-password-otp-request",
         { email: resetEmail }
       );
       setResetOtpSent(true);
       setSuccess("OTP sent to your email for password reset.");
+      setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
+      console.error("Reset password OTP request error:", {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+      });
       setError(err.response?.data?.error || "Failed to send OTP. Try again.");
+      setTimeout(() => setError(""), 3000);
     }
     setLoading(false);
   };
@@ -260,20 +293,35 @@ const Login = () => {
   const handleVerifyResetOtp = async () => {
     if (!resetOtp || !/^\d{6}$/.test(resetOtp)) {
       setError("Please enter a valid 6-digit OTP");
+      setTimeout(() => setError(""), 3000);
       return;
     }
     setError("");
     setSuccess("");
     setLoading(true);
     try {
+      console.log("Verifying reset OTP for:", { email: resetEmail, otp: resetOtp });
       const res = await axios.post(
         "http://localhost:5000/api/auth/verify-reset-otp",
         { email: resetEmail, otp: resetOtp }
       );
       setShowNewPasswordForm(true);
       setSuccess("OTP verified successfully. Please enter your new password.");
+      setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.response?.data?.error || "Invalid OTP. Try again.");
+      console.error("Verify reset OTP error:", {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+      });
+      setError(
+        err.response?.data?.error === "Invalid OTP"
+          ? "The OTP entered is incorrect. Please check and try again."
+          : err.response?.data?.error === "Expired OTP"
+            ? "The OTP has expired. Please request a new one."
+            : err.response?.data?.error || "Failed to verify OTP. Try again."
+      );
+      setTimeout(() => setError(""), 3000);
     }
     setLoading(false);
   };
@@ -281,18 +329,21 @@ const Login = () => {
   const handleResetPassword = async () => {
     if (!newPassword || newPassword.length < 6) {
       setError("Password must be at least 6 characters long");
+      setTimeout(() => setError(""), 3000);
       return;
     }
     setError("");
     setSuccess("");
     setLoading(true);
     try {
+      console.log("Resetting password for:", { email: resetEmail, otp: resetOtp });
       await axios.post("http://localhost:5000/api/auth/reset-password", {
         email: resetEmail,
         otp: resetOtp,
         newPassword,
       });
       setSuccess("Password reset successfully. Please log in.");
+      setTimeout(() => setSuccess(""), 3000);
       setShowResetForm(false);
       setShowNewPasswordForm(false);
       setResetOtpSent(false);
@@ -300,11 +351,32 @@ const Login = () => {
       setResetOtp("");
       setNewPassword("");
     } catch (err) {
+      console.error("Reset password error:", {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+      });
       setError(
-        err.response?.data?.error || "Failed to reset password. Try again."
+        err.response?.data?.error === "Invalid OTP"
+          ? "The OTP entered is incorrect. Please check and try again."
+          : err.response?.data?.error === "Expired OTP"
+            ? "The OTP has expired. Please request a new one."
+            : err.response?.data?.error || "Failed to reset password. Try again."
       );
+      setTimeout(() => setError(""), 3000);
     }
     setLoading(false);
+  };
+
+  // Handle "Use OTP Instead" click
+  const handleToggleOtp = async () => {
+    setUseOtp(!useOtp);
+    setOtp(""); // Reset OTP input
+    setOtpSent(false); // Reset OTP sent state
+    if (!useOtp && email) {
+      // If switching to OTP and email is provided, send OTP immediately
+      await handleSendOtp();
+    }
   };
 
   const labelVariants = {
@@ -312,36 +384,29 @@ const Login = () => {
     floating: { y: -24, scale: 0.85, color: "#456882" },
   };
 
-  // Progress steps
   const steps = ["Enter Email", "Verify OTP", "Login"];
   const resetSteps = ["Enter Email", "Verify OTP", "Set Password"];
   const currentStep = showResetForm
     ? showNewPasswordForm
       ? 2
       : resetOtpSent
+        ? 1
+        : 0
+    : otpSent
       ? 1
-      : 0
-    : !otpSent
-    ? 0
-    : !useOtp
-    ? 2
-    : 1;
+      : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center relative overflow-hidden">
-      {/* Floating Particles */}
       {particles.map((particle, index) => (
         <FloatingParticle key={index} {...particle} />
       ))}
 
-      {/* Animated Background Elements */}
       <motion.div
         style={{ y: smoothY }}
         className="absolute inset-0 overflow-hidden"
       >
         <AnimatedGrid />
-
-        {/* Floating geometric shapes */}
         <motion.div
           animate={{
             scale: [1, 1.2, 1],
@@ -368,7 +433,6 @@ const Login = () => {
         />
       </motion.div>
 
-      {/* Back to Landing Button */}
       <motion.button
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
@@ -382,19 +446,15 @@ const Login = () => {
         <span className="font-medium">Back to Home</span>
       </motion.button>
 
-      {/* Main Login Card */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 50 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.8, type: "spring", stiffness: 100 }}
         className="w-full max-w-md mx-4 relative z-10"
       >
-        {/* Glass Card */}
         <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8 relative overflow-hidden">
-          {/* Gradient overlay */}
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#456882] to-[#5a7a95]"></div>
 
-          {/* Club Logo */}
           <motion.div
             className="flex justify-center mb-8"
             initial={{ y: -20, opacity: 0 }}
@@ -418,7 +478,6 @@ const Login = () => {
             </motion.div>
           </motion.div>
 
-          {/* Title */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -435,24 +494,21 @@ const Login = () => {
             </p>
           </motion.div>
 
-          {/* Enhanced Progress Indicator */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.7 }}
             className="flex justify-between mb-8 relative"
           >
-            {/* Progress Line */}
             <div className="absolute top-4 left-0 w-full h-0.5 bg-gray-200 rounded-full">
               <motion.div
                 className="h-full bg-gradient-to-r from-[#456882] to-[#5a7a95] rounded-full"
                 initial={{ width: "0%" }}
                 animate={{
-                  width: `${
-                    ((currentStep + 1) /
+                  width: `${((currentStep + 1) /
                       (showResetForm ? resetSteps.length : steps.length)) *
                     100
-                  }%`,
+                    }%`,
                 }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
               />
@@ -464,9 +520,8 @@ const Login = () => {
                 className="flex flex-col items-center relative z-10"
               >
                 <motion.div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold relative ${
-                    index <= currentStep ? "bg-[#456882]" : "bg-gray-300"
-                  }`}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold relative ${index <= currentStep ? "bg-[#456882]" : "bg-gray-300"
+                    }`}
                   animate={{
                     scale: index === currentStep ? 1.1 : 1,
                     boxShadow:
@@ -496,7 +551,6 @@ const Login = () => {
             ))}
           </motion.div>
 
-          {/* Form Content */}
           <div className="space-y-6">
             <AnimatePresence mode="wait">
               {showResetForm ? (
@@ -521,7 +575,6 @@ const Login = () => {
                         <p className="text-gray-600">Enter your new password</p>
                       </div>
 
-                      {/* New Password Input */}
                       <div className="relative">
                         <motion.div
                           className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
@@ -568,7 +621,6 @@ const Login = () => {
                         </motion.button>
                       </div>
 
-                      {/* Success Message */}
                       <AnimatePresence>
                         {success && (
                           <motion.div
@@ -584,7 +636,6 @@ const Login = () => {
                         )}
                       </AnimatePresence>
 
-                      {/* Error Message */}
                       <AnimatePresence>
                         {error && (
                           <motion.div
@@ -600,7 +651,6 @@ const Login = () => {
                         )}
                       </AnimatePresence>
 
-                      {/* Reset Password Button */}
                       <motion.button
                         whileHover={{
                           scale: 1.02,
@@ -641,7 +691,6 @@ const Login = () => {
                         )}
                       </motion.button>
 
-                      {/* Back to Login */}
                       <motion.div
                         whileHover={{ scale: 1.02 }}
                         className="text-center"
@@ -698,7 +747,6 @@ const Login = () => {
                         />
                       </div>
 
-                      {/* Success Message */}
                       <AnimatePresence>
                         {success && (
                           <motion.div
@@ -714,7 +762,6 @@ const Login = () => {
                         )}
                       </AnimatePresence>
 
-                      {/* Error Message */}
                       <AnimatePresence>
                         {error && (
                           <motion.div
@@ -730,7 +777,6 @@ const Login = () => {
                         )}
                       </AnimatePresence>
 
-                      {/* Verify OTP Button */}
                       <motion.button
                         whileHover={{
                           scale: 1.02,
@@ -771,7 +817,6 @@ const Login = () => {
                         )}
                       </motion.button>
 
-                      {/* Resend OTP */}
                       <motion.div
                         whileHover={{ scale: 1.02 }}
                         className="text-center"
@@ -808,7 +853,6 @@ const Login = () => {
                       </p>
                     </div>
 
-                    {/* Reset Email Input */}
                     <div className="relative">
                       <motion.div
                         className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
@@ -844,7 +888,6 @@ const Login = () => {
                       />
                     </div>
 
-                    {/* Success Message */}
                     <AnimatePresence>
                       {success && (
                         <motion.div
@@ -860,7 +903,6 @@ const Login = () => {
                       )}
                     </AnimatePresence>
 
-                    {/* Error Message */}
                     <AnimatePresence>
                       {error && (
                         <motion.div
@@ -876,7 +918,6 @@ const Login = () => {
                       )}
                     </AnimatePresence>
 
-                    {/* Send OTP Button */}
                     <motion.button
                       whileHover={{
                         scale: 1.02,
@@ -917,7 +958,6 @@ const Login = () => {
                       )}
                     </motion.button>
 
-                    {/* Back to Login */}
                     <motion.div
                       whileHover={{ scale: 1.02 }}
                       className="text-center"
@@ -945,7 +985,6 @@ const Login = () => {
                   transition={{ duration: 0.5 }}
                   className="space-y-6"
                 >
-                  {/* Email Input */}
                   <div className="relative">
                     <motion.div
                       className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
@@ -974,138 +1013,216 @@ const Login = () => {
                     />
                   </div>
 
-                  {/* Password Input (when not using OTP) */}
-                  {!useOtp && (
+                  {otpSent ? (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
-                      className="relative"
+                      className="space-y-4"
                     >
-                      <motion.div
-                        className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
-                        animate={{
-                          color:
-                            passwordFocused || password ? "#456882" : "#9CA3AF",
-                        }}
-                      >
-                        <FaLock />
-                      </motion.div>
-                      <motion.label
-                        className="absolute left-12 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium pointer-events-none transition-all duration-300"
-                        animate={
-                          passwordFocused || password ? "floating" : "resting"
-                        }
-                        variants={labelVariants}
-                      >
-                        Password
-                      </motion.label>
-                      <motion.input
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value.trim())}
-                        onFocus={() => setPasswordFocused(true)}
-                        onBlur={() => setPasswordFocused(false)}
-                        whileFocus={{ scale: 1.02 }}
-                        className="w-full pl-12 pr-12 py-4 border-2 border-gray-200 rounded-xl text-gray-900 bg-gray-50/50 focus:outline-none focus:border-[#456882] focus:ring-2 focus:ring-[#456882]/20 transition-all duration-300"
-                        aria-label="Password"
+                      <label className="block text-center text-gray-700 font-medium text-sm">
+                        Enter Verification Code
+                      </label>
+                      <OtpInput
+                        otp={otp}
+                        setOtp={setOtp}
+                        otpFocused={otpFocused}
+                        setOtpFocused={setOtpFocused}
                       />
                       <motion.button
-                        type="button"
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-[#456882] transition-colors"
+                        whileHover={{
+                          scale: 1.02,
+                          boxShadow: "0 10px 25px rgba(69, 104, 130, 0.2)",
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleVerifyOtp}
+                        disabled={loading}
+                        className="w-full py-4 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl font-semibold hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center justify-center relative overflow-hidden"
+                        aria-label="Verify OTP"
                       >
-                        {showPassword ? <FaEyeSlash /> : <FaEye />}
-                      </motion.button>
-                    </motion.div>
-                  )}
-
-                  {/* Error Message */}
-                  <AnimatePresence>
-                    {error && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        className="p-3 bg-red-50 border border-red-200 rounded-lg"
-                      >
-                        <p className="text-red-600 text-sm font-medium text-center">
-                          {error}
-                        </p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* Login Button */}
-                  <motion.button
-                    whileHover={{
-                      scale: 1.02,
-                      boxShadow: "0 10px 25px rgba(69, 104, 130, 0.2)",
-                    }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={useOtp ? handleSendOtp : handlePasswordLogin}
-                    disabled={loading}
-                    className="w-full py-4 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl font-semibold hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center justify-center relative overflow-hidden"
-                    aria-label={useOtp ? "Send OTP" : "Login"}
-                  >
-                    <motion.div
-                      className="absolute inset-0 bg-white/20"
-                      initial={{ x: "-100%" }}
-                      whileHover={{ x: "100%" }}
-                      transition={{ duration: 0.8 }}
-                    />
-                    {loading ? (
-                      <>
                         <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{
-                            duration: 1,
-                            repeat: Infinity,
-                            ease: "linear",
-                          }}
-                          className="flex items-center gap-2"
+                          className="absolute inset-0 bg-white/20"
+                          initial={{ x: "-100%" }}
+                          whileHover={{ x: "100%" }}
+                          transition={{ duration: 0.8 }}
+                        />
+                        {loading ? (
+                          <>
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{
+                                duration: 1,
+                                repeat: Infinity,
+                                ease: "linear",
+                              }}
+                              className="flex items-center gap-2"
+                            >
+                              <FaSpinner />
+                            </motion.div>
+                            Verifying...
+                          </>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <FaCheckCircle />
+                            Verify OTP
+                          </div>
+                        )}
+                      </motion.button>
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="text-center"
+                      >
+                        <button
+                          onClick={handleSendOtp}
+                          disabled={loading}
+                          className="text-[#456882] hover:text-[#5a7a95] font-medium hover:underline transition-all duration-300 disabled:opacity-50"
                         >
-                          <FaSpinner />
+                          Resend OTP
+                        </button>
+                      </motion.div>
+                    </motion.div>
+                  ) : (
+                    <>
+                      {!useOtp && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          className="relative"
+                        >
+                          <motion.div
+                            className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
+                            animate={{
+                              color:
+                                passwordFocused || password
+                                  ? "#456882"
+                                  : "#9CA3AF",
+                            }}
+                          >
+                            <FaLock />
+                          </motion.div>
+                          <motion.label
+                            className="absolute left-12 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium pointer-events-none transition-all duration-300"
+                            animate={
+                              passwordFocused || password
+                                ? "floating"
+                                : "resting"
+                            }
+                            variants={labelVariants}
+                          >
+                            Password
+                          </motion.label>
+                          <motion.input
+                            type={showPassword ? "text" : "password"}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value.trim())}
+                            onFocus={() => setPasswordFocused(true)}
+                            onBlur={() => setPasswordFocused(false)}
+                            whileFocus={{ scale: 1.02 }}
+                            className="w-full pl-12 pr-12 py-4 border-2 border-gray-200 rounded-xl text-gray-900 bg-gray-50/50 focus:outline-none focus:border-[#456882] focus:ring-2 focus:ring-[#456882]/20 transition-all duration-300"
+                            aria-label="Password"
+                          />
+                          <motion.button
+                            type="button"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-[#456882] transition-colors"
+                          >
+                            {showPassword ? <FaEyeSlash /> : <FaEye />}
+                          </motion.button>
                         </motion.div>
-                        {useOtp ? "Sending..." : "Logging In..."}
-                      </>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <FaShieldAlt />
-                        {useOtp ? "Send OTP" : "Login"}
-                      </div>
-                    )}
-                  </motion.button>
+                      )}
 
-                  {/* Forgot Password and Switch Login Method */}
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    className="text-center space-y-2"
-                  >
-                    {!useOtp && (
-                      <button
-                        onClick={() => setShowResetForm(true)}
-                        className="text-[#456882] hover:text-[#5a7a95] font-medium hover:underline transition-all duration-300"
+                      <AnimatePresence>
+                        {error && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                            className="p-3 bg-red-50 border border-red-200 rounded-lg"
+                          >
+                            <p className="text-red-600 text-sm font-medium text-center">
+                              {error}
+                            </p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <motion.button
+                        whileHover={{
+                          scale: 1.02,
+                          boxShadow: "0 10px 25px rgba(69, 104, 130, 0.2)",
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={useOtp ? handleSendOtp : handlePasswordLogin}
+                        disabled={loading}
+                        className="w-full py-4 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl font-semibold hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center justify-center relative overflow-hidden"
+                        aria-label={useOtp ? "Send OTP" : "Login"}
                       >
-                        Forgot Password?
-                      </button>
-                    )}
-                    <div>
-                      <button
-                        onClick={() => setUseOtp(!useOtp)}
-                        className="text-[#456882] hover:text-[#5a7a95] font-medium hover:underline transition-all duration-300"
+                        <motion.div
+                          className="absolute inset-0 bg-white/20"
+                          initial={{ x: "-100%" }}
+                          whileHover={{ x: "100%" }}
+                          transition={{ duration: 0.8 }}
+                        />
+                        {loading ? (
+                          <>
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{
+                                duration: 1,
+                                repeat: Infinity,
+                                ease: "linear",
+                              }}
+                              className="flex items-center gap-2"
+                            >
+                              <FaSpinner />
+                            </motion.div>
+                            {useOtp ? "Sending..." : "Logging In..."}
+                          </>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <FaShieldAlt />
+                            {useOtp ? "Send OTP" : "Login"}
+                          </div>
+                        )}
+                      </motion.button>
+
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="text-center space-y-2"
                       >
-                        {useOtp ? "Use Password Instead" : "Use OTP Instead"}
-                      </button>
-                    </div>
-                  </motion.div>
+                        {!useOtp && (
+                          <button
+                            onClick={() => {
+                              setShowResetForm(true);
+                              setEmail(""); // Clear email to avoid confusion
+                              setPassword("");
+                              setOtp("");
+                              setOtpSent(false);
+                            }}
+                            className="text-[#456882] hover:text-[#5a7a95] font-medium hover:underline transition-all duration-300"
+                          >
+                            Forgot Password?
+                          </button>
+                        )}
+                        <div>
+                          <button
+                            onClick={handleToggleOtp}
+                            disabled={loading}
+                            className="text-[#456882] hover:text-[#5a7a95] font-medium hover:underline transition-all duration-300 disabled:opacity-50"
+                          >
+                            {useOtp ? "Use Password Instead" : "Use OTP Instead"}
+                          </button>
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Sign Up Link */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

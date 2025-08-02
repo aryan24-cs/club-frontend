@@ -71,7 +71,7 @@ const MembershipRequestCard = memo(
                 ? "bg-gray-400 text-gray-700 cursor-not-allowed"
                 : "bg-[#456882] text-white hover:bg-[#334d5e]"
               }`}
-            aria-label={`Approve request for ${request.userId?.name} to join ${request.clubId?.name}`}
+            aria-label={`Approve request for ${request.userId?.name || "user"} to join ${request.clubId?.name || "club"}`}
           >
             {isLoading[request._id] ? (
               <FaSpinner className="animate-spin inline-block mr-2" />
@@ -88,7 +88,7 @@ const MembershipRequestCard = memo(
                 ? "bg-gray-400 text-gray-700 cursor-not-allowed"
                 : "bg-red-600 text-white hover:bg-red-700"
               }`}
-            aria-label={`Reject request for ${request.userId?.name} to join ${request.clubId?.name}`}
+            aria-label={`Reject request for ${request.userId?.name || "user"} to join ${request.clubId?.name || "club"}`}
           >
             {isLoading[request._id] ? (
               <FaSpinner className="animate-spin inline-block mr-2" />
@@ -173,7 +173,7 @@ const UserCard = memo(
               ? "bg-gray-400 text-gray-700 cursor-not-allowed"
               : "bg-[#456882] text-white hover:bg-[#334d5e]"
             }`}
-          aria-label={`Change role for ${user.name}`}
+          aria-label={`Change role for ${user.name || "user"}`}
         >
           {isLoading[user._id] ? (
             <FaSpinner className="animate-spin inline-block mr-2" />
@@ -194,7 +194,7 @@ const UserCard = memo(
               ? "bg-gray-400 text-gray-700 cursor-not-allowed"
               : "bg-red-600 text-white hover:bg-red-700"
             }`}
-          aria-label={`Delete ${user.name}`}
+          aria-label={`Delete ${user.name || "user"}`}
         >
           {isLoading[user._id] ? (
             <FaSpinner className="animate-spin inline-block mr-2" />
@@ -219,172 +219,224 @@ const ManageUsers = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-  const fetchData = async () => {
-    try {
-      setIsLoading(true);
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setError("No authentication token found. Please log in.");
-        navigate("/login");
-        return;
-      }
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setError("No authentication token found. Please log in.");
+          navigate("/login");
+          return;
+        }
 
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      const [
-        userResponse,
-        clubsResponse,
-        requestsResponse,
-        allRequestsResponse,
-      ] = await Promise.all([
-        axios.get("http://localhost:5000/api/auth/user", config),
-        axios.get("http://localhost:5000/api/clubs", config),
-        axios.get("http://localhost:5000/api/membership-requests", config),
-        axios.get("http://localhost:5000/api/membership-requests?all=true", config),
-      ]);
+        const config = { headers: { Authorization: `Bearer ${token}` } };
+        console.log("Fetching data with token:", token.slice(0, 10) + "...");
 
-      console.log("Raw Requests Response:", requestsResponse.data);
-      console.log("Raw All Requests Response:", allRequestsResponse.data);
+        const [
+          userResponse,
+          clubsResponse,
+          requestsResponse,
+          allRequestsResponse,
+        ] = await Promise.all([
+          axios.get("http://localhost:5000/api/auth/user", config).catch((err) => {
+            console.error("Error fetching user:", err.response?.data || err.message);
+            throw err;
+          }),
+          axios.get("http://localhost:5000/api/clubs", config).catch((err) => {
+            console.error("Error fetching clubs:", err.response?.data || err.message);
+            return { data: [] };
+          }),
+          axios.get("http://localhost:5000/api/membership-requests", config).catch((err) => {
+            console.error("Error fetching membership requests:", err.response?.data || err.message);
+            return { data: [] };
+          }),
+          axios.get("http://localhost:5000/api/membership-requests?all=true", config).catch((err) => {
+            console.error("Error fetching all membership requests:", err.response?.data || err.message);
+            return { data: [] };
+          }),
+        ]);
 
-      const userData = userResponse.data;
-      setUser(userData);
+        console.log("Raw User Response:", userResponse.data);
+        console.log("Raw Clubs Response:", clubsResponse.data);
+        console.log("Raw Requests Response:", requestsResponse.data);
+        console.log("Raw All Requests Response:", allRequestsResponse.data);
 
-      console.log("User Data:", {
-        _id: userData._id,
-        name: userData.name,
-        isAdmin: userData.isAdmin,
-        headCoordinatorClubs: userData.headCoordinatorClubs,
-      });
+        const userData = userResponse.data;
+        setUser(userData);
 
-      const managedClubs = clubsResponse.data.filter(
-        (club) =>
-          club.creator?._id?.toString() === userData._id?.toString() ||
-          club.superAdmins?.some(
-            (admin) => admin?._id?.toString() === userData._id?.toString()
-          ) ||
-          userData.headCoordinatorClubs?.includes(club.name)
-      );
+        console.log("User Data:", {
+          _id: userData._id,
+          name: userData.name,
+          email: userData.email,
+          isAdmin: userData.isAdmin,
+          headCoordinatorClubs: userData.headCoordinatorClubs || [],
+        });
 
-      console.log("Managed Clubs:", managedClubs);
+        const managedClubs = clubsResponse.data.filter(
+          (club) =>
+            (club.creator?._id && club.creator._id.toString() === userData._id?.toString()) ||
+            (club.superAdmins?.some(
+              (admin) => admin?._id && admin._id.toString() === userData._id?.toString()
+            )) ||
+            (userData.headCoordinatorClubs?.includes(club.name))
+        );
 
-      const isGlobalAdmin = userData.isAdmin;
-      const isSuperAdmin = managedClubs.some(
-        (club) =>
-          club.creator?._id?.toString() === userData._id?.toString() ||
-          club.superAdmins?.some(
-            (admin) => admin?._id?.toString() === userData._id?.toString()
+        console.log("Managed Clubs:", managedClubs.map(c => ({
+          _id: c._id,
+          name: c.name,
+          creator: c.creator?._id,
+          superAdmins: c.superAdmins?.map(a => a._id),
+        })));
+
+        const isGlobalAdmin = userData.isAdmin === true;
+        const isSuperAdmin = managedClubs.some(
+          (club) =>
+            (club.creator?._id && club.creator._id.toString() === userData._id?.toString()) ||
+            (club.superAdmins?.some(
+              (admin) => admin?._id && admin._id.toString() === userData._id?.toString()
+            ))
+        );
+        const isAdmin = userData.headCoordinatorClubs?.length > 0;
+
+        console.log("Roles:", { isGlobalAdmin, isSuperAdmin, isAdmin });
+
+        let filteredRequests = requestsResponse.data.filter(
+          (request) => request.clubId?._id && request.userId?._id
+        );
+        let filteredAllRequests = allRequestsResponse.data.filter(
+          (request) => request.clubId?._id && request.userId?._id
+        );
+
+        if (!isGlobalAdmin && (isSuperAdmin || isAdmin)) {
+          const managedClubIds = managedClubs.map((club) => club._id.toString());
+          console.log("Managed Club IDs:", managedClubIds);
+          filteredRequests = filteredRequests.filter(
+            (request) =>
+              request.clubId?._id && managedClubIds.includes(request.clubId._id.toString())
+          );
+          filteredAllRequests = filteredAllRequests.filter(
+            (request) =>
+              request.clubId?._id && managedClubIds.includes(request.clubId._id.toString())
+          );
+        } else if (!isGlobalAdmin && !isSuperAdmin && !isAdmin) {
+          console.log("No permissions: Setting requests to empty arrays");
+          filteredRequests = [];
+          filteredAllRequests = [];
+        }
+
+        console.log("Filtered Pending Requests:", filteredRequests.map(r => ({
+          _id: r._id,
+          user: r.userId?.name,
+          club: r.clubId?.name,
+          status: r.status,
+        })));
+        console.log("Filtered All Requests:", filteredAllRequests.map(r => ({
+          _id: r._id,
+          user: r.userId?.name,
+          club: r.clubId?.name,
+          status: r.status,
+        })));
+
+        setMembershipRequests(filteredRequests);
+        setAllMembershipRequests(
+          filteredAllRequests.sort(
+            (a, b) =>
+              new Date(b.updatedAt || b.createdAt) -
+              new Date(a.updatedAt || a.createdAt)
           )
-      );
-      const isAdmin = userData.headCoordinatorClubs?.length > 0;
+        );
 
-      console.log("Roles:", { isGlobalAdmin, isSuperAdmin, isAdmin });
-
-      let filteredRequests = requestsResponse.data.filter(
-        (request) => request.clubId && request.userId // Ensure clubId and userId exist
-      );
-      let filteredAllRequests = allRequestsResponse.data.filter(
-        (request) => request.clubId && request.userId
-      );
-
-      if (!isGlobalAdmin && (isSuperAdmin || isAdmin)) {
         const managedClubIds = managedClubs.map((club) => club._id.toString());
-        filteredRequests = filteredRequests.filter(
-          (request) => request.clubId._id && managedClubIds.includes(request.clubId._id.toString())
-        );
-        filteredAllRequests = filteredAllRequests.filter(
-          (request) => request.clubId._id && managedClubIds.includes(request.clubId._id.toString())
-        );
-      } else if (!isGlobalAdmin && !isSuperAdmin && !isAdmin) {
-        filteredRequests = [];
-        filteredAllRequests = [];
-      }
-
-      console.log("Filtered Pending Requests:", filteredRequests);
-      console.log("Filtered All Requests:", filteredAllRequests);
-
-      setMembershipRequests(filteredRequests);
-      setAllMembershipRequests(
-        filteredAllRequests.sort(
-          (a, b) =>
-            new Date(b.updatedAt || b.createdAt) -
-            new Date(a.updatedAt || a.createdAt)
-        )
-      );
-
-      const managedClubIds = managedClubs.map((club) => club._id.toString());
-      const clubMembersPromises = managedClubIds.map((clubId) =>
-        axios.get(`http://localhost:5000/api/clubs/${clubId}/members`, config)
-      );
-      const clubMembersResponses = await Promise.all(
-        clubMembersPromises.map((promise) =>
-          promise.catch((err) => {
-            console.error(`Error fetching members for club:`, err);
+        console.log("Fetching members for clubs:", managedClubIds);
+        const clubMembersPromises = managedClubIds.map((clubId) =>
+          axios.get(`http://localhost:5000/api/clubs/${clubId}/members`, config).catch((err) => {
+            console.error(`Error fetching members for club ${clubId}:`, err.response?.data || err.message);
             return { data: [] };
           })
-        )
-      );
+        );
 
-      const allUsers = new Map();
-      managedClubs.forEach((club, index) => {
-        const membersResponse = clubMembersResponses[index];
-        membersResponse?.data.forEach((member) => {
-          allUsers.set(member._id.toString(), {
-            _id: member._id,
-            name: member.name,
-            email: member.email,
-            role: member.role || "user",
+        const clubMembersResponses = await Promise.all(clubMembersPromises);
+
+        const allUsers = new Map();
+        managedClubs.forEach((club, index) => {
+          const membersResponse = clubMembersResponses[index];
+          console.log(`Members for club ${club._id} (${club.name}):`, membersResponse.data);
+          membersResponse.data.forEach((member) => {
+            if (member._id && member.name && member.email) {
+              allUsers.set(member._id.toString(), {
+                _id: member._id,
+                name: member.name,
+                email: member.email,
+                role: member.role || "user",
+              });
+            } else {
+              console.warn(`Invalid member data for club ${club._id}:`, member);
+            }
           });
+
+          if (club.superAdmins?.length > 0) {
+            club.superAdmins.forEach((admin) => {
+              if (admin._id && admin.name && admin.email) {
+                allUsers.set(admin._id.toString(), {
+                  _id: admin._id,
+                  name: admin.name,
+                  email: admin.email,
+                  role: "superAdmin",
+                });
+              } else {
+                console.warn(`Invalid superAdmin data for club ${club._id}:`, admin);
+              }
+            });
+          }
+
+          if (club.creator?._id && club.creator.name && club.creator.email) {
+            allUsers.set(club.creator._id.toString(), {
+              _id: club.creator._id,
+              name: club.creator.name,
+              email: club.creator.email,
+              role: "superAdmin",
+            });
+          } else {
+            console.warn(`Invalid creator data for club ${club._id}:`, club.creator);
+          }
         });
 
-        club.superAdmins?.forEach((admin) => {
-          allUsers.set(admin._id.toString(), {
-            _id: admin._id,
-            name: admin.name,
-            email: admin.email,
-            role: "superAdmin",
-          });
-        });
+        const filteredUsers = Array.from(allUsers.values());
+        console.log("Filtered Users:", filteredUsers.map(u => ({
+          _id: u._id,
+          name: u.name,
+          email: u.email,
+          role: u.role,
+        })));
+        setUsers(filteredUsers);
 
-        if (club.creator) {
-          allUsers.set(club.creator._id.toString(), {
-            _id: club.creator._id,
-            name: club.creator.name,
-            email: club.creator.email,
-            role: "superAdmin",
-          });
+        if (managedClubs.length === 0 && filteredUsers.length === 0 && filteredRequests.length === 0) {
+          console.log("No managed clubs or data to display");
+          setError("You do not have access to manage any clubs, users, or membership requests.");
+        } else if (filteredRequests.length === 0 && filteredAllRequests.length === 0) {
+          console.log("No membership requests available for user");
+          setError("No membership requests or history available for your managed clubs.");
         }
-      });
 
-      const filteredUsers = Array.from(allUsers.values());
-      console.log("Filtered Users:", filteredUsers);
-      setUsers(filteredUsers);
-
-      if (
-        managedClubs.length === 0 &&
-        filteredUsers.length === 0 &&
-        filteredRequests.length === 0
-      ) {
-        setError(
-          "You do not have access to manage any clubs, users, or membership requests."
-        );
+        setIsLoading(false);
+      } catch (err) {
+        console.error("Error fetching data:", {
+          message: err.message,
+          response: err.response?.data,
+          status: err.response?.status,
+        });
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          localStorage.removeItem("token");
+          setError("Session expired or unauthorized. Please log in again.");
+          navigate("/login");
+        } else {
+          setError(err.response?.data?.error || "Failed to load data. Please try again.");
+        }
+        setIsLoading(false);
       }
-
-      setIsLoading(false);
-    } catch (err) {
-      console.error("Error fetching data:", err.response?.data || err.message);
-      if (err.response?.status === 401 || err.response?.status === 403) {
-        localStorage.removeItem("token");
-        setError("Session expired or unauthorized. Please log in again.");
-        navigate("/login");
-      } else {
-        setError(
-          err.response?.data?.error || "Failed to load data. Please try again."
-        );
-      }
-      setIsLoading(false);
-    }
-  };
-  fetchData();
-}, [navigate]);
+    };
+    fetchData();
+  }, [navigate]);
 
   const handleApprove = async (requestId) => {
     if (!requestId || typeof requestId !== "string") {
@@ -406,11 +458,10 @@ const ManageUsers = () => {
       setMembershipRequests((prev) =>
         prev.filter((req) => req._id !== requestId)
       );
-      setAllMembershipRequests((prev) =>
-        prev.map((req) =>
-          req._id === requestId ? { ...req, status: "approved" } : req
-        )
-      );
+      setAllMembershipRequests((prev) => [
+        ...prev.filter((req) => req._id !== requestId),
+        { ...prev.find((req) => req._id === requestId), status: "approved", updatedAt: new Date() },
+      ].sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)));
       setSuccess("Request approved successfully.");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
@@ -419,7 +470,7 @@ const ManageUsers = () => {
         response: err.response?.data,
         status: err.response?.status,
       });
-      setError(err.response?.data?.error || "Failed to approve request.");
+      setError(err.response?.data?.error || "Failed to approve request. Please try again.");
       setTimeout(() => setError(""), 3000);
     } finally {
       setActionLoading((prev) => ({ ...prev, [requestId]: false }));
@@ -446,11 +497,10 @@ const ManageUsers = () => {
       setMembershipRequests((prev) =>
         prev.filter((req) => req._id !== requestId)
       );
-      setAllMembershipRequests((prev) =>
-        prev.map((req) =>
-          req._id === requestId ? { ...req, status: "rejected" } : req
-        )
-      );
+      setAllMembershipRequests((prev) => [
+        ...prev.filter((req) => req._id !== requestId),
+        { ...prev.find((req) => req._id === requestId), status: "rejected", updatedAt: new Date() },
+      ].sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)));
       setSuccess("Request rejected successfully.");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
@@ -459,7 +509,7 @@ const ManageUsers = () => {
         response: err.response?.data,
         status: err.response?.status,
       });
-      setError(err.response?.data?.error || "Failed to reject request.");
+      setError(err.response?.data?.error || "Failed to reject request. Please try again.");
       setTimeout(() => setError(""), 3000);
     } finally {
       setActionLoading((prev) => ({ ...prev, [requestId]: false }));
@@ -471,11 +521,13 @@ const ManageUsers = () => {
       setActionLoading((prev) => ({ ...prev, [userId]: true }));
       const token = localStorage.getItem("token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
+      console.log("Updating role:", { userId, newRole });
       const response = await axios.patch(
         `http://localhost:5000/api/users/${userId}`,
         { role: newRole },
         config
       );
+      console.log("Update role response:", response.data);
       setUsers((prev) =>
         prev.map((u) => (u._id === userId ? { ...u, role: newRole } : u))
       );
@@ -500,10 +552,12 @@ const ManageUsers = () => {
       setActionLoading((prev) => ({ ...prev, [userId]: true }));
       const token = localStorage.getItem("token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
+      console.log("Deleting user:", { userId });
       const response = await axios.delete(
         `http://localhost:5000/api/users/${userId}`,
         config
       );
+      console.log("Delete user response:", response.data);
       setUsers((prev) => prev.filter((u) => u._id !== userId));
       setSuccess("User deleted successfully.");
       setTimeout(() => setSuccess(""), 3000);
@@ -533,7 +587,7 @@ const ManageUsers = () => {
             <FaSpinner className="text-4xl text-[#456882] animate-spin" />
           </motion.div>
         )}
-        <Navbar user={user} role={user?.isAdmin ? "admin" : "superAdmin"} />
+        <Navbar user={user} role={user?.isAdmin ? "admin" : user?.role || "user"} />
         <div className="container mx-auto px-2 sm:px-4 py-12">
           <section className="mb-12">
             <motion.h2
