@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   Users, 
@@ -19,6 +20,7 @@ import {
 import axios from "axios";
 
 const CreateEventPage = () => {
+  const navigate = useNavigate();
   const [event, setEvent] = useState({
     title: "",
     date: "",
@@ -250,8 +252,7 @@ const CreateEventPage = () => {
       setError("");
       setSuccess("Event created successfully!");
       setTimeout(() => {
-        // You can navigate here if needed
-        // navigate("/manage-events");
+        navigate("/admin/events");
       }, 2000);
     } catch (err) {
       console.error("Error creating event:", err);

@@ -658,7 +658,7 @@ const LandingPage = () => {
               transition={{ delay: 1, duration: 0.8 }}
               className="block text-3xl md:text-5xl text-gray-600 font-normal"
             >
-              Redefined
+              
             </motion.span>
           </motion.h1>
 
