@@ -116,99 +116,99 @@ const PaymentModal = memo(({ event, user, onConfirm, onCancel, isLoading }) => {
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.8, opacity: 0 }}
         className="bg-white rounded-2xl p-6 max-w-md mx-4"
-      >
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-[#456882]">
-            Payment for {event.title}
-          </h3>
-          <button
-            onClick={onCancel}
-            className="text-gray-500 hover:text-gray-700"
-            aria-label="Close payment modal"
-          >
-            <X className="w-5 h-5" />
-          </button>
+    >
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-[#456882]">
+          Payment for {event.title}
+        </h3>
+        <button
+          onClick={onCancel}
+          className="text-gray-500 hover:text-gray-700"
+          aria-label="Close payment modal"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+      {formError && (
+        <div className="bg-red-100 text-red-700 p-3 rounded-sm text-sm flex items-center gap-2 mb-4">
+          <AlertTriangle className="w-4 h-4" />
+          {formError}
         </div>
-        {formError && (
-          <div className="bg-red-100 text-red-700 p-3 rounded-sm text-sm flex items-center gap-2 mb-4">
-            <AlertTriangle className="w-4 h-4" />
-            {formError}
-          </div>
-        )}
-        <p className="text-gray-600 mb-4 text-sm">
-          Registration fee: ₹{fee || 0} for {user.isACEMStudent ? "ACEM" : "Non-ACEM"} students.
-        </p>
-        <div className="space-y-4">
-          <div>
+      )}
+      <p className="text-gray-600 mb-4 text-sm">
+        Registration fee: ₹{fee || 0} for {user.isACEMStudent ? "ACEM" : "Non-ACEM"} students.
+      </p>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Card Number
+          </label>
+          <input
+            type="text"
+            name="cardNumber"
+            value={paymentDetails.cardNumber}
+            onChange={handlePaymentChange}
+            className="w-full px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#456882]"
+            placeholder="1234 5678 9012 3456"
+            required
+          />
+        </div>
+        <div className="flex gap-2">
+          <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Card Number
+              Expiry
             </label>
             <input
               type="text"
-              name="cardNumber"
-              value={paymentDetails.cardNumber}
+              name="expiry"
+              value={paymentDetails.expiry}
               onChange={handlePaymentChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#456882]"
-              placeholder="1234 5678 9012 3456"
+              placeholder="MM/YY"
               required
             />
           </div>
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Expiry
-              </label>
-              <input
-                type="text"
-                name="expiry"
-                value={paymentDetails.expiry}
-                onChange={handlePaymentChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#456882]"
-                placeholder="MM/YY"
-                required
-              />
-            </div>
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                CVV
-              </label>
-              <input
-                type="text"
-                name="cvv"
-                value={paymentDetails.cvv}
-                onChange={handlePaymentChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#456882]"
-                placeholder="123"
-                required
-              />
-            </div>
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              CVV
+            </label>
+            <input
+              type="text"
+              name="cvv"
+              value={paymentDetails.cvv}
+              onChange={handlePaymentChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#456882]"
+              placeholder="123"
+              required
+            />
           </div>
         </div>
-        <div className="flex gap-4 mt-6">
-          <motion.button
-            whileHover={{ scale: isLoading ? 1 : 1.05 }}
-            whileTap={{ scale: isLoading ? 1 : 0.95 }}
-            onClick={handlePayment}
-            disabled={isLoading}
-            className={`flex-1 px-4 py-2 rounded-full text-white font-medium ${isLoading ? "bg-gray-400 cursor-not-allowed" : "bg-[#456882] hover:bg-[#334d5e]"}`}
-          >
-            {isLoading ? (
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
-            ) : (
-              "Pay Now"
-            )}
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onCancel}
-            className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300"
-          >
-            Cancel
-          </motion.button>
-        </div>
-      </motion.div>
+      </div>
+      <div className="flex gap-4 mt-6">
+        <motion.button
+          whileHover={{ scale: isLoading ? 1 : 1.05 }}
+          whileTap={{ scale: isLoading ? 1 : 0.95 }}
+          onClick={handlePayment}
+          disabled={isLoading}
+          className={`flex-1 px-4 py-2 rounded-full text-white font-medium ${isLoading ? "bg-gray-400 cursor-not-allowed" : "bg-[#456882] hover:bg-[#334d5e]"}`}
+        >
+          {isLoading ? (
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
+          ) : (
+            "Pay Now"
+          )}
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onCancel}
+          className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300"
+        >
+          Cancel
+        </motion.button>
+      </div>
     </motion.div>
+  </motion.div>
   );
 });
 
@@ -408,14 +408,32 @@ const Events = () => {
         throw new Error("Club not found for event.");
       }
 
-      // Check if user needs to join club (ACEM students only)
-      if (user.isACEMStudent && !userClubs.includes(event.club._id.toString()) && !isAutoRegister) {
+      // Check if user is privileged (admin, head coordinator, or super admin)
+      const isPrivilegedUser =
+        isAdmin ||
+        isHeadCoordinator ||
+        event.club?.superAdmins?.some(
+          (admin) => admin?._id?.toString() === user?._id?.toString()
+        );
+
+      // Check if user is a club member
+      const isClubMember = userClubs.includes(event.club._id.toString());
+
+      // Restrict registration to club members for regular users
+      if (!isPrivilegedUser && !isClubMember && !(event.eventType === "Inter-College" && !user.isACEMStudent)) {
         setShowJoinClubPrompt({
           eventId,
           clubId: event.club._id,
           clubName: event.clubName,
         });
         setShowRegisterModal(null);
+        setRegisterLoading((prev) => ({ ...prev, [eventId]: false }));
+        return;
+      }
+
+      // Check Intra-College restriction for non-ACEM students
+      if (!isPrivilegedUser && event.eventType === "Intra-College" && !user.isACEMStudent) {
+        addToast("Only ACEM students can register for this event.", "error");
         setRegisterLoading((prev) => ({ ...prev, [eventId]: false }));
         return;
       }
@@ -456,10 +474,6 @@ const Events = () => {
         console.error('Event not found for eventId:', eventId);
         addToast('Event not found.', 'error');
         throw new Error('Event not found.');
-      }
-      if (event.eventType === 'Intra-College' && !user.isACEMStudent) {
-        addToast('Only ACEM students can register for this event.', 'error');
-        throw new Error('Intra-College event restriction');
       }
       if (!formData.name || !formData.email || (user.isACEMStudent && !formData.rollNo)) {
         addToast('Please fill in all required fields.', 'error');
@@ -582,7 +596,7 @@ const Events = () => {
 
   // Handle event deletion
   const handleDeleteEvent = async (eventId) => {
-    console.log('handleburgo event deletion for eventId:', eventId);
+    console.log('handleDeleteEvent called for eventId:', eventId);
     if (!window.confirm("Are you sure you want to delete this event?")) return;
     try {
       await axios.delete(`http://localhost:5000/api/events/${eventId}`, {
@@ -1043,126 +1057,135 @@ const Events = () => {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredEvents.map((event, index) => (
-                      <motion.div
-                        key={event._id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.1 }}
-                        className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all"
-                      >
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex-1">
-                            <h3 className="text-lg font-semibold text-[#456882]">
-                              {event.title || "Untitled Event"}
-                            </h3>
-                            <span
-                              className={`inline-block mt-1 px-2 py-1 rounded-full text-xs font-semibold ${event.category === "Seminar"
-                                  ? "bg-blue-100 text-blue-600"
-                                  : event.category === "Competition"
-                                  ? "bg-green-100 text-green-600"
-                                  : "bg-gray-100 text-gray-600"
-                                }`}
-                            >
-                              {event.category.charAt(0).toUpperCase() + event.category.slice(1)}
+                    {filteredEvents.map((event, index) => {
+                      const isPrivilegedUser =
+                        isAdmin ||
+                        isHeadCoordinator ||
+                        event.club?.superAdmins?.some(
+                          (admin) => admin?._id?.toString() === user?._id?.toString()
+                        );
+                      const isClubMember = userClubs.includes(event.club._id.toString());
+                      const isRegistered = Array.isArray(event.registeredUsers) &&
+                        event.registeredUsers.some(
+                          (reg) => reg?.userId?._id?.toString() === user?._id?.toString()
+                        );
+                      const isRestricted = !isPrivilegedUser && !isClubMember && !(event.eventType === "Inter-College" && !user.isACEMStudent);
+                      return (
+                        <motion.div
+                          key={event._id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.1 }}
+                          className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all"
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex-1">
+                              <h3 className="text-lg font-semibold text-[#456882]">
+                                {event.title || "Untitled Event"}
+                              </h3>
+                              <span
+                                className={`inline-block mt-1 px-2 py-1 rounded-full text-xs font-semibold ${event.category === "Seminar"
+                                    ? "bg-blue-100 text-blue-600"
+                                    : event.category === "Competition"
+                                    ? "bg-green-100 text-green-600"
+                                    : "bg-gray-100 text-gray-600"
+                                  }`}
+                              >
+                                {event.category.charAt(0).toUpperCase() + event.category.slice(1)}
+                              </span>
+                            </div>
+                            {(isAdmin ||
+                              isHeadCoordinator ||
+                              event.club?.superAdmins?.some(
+                                (admin) => admin?._id?.toString() === user?._id?.toString()
+                              )) && (
+                                <div className="flex gap-2">
+                                  <Link
+                                    to={`/events/${event._id}/edit`}
+                                    className="p-1 text-gray-400 hover:text-[#456882]"
+                                  >
+                                    <Edit3 className="w-4 h-4" />
+                                  </Link>
+                                  <button
+                                    onClick={() => handleDeleteEvent(event._id)}
+                                    className="p-1 text-gray-400 hover:text-red-600"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              )}
+                          </div>
+                          <img
+                            src={
+                              event.banner ||
+                              "https://content3.jdmagicbox.com/v2/comp/faridabad/c2/011pxx11.xx11.180720042429.n1c2/catalogue/aravali-college-of-engineering-and-management-jasana-faridabad-colleges-5hhqg5d110.jpg"
+                            }
+                            alt={event.title || "Event Banner"}
+                            className="w-full h-24 object-cover rounded-lg mb-3"
+                            onError={(e) => {
+                              e.target.src =
+                                "https://content3.jdmagicbox.com/v2/comp/faridabad/c2/011pxx11.xx11.180720042429.n1c2/catalogue/aravali-college-of-engineering-and-management-jasana-faridabad-colleges-5hhqg5d110.jpg";
+                            }}
+                          />
+                          <div className="flex items-center gap-2 text-gray-600 mb-3">
+                            <Clock className="w-4 h-4" />
+                            <span className="text-sm">
+                              {event.date ? new Date(event.date).toLocaleDateString() : "TBD"}{" "}
+                              {event.time || ""}
                             </span>
                           </div>
-                          {(isAdmin ||
-                            isHeadCoordinator ||
-                            event.club?.superAdmins?.some(
-                              (admin) => admin?._id?.toString() === user?._id?.toString()
-                            )) && (
-                              <div className="flex gap-2">
-                                <Link
-                                  to={`/events/${event._id}/edit`}
-                                  className="p-1 text-gray-400 hover:text-[#456882]"
-                                >
-                                  <Edit3 className="w-4 h-4" />
-                                </Link>
-                                <button
-                                  onClick={() => handleDeleteEvent(event._id)}
-                                  className="p-1 text-gray-400 hover:text-red-600"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            )}
-                        </div>
-                        <img
-                          src={
-                            event.banner ||
-                            "https://content3.jdmagicbox.com/v2/comp/faridabad/c2/011pxx11.xx11.180720042429.n1c2/catalogue/aravali-college-of-engineering-and-management-jasana-faridabad-colleges-5hhqg5d110.jpg"
-                          }
-                          alt={event.title || "Event Banner"}
-                          className="w-full h-24 object-cover rounded-lg mb-3"
-                          onError={(e) => {
-                            e.target.src =
-                              "https://content3.jdmagicbox.com/v2/comp/faridabad/c2/011pxx11.xx11.180720042429.n1c2/catalogue/aravali-college-of-engineering-and-management-jasana-faridabad-colleges-5hhqg5d110.jpg";
-                          }}
-                        />
-                        <div className="flex items-center gap-2 text-gray-600 mb-3">
-                          <Clock className="w-4 h-4" />
-                          <span className="text-sm">
-                            {event.date ? new Date(event.date).toLocaleDateString() : "TBD"}{" "}
-                            {event.time || ""}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-600 mb-3">
-                          <MapPin className="w-4 h-4" />
-                          <span className="text-sm">{event.location || "TBD"}</span>
-                        </div>
-                        <p className="text-gray-600 text-sm mb-3">
-                          <span className="font-medium">Club:</span>{" "}
-                          {event.clubName || "Unknown"}
-                        </p>
-                        <p className="text-gray-600 text-sm mb-3">
-                          <span className="font-medium">Scope:</span>{" "}
-                          {event.eventType || "Intra-College"}
-                        </p>
-                        {event.hasRegistrationFee && (
+                          <div className="flex items-center gap-2 text-gray-600 mb-3">
+                            <MapPin className="w-4 h-4" />
+                            <span className="text-sm">{event.location || "TBD"}</span>
+                          </div>
                           <p className="text-gray-600 text-sm mb-3">
-                            <span className="font-medium">Fee:</span>{" "}
-                            ₹{user.isACEMStudent ? event.acemFee : event.nonAcemFee}
+                            <span className="font-medium">Club:</span>{" "}
+                            {event.clubName || "Unknown"}
                           </p>
-                        )}
-                        <p className="text-gray-600 text-sm line-clamp-3 mb-4">
-                          {event.description || "No description available."}
-                        </p>
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => {
-                            console.log('Register button clicked for eventId:', event._id);
-                            openRegisterModal(event._id);
-                          }}
-                          disabled={
-                            (Array.isArray(event.registeredUsers) &&
-                              event.registeredUsers.some(
-                                (reg) => reg?.userId?._id?.toString() === user?._id?.toString()
-                              )) ||
-                            registerLoading[event._id]
-                          }
-                          className={`w-full py-2 px-4 rounded-full text-white font-medium transition-colors shadow-lg ${Array.isArray(event.registeredUsers) &&
-                            event.registeredUsers.some(
-                              (reg) => reg?.userId?._id?.toString() === user?._id?.toString()
-                            )
-                              ? "bg-gray-400 cursor-not-allowed"
-                              : "bg-gradient-to-r from-[#456882] to-[#5a7a98] hover:from-[#334d5e] hover:to-[#456882]"
-                            } ${registerLoading[event._id] ? "opacity-50" : ""}`}
-                        >
-                          {registerLoading[event._id] ? (
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
-                          ) : Array.isArray(event.registeredUsers) &&
-                            event.registeredUsers.some(
-                              (reg) => reg?.userId?._id?.toString() === user?._id?.toString()
-                            ) ? (
-                            "Already Registered"
-                          ) : (
-                            "Register"
+                          <p className="text-gray-600 text-sm mb-3">
+                            <span className="font-medium">Scope:</span>{" "}
+                            {event.eventType || "Intra-College"}
+                          </p>
+                          {event.hasRegistrationFee && (
+                            <p className="text-gray-600 text-sm mb-3">
+                              <span className="font-medium">Fee:</span>{" "}
+                              ₹{user.isACEMStudent ? event.acemFee : event.nonAcemFee}
+                            </p>
                           )}
-                        </motion.button>
-                      </motion.div>
-                    ))}
+                          <p className="text-gray-600 text-sm line-clamp-3 mb-4">
+                            {event.description || "No description available."}
+                          </p>
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => {
+                              console.log('Register button clicked for eventId:', event._id);
+                              openRegisterModal(event._id);
+                            }}
+                            disabled={
+                              isRegistered ||
+                              registerLoading[event._id] ||
+                              (!isPrivilegedUser && isRestricted && event.eventType === "Intra-College")
+                            }
+                            className={`w-full py-2 px-4 rounded-full text-white font-medium transition-colors shadow-lg ${isRegistered ||
+                              (!isPrivilegedUser && isRestricted && event.eventType === "Intra-College")
+                                ? "bg-gray-400 cursor-not-allowed"
+                                : "bg-gradient-to-r from-[#456882] to-[#5a7a98] hover:from-[#334d5e] hover:to-[#456882]"
+                              } ${registerLoading[event._id] ? "opacity-50" : ""}`}
+                          >
+                            {registerLoading[event._id] ? (
+                              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
+                            ) : isRegistered ? (
+                              "Already Registered"
+                            ) : isRestricted && !isPrivilegedUser ? (
+                              "Must Join Club"
+                            ) : (
+                              "Register"
+                            )}
+                          </motion.button>
+                        </motion.div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

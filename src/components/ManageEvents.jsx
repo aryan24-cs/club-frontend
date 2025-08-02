@@ -1,16 +1,16 @@
 import React, { memo, useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   Calendar,
-  Plus,
   Trash2,
   Edit3,
   AlertTriangle,
   XCircle,
   CheckCircle,
   Filter,
+  Plus,
 } from "lucide-react";
 import Navbar from "./Navbar";
 
@@ -51,6 +51,21 @@ const EventCard = memo(({ event, user, onRegister, onDelete }) => {
     user?.isAdmin ||
     user?.headCoordinatorClubs?.includes(event.clubName) ||
     event.club?.superAdmins?.some((admin) => admin?._id?.toString() === user?._id?.toString());
+
+  const isPrivilegedUser =
+    user?.isAdmin ||
+    (Array.isArray(user?.headCoordinatorClubs) && user?.headCoordinatorClubs.length > 0) ||
+    event.club?.superAdmins?.some((admin) => admin?._id?.toString() === user?._id?.toString());
+
+  const isRegistered =
+    !isPrivilegedUser &&
+    Array.isArray(event.registeredUsers) &&
+    event.registeredUsers.some(
+      (reg) => reg?.userId?._id?.toString() === user?._id?.toString()
+    );
+
+  const isRestricted =
+    !isPrivilegedUser && event.eventType === "Intra-College" && !user?.isACEMStudent;
 
   return (
     <motion.div
@@ -128,15 +143,26 @@ const EventCard = memo(({ event, user, onRegister, onDelete }) => {
           </>
         )}
       </div>
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => onRegister(event)}
-        className="absolute top-4 right-4 px-3 py-1 bg-green-600 text-white rounded-sm text-xs hover:bg-green-700 transition"
-        aria-label={`Register for ${event.title}`}
-      >
-        Register
-      </motion.button>
+      {!isPrivilegedUser && (
+        <motion.button
+          whileHover={{ scale: isRegistered || isRestricted ? 1 : 1.05 }}
+          whileTap={{ scale: isRegistered || isRestricted ? 1 : 0.95 }}
+          onClick={() => onRegister(event)}
+          disabled={isRegistered || isRestricted}
+          className={`absolute top-4 right-4 px-3 py-1 rounded-sm text-xs font-semibold transition-colors ${
+            isRegistered || isRestricted
+              ? "bg-gray-400 text-white cursor-not-allowed"
+              : "bg-green-600 text-white hover:bg-green-700"
+          }`}
+          aria-label={`Register for ${event.title}`}
+        >
+          {isRegistered
+            ? "Already Registered"
+            : isRestricted
+            ? "Restricted to ACEM Students"
+            : "Register"}
+        </motion.button>
+      )}
     </motion.div>
   );
 });
@@ -175,12 +201,11 @@ const EventRegistrationModal = memo(({ event, user, onClose, onSuccess, onError 
           return;
         }
         setPaymentProcessing(true);
-        // Simulate payment (replace with actual payment gateway integration)
         console.log("Simulating payment:", paymentDetails);
       }
 
       const response = await axios.post(
-        'http://localhost:5000/api/events/:id/register',
+        `http://localhost:5000/api/events/${event._id}/register`,
         {
           name: user.name,
           email: user.email,
@@ -199,7 +224,11 @@ const EventRegistrationModal = memo(({ event, user, onClose, onSuccess, onError 
           : "Registration successful! Check your QR code."
       );
     } catch (err) {
-      console.error("Event registration error:", err);
+      console.error("Event registration error:", {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+      });
       setFormError(err.response?.data?.error || err.message || "Failed to register for event.");
       onError(err.response?.data?.error || err.message || "Failed to register for event.");
     } finally {
@@ -326,382 +355,6 @@ const EventRegistrationModal = memo(({ event, user, onClose, onSuccess, onError 
   );
 });
 
-// Host Event Form Component
-const HostEventForm = memo(({ user, clubs, onSuccess, onError, onClose }) => {
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    date: "",
-    time: "",
-    location: "",
-    club: "",
-    banner: null,
-    category: "",
-    eventType: "Intra-College",
-    hasRegistrationFee: false,
-    acemFee: "",
-    nonAcemFee: "",
-  });
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
-
-  if (!user || !clubs) {
-    console.log("HostEventForm - Skipping render: user or clubs not available", { user, clubs });
-    return null;
-  }
-
-  const eligibleClubs = clubs.filter((club) => {
-    if (!club) return false;
-    return (
-      club.creator?._id?.toString() === user._id?.toString() ||
-      club.superAdmins?.some((admin) => admin?._id?.toString() === user._id?.toString()) ||
-      (user.headCoordinatorClubs || []).includes(club.name)
-    );
-  });
-
-  useEffect(() => {
-    console.log("HostEventForm - User:", {
-      _id: user._id || "null",
-      name: user.name || "null",
-      isAdmin: user.isAdmin || false,
-      headCoordinatorClubs: user.headCoordinatorClubs || [],
-      isACEMStudent: user.isACEMStudent || false,
-      rollNo: user.rollNo || "N/A",
-    });
-    console.log("HostEventForm - All Clubs:", clubs);
-    console.log("HostEventForm - Eligible Clubs:", eligibleClubs);
-  }, [user, clubs]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setFormError("");
-    setSubmitting(true);
-    setIsUploading(true);
-
-    const { title, description, date, time, location, club, category, eventType, hasRegistrationFee, acemFee, nonAcemFee } = formData;
-    if (!title || !description || !date || !time || !location || !club || !category) {
-      setFormError("All required fields must be filled.");
-      setSubmitting(false);
-      setIsUploading(false);
-      return;
-    }
-    if (!["Seminar", "Competition"].includes(category)) {
-      setFormError("Invalid category. Please select Seminar or Competition.");
-      setSubmitting(false);
-      setIsUploading(false);
-      return;
-    }
-    if (!["Intra-College", "Inter-College"].includes(eventType)) {
-      setFormError("Invalid event type.");
-      setSubmitting(false);
-      setIsUploading(false);
-      return;
-    }
-    if (eventType === "Inter-College" && hasRegistrationFee) {
-      if (!acemFee || !nonAcemFee || isNaN(acemFee) || isNaN(nonAcemFee) || acemFee < 0 || nonAcemFee < 0) {
-        setFormError("Valid registration fees are required for Inter-College events.");
-        setSubmitting(false);
-        setIsUploading(false);
-        return;
-      }
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("No authentication token found");
-
-      const formPayload = new FormData();
-      Object.entries(formData).forEach(([key, value]) => {
-        if (key === "banner" && value) {
-          formPayload.append("banner", value);
-        } else if (value !== null && value !== undefined) {
-          formPayload.append(key, value);
-        }
-      });
-
-      const payloadEntries = [];
-      for (let [key, value] of formPayload.entries()) {
-        payloadEntries.push({ key, value: value instanceof File ? value.name : value });
-      }
-      console.log("HostEventForm - Form Payload:", payloadEntries);
-
-      const response = await axios.post('http://localhost:5000/api/events', formPayload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      setFormData({
-        title: "",
-        description: "",
-        date: "",
-        time: "",
-        location: "",
-        club: "",
-        banner: null,
-        category: "",
-        eventType: "Intra-College",
-        hasRegistrationFee: false,
-        acemFee: "",
-        nonAcemFee: "",
-      });
-      onSuccess("Event created successfully!", response.data.event);
-      onClose();
-    } catch (err) {
-      console.error("Event creation error:", err);
-      const errorMsg = err.response?.data?.error || err.message || "Failed to create event.";
-      setFormError(errorMsg);
-      onError(errorMsg);
-    } finally {
-      setSubmitting(false);
-      setIsUploading(false);
-    }
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value, files, type, checked } = e.target;
-    if (name === "banner" && files && files[0]) {
-      if (files[0].size > 5 * 1024 * 1024) {
-        setFormError("Banner image must be less than 5MB.");
-        return;
-      }
-    }
-    const newValue = type === "checkbox" ? checked : files ? files[0] : value;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: newValue,
-    }));
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-    >
-      <div className="bg-white p-6 rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-semibold text-blue-600">Host a New Event</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700" aria-label="Close modal">
-            <XCircle className="w-6 h-6" />
-          </button>
-        </div>
-        {eligibleClubs.length === 0 ? (
-          <p className="text-sm text-gray-600">You are not authorized to host events for any club.</p>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {formError && (
-              <div className="bg-red-100 text-red-700 p-3 rounded-sm text-sm flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" />
-                {formError}
-              </div>
-            )}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Event Title</label>
-              <input
-                type="text"
-                name="title"
-                value={formData.title || ""}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
-                placeholder="Enter event title"
-                aria-label="Event title"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Description</label>
-              <textarea
-                name="description"
-                value={formData.description || ""}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
-                placeholder="Describe the event"
-                rows="4"
-                aria-label="Event description"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Event Category</label>
-              <select
-                name="category"
-                value={formData.category || ""}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
-                aria-label="Event category"
-              >
-                <option value="">Select event category</option>
-                <option value="Seminar">Seminar</option>
-                <option value="Competition">Competition</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Event Type</label>
-              <select
-                name="eventType"
-                value={formData.eventType || ""}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
-                aria-label="Event type"
-              >
-                <option value="Intra-College">Intra-College</option>
-                <option value="Inter-College">Inter-College</option>
-              </select>
-            </div>
-            {formData.eventType === "Inter-College" && (
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                  <input
-                    type="checkbox"
-                    name="hasRegistrationFee"
-                    checked={formData.hasRegistrationFee || false}
-                    onChange={handleInputChange}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  Has Registration Fee
-                </label>
-                {formData.hasRegistrationFee && (
-                  <div className="mt-4 space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">ACEM Student Fee (₹)</label>
-                      <input
-                        type="number"
-                        name="acemFee"
-                        value={formData.acemFee || ""}
-                        onChange={handleInputChange}
-                        required
-                        min="0"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
-                        placeholder="Enter fee for ACEM students"
-                        aria-label="ACEM student fee"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Non-ACEM Student Fee (₹)</label>
-                      <input
-                        type="number"
-                        name="nonAcemFee"
-                        value={formData.nonAcemFee || ""}
-                        onChange={handleInputChange}
-                        required
-                        min="0"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
-                        placeholder="Enter fee for non-ACEM students"
-                        aria-label="Non-ACEM student fee"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700">Date</label>
-                <input
-                  type="date"
-                  name="date"
-                  value={formData.date || ""}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
-                  aria-label="Event date"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700">Time</label>
-                <input
-                  type="time"
-                  name="time"
-                  value={formData.time || ""}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
-                  aria-label="Event time"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Location</label>
-              <input
-                type="text"
-                name="location"
-                value={formData.location || ""}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
-                placeholder="Enter event location"
-                aria-label="Event location"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Club</label>
-              <select
-                name="club"
-                value={formData.club || ""}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
-                aria-label="Select club"
-              >
-                <option value="">Select a club</option>
-                {eligibleClubs.map((club, index) => (
-                  <option key={club?._id || `club-${index}`} value={club?._id}>
-                    {club?.name || "Unknown Club"}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Banner Image</label>
-              <input
-                type="file"
-                name="banner"
-                onChange={handleInputChange}
-                accept="image/jpeg,image/png"
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:ring-blue-500 bg-gray-50 text-sm"
-                aria-label="Upload banner image"
-              />
-            </div>
-            <div className="flex gap-2">
-              <motion.button
-                type="submit"
-                disabled={submitting}
-                whileHover={{ scale: submitting ? 1 : 1.05 }}
-                whileTap={{ scale: submitting ? 1 : 0.95 }}
-                className={`flex-1 px-4 py-2 rounded-sm text-sm font-semibold transition-colors ${
-                  submitting
-                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                    : "bg-blue-600 text-white hover:bg-blue-700"
-                }`}
-                aria-label={submitting ? "Creating event" : "Create event"}
-              >
-                {isUploading ? "Uploading..." : submitting ? "Creating..." : "Create Event"}
-              </motion.button>
-              <motion.button
-                type="button"
-                onClick={onClose}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex-1 px-4 py-2 rounded-sm text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
-                aria-label="Cancel event creation"
-              >
-                Cancel
-              </motion.button>
-            </div>
-          </form>
-        )}
-      </div>
-    </motion.div>
-  );
-});
-
 const ManageEvents = () => {
   const [user, setUser] = useState(null);
   const [clubs, setClubs] = useState([]);
@@ -710,10 +363,8 @@ const ManageEvents = () => {
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [eventFilter, setEventFilter] = useState("");
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(null);
   const navigate = useNavigate();
-  const location = useLocation();
 
   const fetchData = useCallback(async () => {
     try {
@@ -820,10 +471,7 @@ const ManageEvents = () => {
 
   useEffect(() => {
     fetchData();
-    if (location.pathname.includes("/create")) {
-      setShowCreateModal(true);
-    }
-  }, [fetchData, location]);
+  }, [fetchData]);
 
   const handleDelete = async (eventId, eventTitle) => {
     if (!window.confirm(`Delete event "${eventTitle || "Untitled"}"? This cannot be undone.`)) {
@@ -832,7 +480,7 @@ const ManageEvents = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("No authentication token found");
-      await axios.delete('http://localhost:5000/api/events/:id', {
+      await axios.delete(`http://localhost:5000/api/events/${eventId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setEvents((prev) => prev.filter((event) => event._id !== eventId));

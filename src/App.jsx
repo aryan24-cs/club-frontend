@@ -192,7 +192,7 @@ const AnimatedRoutes = () => {
             }
           />
           <Route
-            path="/sammy"
+            path="/events/create"
             element={
               <ProtectedRoute>
                 <Layout>

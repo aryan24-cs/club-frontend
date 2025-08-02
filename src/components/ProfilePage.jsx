@@ -72,53 +72,29 @@ const ProfilePage = () => {
       try {
         setIsLoading(true);
 
-        const userResponse = await axios.get(
-          "http://localhost:5000/api/auth/user",
-          {
+        const [userResponse, clubsResponse, eventsResponse, attendanceResponse, practiceAttendanceResponse] = await Promise.all([
+          axios.get("http://localhost:5000/api/auth/user", {
             headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        const clubsResponse = await axios.get(
-          "http://localhost:5000/api/clubs",
-          {
+          }),
+          axios.get("http://localhost:5000/api/clubs", {
             headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        const eventsResponse = await axios.get(
-          "http://localhost:5000/api/events",
-          {
+          }),
+          axios.get("http://localhost:5000/api/events", {
             headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        const activitiesResponse = await axios.get(
-          "http://localhost:5000/api/activities",
-          {
+          }),
+          axios.get("http://localhost:5000/api/attendance/user", {
             headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        const attendanceResponse = await axios.get(
-          "http://localhost:5000/api/attendance/user",
-          {
+          }),
+          axios.get("http://localhost:5000/api/practice-attendance/user", {
             headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        const practiceAttendanceResponse = await axios.get(
-          "http://localhost:5000/api/practice-attendance/user",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+          }),
+        ]);
 
         const userData = userResponse.data;
         setUser(userData);
         setProfile({
-          name: userData.name,
-          email: userData.email,
+          name: userData.name || "",
+          email: userData.email || "",
           phone: userData.phone || "",
           semester: userData.semester || "",
           course: userData.course || "",
@@ -129,18 +105,19 @@ const ProfilePage = () => {
         });
 
         const formattedClubs = clubsResponse.data
-          .filter((club) => userData.clubName.includes(club.name))
+          .filter((club) => Array.isArray(userData.clubName) && userData.clubName.includes(club.name))
           .map((club) => ({
-            id: club._id,
-            name: club.name,
+            id: club._id || "",
+            name: club.name || "",
             role:
               userData.isHeadCoordinator &&
+              Array.isArray(userData.headCoordinatorClubs) &&
               userData.headCoordinatorClubs.includes(club.name)
                 ? "Head Coordinator"
                 : userData.isAdmin
                 ? "Admin"
                 : "Member",
-            joinedAt: userData.createdAt,
+            joinedAt: userData.createdAt || new Date(),
             badge:
               club.category === "Technical"
                 ? "🚀"
@@ -154,10 +131,10 @@ const ProfilePage = () => {
           }));
 
         const userEvents = eventsResponse.data.filter((event) =>
-          userData.clubName.includes(event.club.name)
+          Array.isArray(userData.clubName) && userData.clubName.includes(event.club?.name)
         );
-        const eventAttendanceRecords = attendanceResponse.data;
-        const practiceAttendanceRecords = practiceAttendanceResponse.data;
+        const eventAttendanceRecords = attendanceResponse.data || [];
+        const practiceAttendanceRecords = practiceAttendanceResponse.data || [];
 
         const eventAttendance = eventAttendanceRecords.filter(
           (record) => record.status === "present"
@@ -199,13 +176,13 @@ const ProfilePage = () => {
           totalEvents: userEvents.length,
           attendanceRate: combinedAttendanceRate,
           eventsOrganized: eventsResponse.data.filter(
-            (event) => event.createdBy._id === userData._id
+            (event) => event.createdBy?._id === userData._id
           ).length,
           overallRank: 0,
           totalMembers: clubsResponse.data.reduce(
             (sum, club) =>
               sum +
-              (userData.clubName.includes(club.name) ? club.memberCount : 0),
+              (Array.isArray(userData.clubName) && userData.clubName.includes(club.name) ? club.memberCount || 0 : 0),
             0
           ),
           seminarsAttended: userEvents.filter(
@@ -227,40 +204,25 @@ const ProfilePage = () => {
           default: "⭐",
         };
 
-        const achievements = [
-          ...(eventsResponse?.data || [])
-            .filter(
-              (event) =>
-                event?.createdBy?._id && event.createdBy._id === userData?._id
-            )
-            .map((event) => ({
-              id: event._id || "",
-              title: `Organized ${
-                event.type
-                  ? event.type.charAt(0).toUpperCase() +
-                    event.type.slice(1).toLowerCase()
-                  : "Event"
-              }`,
-              description: `Organized ${event.title || "an event"}`,
-              icon:
-                eventTypeIcons[event.type?.toLowerCase()] ||
-                eventTypeIcons.default,
-              earnedAt: event.createdAt || new Date(),
-            })),
-          ...(activitiesResponse?.data || [])
-            .filter(
-              (activity) =>
-                activity?.createdBy?._id &&
-                activity.createdBy._id === userData?._id
-            )
-            .map((activity) => ({
-              id: activity._id || "",
-              title: "Activity Contributor",
-              description: `Contributed to ${activity.title || "an activity"}`,
-              icon: "⭐",
-              earnedAt: activity.createdAt || new Date(),
-            })),
-        ];
+        const achievements = eventsResponse.data
+          .filter(
+            (event) =>
+              event?.createdBy?._id && event.createdBy._id === userData._id
+          )
+          .map((event) => ({
+            id: event._id || "",
+            title: `Organized ${
+              event.type
+                ? event.type.charAt(0).toUpperCase() +
+                  event.type.slice(1).toLowerCase()
+                : "Event"
+            }`,
+            description: `Organized ${event.title || "an event"}`,
+            icon:
+              eventTypeIcons[event.type?.toLowerCase()] ||
+              eventTypeIcons.default,
+            earnedAt: event.createdAt || new Date(),
+          }));
 
         setProfileData({
           clubs: formattedClubs,
@@ -298,24 +260,12 @@ const ProfilePage = () => {
           name: profile.name,
           email: profile.email,
           phone: profile.phone,
-          isACEMStudent: profile.isACEMStudent,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      await axios.post(
-        "http://localhost:5000/api/auth/user-details",
-        {
           semester: profile.semester,
           course: profile.course,
           specialization: profile.specialization,
           rollNo: profile.rollNo,
           isACEMStudent: profile.isACEMStudent,
           collegeName: !profile.isACEMStudent ? profile.collegeName : null,
-          isClubMember: user.isClubMember,
-          clubName: user.clubName,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
