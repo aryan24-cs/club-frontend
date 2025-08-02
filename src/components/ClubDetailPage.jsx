@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, Component } from "react";
 import {
   motion,
   AnimatePresence,
@@ -35,6 +35,26 @@ import {
 } from "react-icons/fa";
 import toast, { Toaster } from "react-hot-toast";
 import Navbar from "../components/Navbar";
+
+// Simple Error Boundary Component
+class CoordinatorCardErrorBoundary extends Component {
+  state = { hasError: false, error: null };
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="bg-red-50 p-4 rounded-xl border border-red-200 text-red-600">
+          Error rendering coordinator card: {this.state.error.message}
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // Floating Particle Component
 const FloatingParticle = ({ delay, duration }) => {
@@ -89,72 +109,78 @@ const AnimatedGrid = () => {
 
 // Coordinator Card Component
 const CoordinatorCard = ({ coordinator, index }) => {
+  // Fallback for missing name
+  const displayName = coordinator.name || "Unknown Coordinator";
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
-      className="relative group"
-    >
-      <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 rounded-2xl blur-sm opacity-30 group-hover:opacity-50 transition-opacity"></div>
-      <div className="relative bg-white/95 backdrop-blur-xl rounded-2xl p-6 border border-white/40 shadow-xl hover:shadow-2xl transition-all duration-300">
-        <div className="absolute top-3 right-3">
-          <div className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-bold rounded-full shadow-lg">
-            <FaCrown className="w-3 h-3" />
-            <span>COORDINATOR</span>
-          </div>
-        </div>
-       
-        <div className="flex items-start gap-4">
-          <div className="relative">
-            <div className="w-16 h-16 bg-gradient-to-br from-[#456882] to-[#5a7a95] rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
-              {coordinator.name.charAt(0).toUpperCase()}
+    <CoordinatorCardErrorBoundary>
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, delay: index * 0.1 }}
+        className="relative group"
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 rounded-2xl blur-sm opacity-30 group-hover:opacity-50 transition-opacity"></div>
+        <div className="relative bg-white/95 backdrop-blur-xl rounded-2xl p-6 border border-white/40 shadow-xl hover:shadow-2xl transition-all duration-300">
+          <div className="absolute top-3 right-3">
+            <div className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-bold rounded-full shadow-lg">
+              <FaCrown className="w-3 h-3" />
+              <span>COORDINATOR</span>
             </div>
-            <motion.div
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg"
-            >
-              <FaStar className="text-white text-xs" />
-            </motion.div>
           </div>
-         
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-bold text-[#456882] mb-1 truncate">
-              {coordinator.name}
-            </h3>
-           
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2 text-gray-600">
-                <FaEnvelope className="w-4 h-4 text-[#456882]" />
-                <span className="truncate">{coordinator.email}</span>
+
+          <div className="flex items-start gap-4">
+            <div className="relative">
+              <div className="w-16 h-16 bg-gradient-to-br from-[#456882] to-[#5a7a95] rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                {displayName.charAt(0).toUpperCase()}
               </div>
-             
-              {coordinator.phone && (
+              <motion.div
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg"
+              >
+                <FaStar className="text-white text-xs" />
+              </motion.div>
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-bold text-[#456882] mb-1 truncate">
+                {displayName}
+              </h3>
+
+              <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2 text-gray-600">
-                  <FaPhone className="w-4 h-4 text-[#456882]" />
-                  <span>{coordinator.phone}</span>
+                  <FaEnvelope className="w-4 h-4 text-[#456882]" />
+                  <span className="truncate">
+                    {coordinator.email || "No email"}
+                  </span>
                 </div>
-              )}
-             
-              {coordinator.rollNo && (
-                <div className="flex items-center gap-2 text-gray-600">
-                  <FaIdCard className="w-4 h-4 text-[#456882]" />
-                  <span>Roll: {coordinator.rollNo}</span>
-                </div>
-              )}
-             
-              {coordinator.year && (
-                <div className="flex items-center gap-2 text-gray-600">
-                  <FaGraduationCap className="w-4 h-4 text-[#456882]" />
-                  <span>Year: {coordinator.year}</span>
-                </div>
-              )}
+
+                {coordinator.phone && (
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <FaPhone className="w-4 h-4 text-[#456882]" />
+                    <span>{coordinator.phone}</span>
+                  </div>
+                )}
+
+                {coordinator.rollNo && (
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <FaIdCard className="w-4 h-4 text-[#456882]" />
+                    <span>Roll: {coordinator.rollNo}</span>
+                  </div>
+                )}
+
+                {coordinator.year && (
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <FaGraduationCap className="w-4 h-4 text-[#456882]" />
+                    <span>Year: {coordinator.year}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+    </CoordinatorCardErrorBoundary>
   );
 };
 
@@ -209,8 +235,17 @@ const ClubDetailPage = () => {
       if (!clubData) {
         throw new Error("Club not found");
       }
+      // Validate headCoordinators
+      const validCoordinators = (clubData.headCoordinators || []).filter(
+        (coordinator) =>
+          coordinator &&
+          coordinator._id &&
+          typeof coordinator.name === "string" &&
+          coordinator.email
+      );
+      console.log("Fetched headCoordinators:", validCoordinators); // Debug log
       setClub(clubData);
-      setHeadCoordinators(clubData.headCoordinators || []);
+      setHeadCoordinators(validCoordinators);
       // Fetch events
       const eventsResponse = await axios.get(
         `http://localhost:5000/api/events?club=${clubData._id}`,
@@ -242,11 +277,18 @@ const ClubDetailPage = () => {
         userResponse.data.isHeadCoordinator &&
           userResponse.data.headCoordinatorClubs.includes(clubData._id)
       );
-      // Debug log to verify isMember state
-      console.log("isMember:", isUserMember, "User clubs:", userResponse.data.clubs, "Club ID:", clubData._id);
+      console.log(
+        "isMember:",
+        isUserMember,
+        "User clubs:",
+        userResponse.data.clubs,
+        "Club ID:",
+        clubData._id
+      );
       setLoading(false);
       setRetryCount(0);
     } catch (err) {
+      console.error("Fetch error:", err.message, err.response?.data); // Debug log
       if (retryCount < 3) {
         setTimeout(() => {
           setRetryCount((prev) => prev + 1);
@@ -270,26 +312,28 @@ const ClubDetailPage = () => {
     const sortedMembers = [...members]
       .filter(
         (member) =>
-          member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          member.email.toLowerCase().includes(searchQuery.toLowerCase())
+          member &&
+          member.name &&
+          (member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            member.email.toLowerCase().includes(searchQuery.toLowerCase()))
       )
       .sort((a, b) => {
         const isAPrivileged =
-          (a.isAdmin ||
-           (Array.isArray(club?.superAdmins) &&
-             club.superAdmins.some(
-               (admin) => admin._id.toString() === a._id.toString()
-             )) ||
-           (Array.isArray(a.headCoordinatorClubs) &&
-             a.headCoordinatorClubs.includes(club?._id)));
+          a.isAdmin ||
+          (Array.isArray(club?.superAdmins) &&
+            club.superAdmins.some(
+              (admin) => admin._id.toString() === a._id.toString()
+            )) ||
+          (Array.isArray(a.headCoordinatorClubs) &&
+            a.headCoordinatorClubs.includes(club?._id));
         const isBPrivileged =
-          (b.isAdmin ||
-           (Array.isArray(club?.superAdmins) &&
-             club.superAdmins.some(
-               (admin) => admin._id.toString() === b._id.toString()
-             )) ||
-           (Array.isArray(b.headCoordinatorClubs) &&
-             a.headCoordinatorClubs.includes(club?._id)));
+          b.isAdmin ||
+          (Array.isArray(club?.superAdmins) &&
+            club.superAdmins.some(
+              (admin) => admin._id.toString() === b._id.toString()
+            )) ||
+          (Array.isArray(b.headCoordinatorClubs) &&
+            b.headCoordinatorClubs.includes(club?._id));
         if (isAPrivileged && !isBPrivileged) return -1;
         if (!isAPrivileged && isBPrivileged) return 1;
         return a.name.localeCompare(b.name);
@@ -336,9 +380,7 @@ const ClubDetailPage = () => {
       toast.success("You have successfully left the club");
       await fetchClubData();
     } catch (err) {
-      toast.error(
-        err.response?.data?.error || "Failed to leave the club"
-      );
+      toast.error(err.response?.data?.error || "Failed to leave the club");
     }
     setLeaveLoading(false);
   };
@@ -433,7 +475,10 @@ const ClubDetailPage = () => {
             <div className="h-4 bg-gray-200 rounded w-3/4 mb-8"></div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
+                <div
+                  key={`placeholder-${i}`}
+                  className="h-32 bg-gray-200 rounded-lg"
+                ></div>
               ))}
             </div>
           </div>
@@ -484,7 +529,7 @@ const ClubDetailPage = () => {
       <Navbar />
       <Toaster position="top-right" />
       {particles.map((particle, index) => (
-        <FloatingParticle key={index} {...particle} />
+        <FloatingParticle key={`particle-${index}`} {...particle} />
       ))}
       <motion.div
         style={{ y: smoothY }}
@@ -665,7 +710,7 @@ const ClubDetailPage = () => {
           >
             <div className="relative overflow-hidden bg-gradient-to-r from-yellow-50 via-orange-50 to-red-50 rounded-3xl shadow-2xl border border-gradient-to-r from-yellow-200 to-orange-200 p-8">
               <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500"></div>
-             
+
               <div className="flex items-center gap-3 mb-6">
                 <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold rounded-full shadow-lg">
                   <FaCrown className="w-5 h-5" />
@@ -673,7 +718,7 @@ const ClubDetailPage = () => {
                 </div>
                 <div className="flex-1 h-px bg-gradient-to-r from-yellow-300 to-transparent"></div>
               </div>
-             
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {headCoordinators.map((coordinator, index) => (
                   <CoordinatorCard
@@ -804,7 +849,9 @@ const ClubDetailPage = () => {
                     <p className="text-3xl font-bold text-blue-600 mb-1">
                       {members.length}
                     </p>
-                    <p className="text-blue-700 text-sm">Active community members</p>
+                    <p className="text-blue-700 text-sm">
+                      Active community members
+                    </p>
                   </div>
                 </motion.div>
                 <motion.div
@@ -819,12 +866,16 @@ const ClubDetailPage = () => {
                       <div className="p-2 bg-green-500 rounded-xl">
                         <FaCalendar className="w-6 h-6 text-white" />
                       </div>
-                      <h3 className="font-bold text-green-900">Events Hosted</h3>
+                      <h3 className="font-bold text-green-900">
+                        Events Hosted
+                      </h3>
                     </div>
                     <p className="text-3xl font-bold text-green-600 mb-1">
                       {events.length}
                     </p>
-                    <p className="text-green-700 text-sm">Amazing experiences organized</p>
+                    <p className="text-green-700 text-sm">
+                      Amazing experiences organized
+                    </p>
                   </div>
                 </motion.div>
                 <motion.div
@@ -844,7 +895,9 @@ const ClubDetailPage = () => {
                     <p className="text-xl font-bold text-purple-600 mb-1">
                       {club.category || "General"}
                     </p>
-                    <p className="text-purple-700 text-sm">Club specialization</p>
+                    <p className="text-purple-700 text-sm">
+                      Club specialization
+                    </p>
                   </div>
                 </motion.div>
               </div>
@@ -939,14 +992,16 @@ const ClubDetailPage = () => {
                               <div className="p-1 bg-[#456882]/10 rounded-lg">
                                 <FaMapPin className="w-4 h-4 text-[#456882]" />
                               </div>
-                              <span className="text-sm font-medium truncate">{event.location}</span>
+                              <span className="text-sm font-medium truncate">
+                                {event.location}
+                              </span>
                             </div>
                           </div>
-                         
+
                           <p className="text-gray-600 text-sm line-clamp-3 mb-4">
                             {event.description}
                           </p>
-                         
+
                           {isMember && (
                             <motion.button
                               whileHover={{ scale: 1.02 }}
@@ -986,8 +1041,7 @@ const ClubDetailPage = () => {
                       </motion.div>
                     ))}
                   </div>
-                 
-                  {/* Enhanced Pagination */}
+
                   <div className="flex items-center justify-between mt-8 px-4">
                     <motion.button
                       whileHover={{ scale: 1.02 }}
@@ -1101,15 +1155,18 @@ const ClubDetailPage = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                           {paginatedMembers.map((member, index) => {
                             const isPrivileged =
-                              member.isAdmin ||
-                              (Array.isArray(club?.superAdmins) &&
-                                club.superAdmins.some(
-                                  (admin) =>
-                                    admin._id.toString() ===
-                                    member._id.toString()
-                                )) ||
-                              (Array.isArray(member.headCoordinatorClubs) &&
-                                member.headCoordinatorClubs.includes(club?._id));
+                              member &&
+                              (member.isAdmin ||
+                                (Array.isArray(club?.superAdmins) &&
+                                  club.superAdmins.some(
+                                    (admin) =>
+                                      admin._id.toString() ===
+                                      member._id.toString()
+                                  )) ||
+                                (Array.isArray(member.headCoordinatorClubs) &&
+                                  member.headCoordinatorClubs.includes(
+                                    club?._id
+                                  )));
                             return (
                               <motion.div
                                 key={member.email}
@@ -1121,43 +1178,56 @@ const ClubDetailPage = () => {
                                 }}
                                 className="relative group"
                               >
-                                <div className={`absolute inset-0 rounded-2xl blur-sm opacity-20 transition-opacity ${
-                                  isPrivileged
-                                    ? "bg-gradient-to-r from-yellow-400 to-orange-500 group-hover:opacity-30"
-                                    : "bg-gradient-to-r from-[#456882] to-[#5a7a95] group-hover:opacity-20"
-                                }`}></div>
+                                <div
+                                  className={`absolute inset-0 rounded-2xl blur-sm opacity-20 transition-opacity ${
+                                    isPrivileged
+                                      ? "bg-gradient-to-r from-yellow-400 to-orange-500 group-hover:opacity-30"
+                                      : "bg-gradient-to-r from-[#456882] to-[#5a7a95] group-hover:opacity-20"
+                                  }`}
+                                ></div>
                                 <div className="relative bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg transition-all">
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4 flex-1 min-w-0">
                                       <div className="relative">
-                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg ${
-                                          isPrivileged
-                                            ? "bg-gradient-to-br from-yellow-500 to-orange-600"
-                                            : "bg-gradient-to-br from-[#456882] to-[#5a7a95]"
-                                        }`}>
-                                          {member.name.charAt(0).toUpperCase()}
+                                        <div
+                                          className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg ${
+                                            isPrivileged
+                                              ? "bg-gradient-to-br from-yellow-500 to-orange-600"
+                                              : "bg-gradient-to-br from-[#456882] to-[#5a7a95]"
+                                          }`}
+                                        >
+                                          {(member.name || "Unknown")
+                                            .charAt(0)
+                                            .toUpperCase()}
                                         </div>
                                         {isPrivileged && (
                                           <motion.div
-                                            animate={{ rotate: [0, 10, -10, 0] }}
-                                            transition={{ duration: 2, repeat: Infinity }}
+                                            animate={{
+                                              rotate: [0, 10, -10, 0],
+                                            }}
+                                            transition={{
+                                              duration: 2,
+                                              repeat: Infinity,
+                                            }}
                                             className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center shadow-lg"
                                           >
                                             <FaCrown className="text-white text-xs" />
                                           </motion.div>
                                         )}
                                       </div>
-                                     
+
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
                                           <p className="font-bold text-gray-800 truncate">
-                                            {member.name}
+                                            {member.name || "Unknown Member"}
                                           </p>
                                           {isPrivileged && (
                                             <span className="text-xs font-bold text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">
                                               {member.isAdmin
                                                 ? "ADMIN"
-                                                : Array.isArray(club?.superAdmins) &&
+                                                : Array.isArray(
+                                                    club?.superAdmins
+                                                  ) &&
                                                   club.superAdmins.some(
                                                     (admin) =>
                                                       admin._id.toString() ===
@@ -1168,7 +1238,7 @@ const ClubDetailPage = () => {
                                             </span>
                                           )}
                                         </div>
-                                       
+
                                         <div className="space-y-1">
                                           <p className="text-sm text-gray-500 flex items-center gap-2 truncate">
                                             <FaEnvelope className="w-3 h-3 text-[#456882]" />
@@ -1191,7 +1261,9 @@ const ClubDetailPage = () => {
                                           handleRemoveMember(member.email)
                                         }
                                         className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all ml-2"
-                                        title={`Remove ${member.name}`}
+                                        title={`Remove ${
+                                          member.name || "member"
+                                        }`}
                                       >
                                         <FaTimes className="w-4 h-4" />
                                       </motion.button>
@@ -1202,8 +1274,7 @@ const ClubDetailPage = () => {
                             );
                           })}
                         </div>
-                       
-                        {/* Enhanced Members Pagination */}
+
                         <div className="flex items-center justify-between mt-8 px-4">
                           <motion.button
                             whileHover={{ scale: 1.02 }}
@@ -1264,7 +1335,7 @@ const ClubDetailPage = () => {
                 <FaEnvelope className="w-8 h-8" />
                 Contact {club.name}
               </h2>
-             
+
               <form onSubmit={handleContactSubmit} className="space-y-6">
                 <div>
                   <label
@@ -1282,7 +1353,7 @@ const ClubDetailPage = () => {
                     placeholder="Share your thoughts, questions, or ideas with the club coordinators..."
                   />
                 </div>
-               
+
                 <motion.button
                   whileHover={{
                     scale: 1.02,
@@ -1298,23 +1369,31 @@ const ClubDetailPage = () => {
                   ) : (
                     <FaPaperPlane className="w-5 h-5" />
                   )}
-                  <span>{contactSending ? "Sending Message..." : "Send Message"}</span>
+                  <span>
+                    {contactSending ? "Sending Message..." : "Send Message"}
+                  </span>
                 </motion.button>
               </form>
-             
-              {/* Quick Contact Info */}
+
               {headCoordinators.length > 0 && (
                 <div className="mt-8 pt-8 border-t border-gray-200">
                   <h3 className="text-lg font-semibold text-gray-700 mb-4">
                     Or reach out directly to our coordinators:
                   </h3>
                   <div className="flex flex-wrap gap-3">
-                    {headCoordinators.map((coordinator) => (
-                      <div key={coordinator._id} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl">
+                    {headCoordinators.map((coordinator, index) => (
+                      <div
+                        key={coordinator._id || `coordinator-${index}`}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl"
+                      >
                         <FaCrown className="w-4 h-4 text-yellow-600" />
-                        <span className="font-medium text-gray-700">{coordinator.name}</span>
+                        <span className="font-medium text-gray-700">
+                          {coordinator.name || "Unknown Coordinator"}
+                        </span>
                         <span className="text-gray-500">•</span>
-                        <span className="text-sm text-gray-600">{coordinator.email}</span>
+                        <span className="text-sm text-gray-600">
+                          {coordinator.email || "No email"}
+                        </span>
                       </div>
                     ))}
                   </div>

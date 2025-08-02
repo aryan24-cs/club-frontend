@@ -20,7 +20,7 @@ import {
   FaEnvelope,
 } from "react-icons/fa";
 
-// Floating Particle Component (unchanged)
+// Floating Particle Component
 const FloatingParticle = ({ delay, duration }) => {
   return (
     <motion.div
@@ -45,7 +45,7 @@ const FloatingParticle = ({ delay, duration }) => {
   );
 };
 
-// Enhanced OTP Input Component (minor improvements)
+// OTP Input Component
 const OtpInput = ({ otp, setOtp, otpFocused, setOtpFocused }) => {
   const inputRefs = useRef([]);
   const OTP_LENGTH = 6;
@@ -70,7 +70,7 @@ const OtpInput = ({ otp, setOtp, otpFocused, setOtpFocused }) => {
     const pastedData = e.clipboardData
       .getData("text")
       .slice(0, OTP_LENGTH)
-      .replace(/\D/g, "") // Only digits
+      .replace(/\D/g, "")
       .trim();
     if (/^\d{6}$/.test(pastedData)) {
       setOtp(pastedData);
@@ -96,12 +96,13 @@ const OtpInput = ({ otp, setOtp, otpFocused, setOtpFocused }) => {
             onBlur={() => setOtpFocused(null)}
             whileFocus={{ scale: 1.05 }}
             whileHover={{ scale: 1.02 }}
-            className={`w-12 h-12 text-center text-xl font-semibold border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#456882]/50 transition-all duration-300 bg-white/80 backdrop-blur-sm ${otpFocused === index
-                ? "border-[#456882] shadow-lg bg-white"
+            className={`w-12 h-12 text-center text-xl font-semibold border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#456882]/50 transition-all duration-300 bg-white/80 backdrop-blur-sm ${
+              otpFocused === index
+                ? "border-[#456882] shadowing bg-white"
                 : otp[index]
-                  ? "border-green-500 bg-green-50"
-                  : "border-gray-300 hover:border-gray-400"
-              }`}
+                ? "border-green-500 bg-green-50"
+                : "border-gray-300 hover:border-gray-400"
+            }`}
             aria-label={`OTP digit ${index + 1}`}
           />
         ))}
@@ -109,7 +110,7 @@ const OtpInput = ({ otp, setOtp, otpFocused, setOtpFocused }) => {
   );
 };
 
-// Animated Background Grid (unchanged)
+// Animated Background Grid
 const AnimatedGrid = () => {
   return (
     <div className="absolute inset-0 overflow-hidden opacity-10">
@@ -150,8 +151,9 @@ const Login = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [emailFocused, setEmailFocused] = useState(false);
-  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false); // Fixed typo
   const [resetEmailFocused, setResetEmailFocused] = useState(false);
   const [newPasswordFocused, setNewPasswordFocused] = useState(false);
   const [otpFocused, setOtpFocused] = useState(null);
@@ -173,8 +175,18 @@ const Login = () => {
     duration: 12 + Math.random() * 8,
   }));
 
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setInterval(() => {
+        setResendCooldown((prev) => prev - 1);
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [resendCooldown]);
+
   const handleSendOtp = async () => {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
       setError("Please enter a valid email address");
       setTimeout(() => setError(""), 3000);
       return;
@@ -182,8 +194,10 @@ const Login = () => {
     setError("");
     setLoading(true);
     try {
-      console.log("Sending OTP to:", email);
-      await axios.post("http://localhost:5000/api/auth/send-otp", { email });
+      console.log("Sending OTP to:", trimmedEmail);
+      await axios.post("http://localhost:5000/api/auth/send-otp", {
+        email: trimmedEmail,
+      });
       setOtpSent(true);
       setSuccess("OTP sent to your email.");
       setTimeout(() => setSuccess(""), 3000);
@@ -200,7 +214,8 @@ const Login = () => {
   };
 
   const handlePasswordLogin = async () => {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
       setError("Please enter a valid email address");
       setTimeout(() => setError(""), 3000);
       return;
@@ -213,10 +228,10 @@ const Login = () => {
     setError("");
     setLoading(true);
     try {
-      console.log("Attempting password login for:", email);
+      console.log("Attempting password login for:", trimmedEmail);
       const res = await axios.post(
         "http://localhost:5000/api/auth/login-password",
-        { email, password }
+        { email: trimmedEmail, password }
       );
       localStorage.setItem("token", res.data.token);
       navigate("/dashboard");
@@ -233,7 +248,8 @@ const Login = () => {
   };
 
   const handleVerifyOtp = async () => {
-    if (!otp || !/^\d{6}$/.test(otp)) {
+    const trimmedOtp = otp.trim();
+    if (!trimmedOtp || !/^\d{6}$/.test(trimmedOtp)) {
       setError("Please enter a valid 6-digit OTP");
       setTimeout(() => setError(""), 3000);
       return;
@@ -241,10 +257,10 @@ const Login = () => {
     setError("");
     setLoading(true);
     try {
-      console.log("Verifying OTP for:", { email, otp });
+      console.log("Verifying OTP for:", { email, otp: trimmedOtp });
       const res = await axios.post(
         "http://localhost:5000/api/auth/verify-otp-login",
-        { email, otp }
+        { email: email.trim().toLowerCase(), otp: trimmedOtp }
       );
       localStorage.setItem("token", res.data.token);
       navigate("/dashboard");
@@ -261,7 +277,13 @@ const Login = () => {
   };
 
   const handleResetPasswordRequest = async () => {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resetEmail)) {
+    const trimmedEmail = resetEmail.trim().toLowerCase();
+    if (resendCooldown > 0) {
+      setError("Please wait before requesting a new OTP");
+      setTimeout(() => setError(""), 3000);
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
       setError("Please enter a valid email address");
       setTimeout(() => setError(""), 3000);
       return;
@@ -270,13 +292,14 @@ const Login = () => {
     setSuccess("");
     setLoading(true);
     try {
-      console.log("Requesting password reset OTP for:", resetEmail);
+      console.log("Requesting password reset OTP for:", trimmedEmail);
       await axios.post(
         "http://localhost:5000/api/auth/reset-password-otp-request",
-        { email: resetEmail }
+        { email: trimmedEmail }
       );
       setResetOtpSent(true);
       setSuccess("OTP sent to your email for password reset.");
+      setResendCooldown(60);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       console.error("Reset password OTP request error:", {
@@ -291,7 +314,9 @@ const Login = () => {
   };
 
   const handleVerifyResetOtp = async () => {
-    if (!resetOtp || !/^\d{6}$/.test(resetOtp)) {
+    const trimmedOtp = resetOtp.trim();
+    const trimmedEmail = resetEmail.trim().toLowerCase();
+    if (!trimmedOtp || !/^\d{6}$/.test(trimmedOtp)) {
       setError("Please enter a valid 6-digit OTP");
       setTimeout(() => setError(""), 3000);
       return;
@@ -300,10 +325,14 @@ const Login = () => {
     setSuccess("");
     setLoading(true);
     try {
-      console.log("Verifying reset OTP for:", { email: resetEmail, otp: resetOtp });
+      console.log("Verifying reset OTP for:", {
+        email: trimmedEmail,
+        otp: trimmedOtp,
+      });
       const res = await axios.post(
         "http://localhost:5000/api/auth/verify-reset-otp",
-        { email: resetEmail, otp: resetOtp }
+        { email: trimmedEmail, otp: trimmedOtp },
+        { headers: { "Content-Type": "application/json" } }
       );
       setShowNewPasswordForm(true);
       setSuccess("OTP verified successfully. Please enter your new password.");
@@ -318,8 +347,10 @@ const Login = () => {
         err.response?.data?.error === "Invalid OTP"
           ? "The OTP entered is incorrect. Please check and try again."
           : err.response?.data?.error === "Expired OTP"
-            ? "The OTP has expired. Please request a new one."
-            : err.response?.data?.error || "Failed to verify OTP. Try again."
+          ? "The OTP has expired. Please request a new one."
+          : err.response?.data?.error === "No OTP requested or OTP expired"
+          ? "No OTP found. Please request a new OTP."
+          : err.response?.data?.error || "Failed to verify OTP. Try again."
       );
       setTimeout(() => setError(""), 3000);
     }
@@ -327,7 +358,19 @@ const Login = () => {
   };
 
   const handleResetPassword = async () => {
-    if (!newPassword || newPassword.length < 6) {
+    const trimmedEmail = resetEmail.trim().toLowerCase();
+    const trimmedOtp = resetOtp.trim();
+    if (!trimmedEmail || !trimmedOtp || !newPassword) {
+      setError("Email, OTP, and new password are required");
+      setTimeout(() => setError(""), 3000);
+      return;
+    }
+    if (!/^\d{6}$/.test(trimmedOtp)) {
+      setError("Please enter a valid 6-digit OTP");
+      setTimeout(() => setError(""), 3000);
+      return;
+    }
+    if (newPassword.length < 6) {
       setError("Password must be at least 6 characters long");
       setTimeout(() => setError(""), 3000);
       return;
@@ -336,12 +379,16 @@ const Login = () => {
     setSuccess("");
     setLoading(true);
     try {
-      console.log("Resetting password for:", { email: resetEmail, otp: resetOtp });
-      await axios.post("http://localhost:5000/api/auth/reset-password", {
-        email: resetEmail,
-        otp: resetOtp,
-        newPassword,
+      console.log("Resetting password for:", {
+        email: trimmedEmail,
+        otp: trimmedOtp,
+        newPassword: "[provided]",
       });
+      await axios.post(
+        "http://localhost:5000/api/auth/reset-password",
+        { email: trimmedEmail, otp: trimmedOtp, newPassword },
+        { headers: { "Content-Type": "application/json" } }
+      );
       setSuccess("Password reset successfully. Please log in.");
       setTimeout(() => setSuccess(""), 3000);
       setShowResetForm(false);
@@ -360,21 +407,23 @@ const Login = () => {
         err.response?.data?.error === "Invalid OTP"
           ? "The OTP entered is incorrect. Please check and try again."
           : err.response?.data?.error === "Expired OTP"
-            ? "The OTP has expired. Please request a new one."
-            : err.response?.data?.error || "Failed to reset password. Try again."
+          ? "The OTP has expired. Please request a new one."
+          : err.response?.data?.error === "No OTP requested or OTP expired"
+          ? "No OTP found. Please request a new OTP."
+          : err.response?.data?.error === "User not found"
+          ? "No account found for this email."
+          : err.response?.data?.error || "Failed to reset password. Try again."
       );
       setTimeout(() => setError(""), 3000);
     }
     setLoading(false);
   };
 
-  // Handle "Use OTP Instead" click
   const handleToggleOtp = async () => {
     setUseOtp(!useOtp);
-    setOtp(""); // Reset OTP input
-    setOtpSent(false); // Reset OTP sent state
+    setOtp("");
+    setOtpSent(false);
     if (!useOtp && email) {
-      // If switching to OTP and email is provided, send OTP immediately
       await handleSendOtp();
     }
   };
@@ -390,11 +439,11 @@ const Login = () => {
     ? showNewPasswordForm
       ? 2
       : resetOtpSent
-        ? 1
-        : 0
-    : otpSent
       ? 1
-      : 0;
+      : 0
+    : otpSent
+    ? 1
+    : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center relative overflow-hidden">
@@ -505,10 +554,11 @@ const Login = () => {
                 className="h-full bg-gradient-to-r from-[#456882] to-[#5a7a95] rounded-full"
                 initial={{ width: "0%" }}
                 animate={{
-                  width: `${((currentStep + 1) /
+                  width: `${
+                    ((currentStep + 1) /
                       (showResetForm ? resetSteps.length : steps.length)) *
                     100
-                    }%`,
+                  }%`,
                 }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
               />
@@ -520,8 +570,9 @@ const Login = () => {
                 className="flex flex-col items-center relative z-10"
               >
                 <motion.div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold relative ${index <= currentStep ? "bg-[#456882]" : "bg-gray-300"
-                    }`}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold relative ${
+                    index <= currentStep ? "bg-[#456882]" : "bg-gray-300"
+                  }`}
                   animate={{
                     scale: index === currentStep ? 1.1 : 1,
                     boxShadow:
@@ -703,6 +754,7 @@ const Login = () => {
                             setResetEmail("");
                             setResetOtp("");
                             setNewPassword("");
+                            setResendCooldown(0);
                           }}
                           className="text-[#456882] hover:text-[#5a7a95] font-medium hover:underline transition-all duration-300"
                         >
@@ -823,10 +875,12 @@ const Login = () => {
                       >
                         <button
                           onClick={handleResetPasswordRequest}
-                          disabled={loading}
+                          disabled={loading || resendCooldown > 0}
                           className="text-[#456882] hover:text-[#5a7a95] font-medium hover:underline transition-all duration-300 disabled:opacity-50"
                         >
-                          Resend OTP
+                          {resendCooldown > 0
+                            ? `Resend OTP in ${resendCooldown}s`
+                            : "Resend OTP"}
                         </button>
                       </motion.div>
                     </motion.div>
@@ -879,10 +933,13 @@ const Login = () => {
                       <motion.input
                         type="email"
                         value={resetEmail}
-                        onChange={(e) => setResetEmail(e.target.value.trim())}
+                        onChange={(e) =>
+                          setResetEmail(e.target.value.trim().toLowerCase())
+                        }
                         onFocus={() => setResetEmailFocused(true)}
                         onBlur={() => setResetEmailFocused(false)}
                         whileFocus={{ scale: 1.02 }}
+                        disabled={resetOtpSent}
                         className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl text-gray-900 bg-gray-50/50 focus:outline-none focus:border-[#456882] focus:ring-2 focus:ring-[#456882]/20 focus:bg-white transition-all duration-300"
                         aria-label="Reset Email Address"
                       />
@@ -925,7 +982,7 @@ const Login = () => {
                       }}
                       whileTap={{ scale: 0.98 }}
                       onClick={handleResetPasswordRequest}
-                      disabled={loading}
+                      disabled={loading || resendCooldown > 0}
                       className="w-full py-4 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl font-semibold hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center justify-center relative overflow-hidden"
                       aria-label="Send Reset OTP"
                     >
@@ -968,6 +1025,7 @@ const Login = () => {
                           setResetEmail("");
                           setResetOtp("");
                           setNewPassword("");
+                          setResendCooldown(0);
                         }}
                         className="text-[#456882] hover:text-[#5a7a95] font-medium hover:underline transition-all duration-300"
                       >
@@ -1004,7 +1062,9 @@ const Login = () => {
                     <motion.input
                       type="email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value.trim())}
+                      onChange={(e) =>
+                        setEmail(e.target.value.trim().toLowerCase())
+                      }
                       onFocus={() => setEmailFocused(true)}
                       onBlur={() => setEmailFocused(false)}
                       whileFocus={{ scale: 1.02 }}
@@ -1074,10 +1134,12 @@ const Login = () => {
                       >
                         <button
                           onClick={handleSendOtp}
-                          disabled={loading}
+                          disabled={loading || resendCooldown > 0}
                           className="text-[#456882] hover:text-[#5a7a95] font-medium hover:underline transition-all duration-300 disabled:opacity-50"
                         >
-                          Resend OTP
+                          {resendCooldown > 0
+                            ? `Resend OTP in ${resendCooldown}s`
+                            : "Resend OTP"}
                         </button>
                       </motion.div>
                     </motion.div>
@@ -1197,10 +1259,11 @@ const Login = () => {
                           <button
                             onClick={() => {
                               setShowResetForm(true);
-                              setEmail(""); // Clear email to avoid confusion
+                              setEmail("");
                               setPassword("");
                               setOtp("");
                               setOtpSent(false);
+                              setResendCooldown(0);
                             }}
                             className="text-[#456882] hover:text-[#5a7a95] font-medium hover:underline transition-all duration-300"
                           >
@@ -1213,7 +1276,9 @@ const Login = () => {
                             disabled={loading}
                             className="text-[#456882] hover:text-[#5a7a95] font-medium hover:underline transition-all duration-300 disabled:opacity-50"
                           >
-                            {useOtp ? "Use Password Instead" : "Use OTP Instead"}
+                            {useOtp
+                              ? "Use Password Instead"
+                              : "Use OTP Instead"}
                           </button>
                         </div>
                       </motion.div>
