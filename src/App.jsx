@@ -75,7 +75,7 @@ const RoleBasedRoute = ({ children, role }) => {
   }, [navigate]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div></div>;
   }
 
   if (!user) {
