@@ -1,18 +1,14 @@
 import React, { memo, useState, useEffect } from "react";
 import {
-  FaCode,
-  FaMusic,
-  FaBook,
-  FaHandsHelping,
+  FaUsers,
+  FaTrophy,
+  FaCalendarAlt,
+  FaWhatsapp,
   FaBars,
   FaTimes,
   FaFacebook,
   FaTwitter,
   FaInstagram,
-  FaUsers,
-  FaTrophy,
-  FaCalendarAlt,
-  FaWhatsapp,
   FaEnvelope,
   FaStar,
   FaMedal,
@@ -23,7 +19,6 @@ import {
   FaCrown,
   FaGraduationCap,
   FaSpinner,
-  FaPeopleCarry
 } from "react-icons/fa";
 import {
   motion,
@@ -34,7 +29,6 @@ import {
   useInView
 } from "framer-motion";
 import axios from "axios";
-import toast, { Toaster } from "react-hot-toast";
 
 // API Base URL
 const API_BASE_URL = "http://localhost:5000/api";
@@ -216,8 +210,8 @@ const FeatureCard = memo(({ feature, index }) => {
   );
 });
 
-// Club Category Card Component
-const ClubCategoryCard = memo(({ category, index }) => {
+// Club Card Component
+const ClubCard = memo(({ club, index }) => {
   const ref = React.useRef(null);
   const isInView = useInView(ref, { once: true });
 
@@ -230,7 +224,7 @@ const ClubCategoryCard = memo(({ category, index }) => {
         y: -10,
         boxShadow: "0 20px 40px rgba(0,0,0,0.15)"
       }}
-      className={`relative p-6 bg-gradient-to-br ${category.color} rounded-xl text-white text-center overflow-hidden group cursor-pointer`}
+      className="relative p-6 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl text-gray-800 text-center group cursor-pointer"
     >
       <motion.div
         initial={{ scale: 1 }}
@@ -238,18 +232,22 @@ const ClubCategoryCard = memo(({ category, index }) => {
         transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
         className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-all duration-300"
       />
-      <motion.div
-        whileHover={{ scale: 1.15, rotate: 10 }}
-        className="text-4xl mb-4 relative z-10"
-      >
-        {category.icon}
-      </motion.div>
-      <h3 className="text-lg font-semibold mb-2 relative z-10">
-        {category.name}
-      </h3>
-      <p className="text-sm opacity-90 relative z-10">
-        {category.count} Clubs
-      </p>
+      <h3 className="text-lg font-semibold mb-2 relative z-10">{club.name}</h3>
+      <p className="text-sm capitalize opacity-90 relative z-10 mb-4">{club.category}</p>
+      {club.activeEvents.length > 0 ? (
+        <div className="relative z-10">
+          <p className="text-sm font-medium mb-2">Active Events:</p>
+          <ul className="text-sm space-y-1">
+            {club.activeEvents.map((event, idx) => (
+              <li key={idx}>
+                {event.title} - {new Date(event.date).toLocaleDateString()}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <p className="text-sm opacity-90 relative z-10">No active events</p>
+      )}
     </motion.div>
   );
 });
@@ -269,13 +267,10 @@ const ContactForm = memo(() => {
   useEffect(() => {
     const fetchClubs = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/clubs`, {
-          headers: { 'Content-Type': 'application/json' }
-        });
-        setClubs(response.data);
+        const response = await axios.get(`${API_BASE_URL}/landing/clubs`);
+        setClubs(response.data.clubs);
       } catch (error) {
         console.error('Error fetching clubs for contact form:', error.message);
-        toast.error('Failed to load clubs. You can still submit the form.');
       }
     };
     fetchClubs();
@@ -286,13 +281,12 @@ const ContactForm = memo(() => {
     setIsSubmitting(true);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/landing/contact`, formData, {
+      await axios.post(`${API_BASE_URL}/landing/contact`, formData, {
         headers: { 'Content-Type': 'application/json' }
       });
-      toast.success(response.data.message || 'Message sent successfully!');
       setFormData({ name: '', email: '', subject: '', message: '', club: '' });
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to send message');
+      console.error('Error submitting contact form:', error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -334,7 +328,7 @@ const ContactForm = memo(() => {
       >
         <option value="">Select a Club (Optional)</option>
         {clubs.map((club) => (
-          <option key={club._id} value={club.name}>{club.name}</option>
+          <option key={club.name} value={club.name}>{club.name}</option>
         ))}
       </motion.select>
       <motion.input
@@ -388,12 +382,9 @@ const LandingPage = () => {
     eventsOrganized: 0,
     satisfactionRate: 0
   });
-  const [clubCategories, setClubCategories] = useState({
-    Technical: 0,
-    Cultural: 0,
-    Literary: 0,
-    Social: 0,
-    Sports: 0
+  const [clubsData, setClubsData] = useState({
+    totalClubs: 0,
+    clubs: []
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -421,15 +412,12 @@ const LandingPage = () => {
         const statsResponse = await axios.get(`${API_BASE_URL}/landing/stats`);
         setStats(statsResponse.data);
 
-        // Fetch club categories
-        const categoriesResponse = await axios.get(`${API_BASE_URL}/landing/club-categories`);
-        setClubCategories(categoriesResponse.data);
-
-        toast.success("Data loaded successfully!");
+        // Fetch clubs and active events
+        const clubsResponse = await axios.get(`${API_BASE_URL}/landing/clubs`);
+        setClubsData(clubsResponse.data);
       } catch (err) {
         console.error('Error fetching landing data:', err.message);
         setError(err.response?.data?.error || 'Failed to load data');
-        toast.error('Failed to load data. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -452,7 +440,7 @@ const LandingPage = () => {
   };
 
   const handleWatchDemo = () => {
-    toast("Demo feature coming soon!", { icon: '🎥' });
+    console.log("Demo feature clicked");
   };
 
   const features = [
@@ -491,39 +479,6 @@ const LandingPage = () => {
       title: "Approval Workflow",
       description: "Streamlined approval process for club joining with trial management system.",
       color: "bg-purple-500"
-    }
-  ];
-
-  const clubCategoryData = [
-    {
-      name: "Technical",
-      icon: <FaCode />,
-      color: "from-blue-400 to-blue-600",
-      count: clubCategories.Technical || 0
-    },
-    {
-      name: "Cultural",
-      icon: <FaMusic />,
-      color: "from-purple-400 to-purple-600",
-      count: clubCategories.Cultural || 0
-    },
-    {
-      name: "Literary",
-      icon: <FaBook />,
-      color: "from-green-400 to-green-600",
-      count: clubCategories.Literary || 0
-    },
-    {
-      name: "Social",
-      icon: <FaHandsHelping />,
-      color: "from-orange-400 to-orange-600",
-      count: clubCategories.Social || 0
-    },
-    {
-      name: "Sports",
-      icon: <FaPeopleCarry />,
-      color: "from-red-400 to-red-600",
-      count: clubCategories.Sports || 0
     }
   ];
 
@@ -587,7 +542,6 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans overflow-x-hidden">
-      <Toaster position="top-right" />
       {/* Floating Particles */}
       {particles.map((particle, index) => (
         <FloatingParticle key={`particle-${index}`} {...particle} />
@@ -790,7 +744,7 @@ const LandingPage = () => {
         </div>
       </motion.section>
 
-      {/* Club Categories Section */}
+      {/* Clubs and Active Events Section */}
       <motion.section
         id="clubs"
         variants={containerVariants}
@@ -802,18 +756,18 @@ const LandingPage = () => {
         <div className="container mx-auto px-4">
           <motion.div variants={itemVariants} className="text-center mb-16">
             <h2 className="text-4xl font-bold text-[#456882] mb-6">
-              Diverse Club Categories
+              Our Clubs ({clubsData.totalClubs})
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              From technical innovation to cultural expression, find your passion among our diverse range of clubs.
+              Discover our {clubsData.totalClubs} active clubs and their upcoming events.
             </p>
           </motion.div>
           <motion.div
             variants={containerVariants}
-            className="grid md:grid-cols-2 lg:grid-cols-4 gap-6"
+            className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-            {clubCategoryData.map((category, index) => (
-              <ClubCategoryCard key={category.name} category={category} index={index} />
+            {clubsData.clubs.map((club, index) => (
+              <ClubCard key={club.name} club={club} index={index} />
             ))}
           </motion.div>
         </div>

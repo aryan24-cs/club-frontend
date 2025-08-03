@@ -31,7 +31,9 @@ import {
   FaStar,
   FaIdCard,
   FaGraduationCap,
+  FaLink,
 } from "react-icons/fa";
+import { FaWhatsapp } from "react-icons/fa6";
 import toast, { Toaster } from "react-hot-toast";
 import Navbar from "../components/Navbar";
 
@@ -108,7 +110,6 @@ const AnimatedGrid = () => {
 
 // Coordinator Card Component
 const CoordinatorCard = ({ coordinator, index }) => {
-  // Fallback for missing name
   const displayName = coordinator.name || "Unknown Coordinator";
   return (
     <CoordinatorCardErrorBoundary>
@@ -238,6 +239,88 @@ const LeaveClubModal = ({ isOpen, onClose, onConfirm, clubName, loading }) => {
   );
 };
 
+// WhatsApp Link Modal
+const WhatsAppLinkModal = ({ isOpen, onClose, onSubmit, currentLink, loading }) => {
+  const [whatsappLink, setWhatsappLink] = useState(currentLink || "");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!whatsappLink.trim() || !whatsappLink.startsWith("https://chat.whatsapp.com/")) {
+      toast.error("Please enter a valid WhatsApp group link");
+      return;
+    }
+    onSubmit(whatsappLink);
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border border-gray-200"
+          >
+            <h2 className="text-2xl font-bold text-[#456882] mb-4">
+              Set WhatsApp Group Link
+            </h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label
+                  htmlFor="whatsappLink"
+                  className="block text-lg font-semibold text-gray-700 mb-2"
+                >
+                  WhatsApp Group Link
+                </label>
+                <input
+                  id="whatsappLink"
+                  type="url"
+                  value={whatsappLink}
+                  onChange={(e) => setWhatsappLink(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#456882] focus:border-transparent bg-gray-50/50 text-lg"
+                  placeholder="https://chat.whatsapp.com/..."
+                />
+              </div>
+              <div className="flex justify-end gap-4">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="button"
+                  onClick={onClose}
+                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium shadow-lg hover:bg-gray-300 transition-all"
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="submit"
+                  disabled={loading}
+                  className="px-6 py-3 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl font-medium shadow-lg hover:from-[#334d5e] hover:to-[#456882] transition-all disabled:opacity-50"
+                >
+                  {loading ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block mr-2" />
+                  ) : (
+                    <FaLink className="w-5 h-5 inline-block mr-2" />
+                  )}
+                  Save
+                </motion.button>
+              </div>
+            </form>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 const ClubDetailPage = () => {
   const { clubId } = useParams();
   const navigate = useNavigate();
@@ -249,6 +332,7 @@ const ClubDetailPage = () => {
   const [isMember, setIsMember] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isHeadCoordinator, setIsHeadCoordinator] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showMembers, setShowMembers] = useState(false);
@@ -261,6 +345,8 @@ const ClubDetailPage = () => {
   const [retryCount, setRetryCount] = useState(0);
   const [membersPage, setMembersPage] = useState(1);
   const [eventsPage, setEventsPage] = useState(1);
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [whatsAppLoading, setWhatsAppLoading] = useState(false);
   const itemsPerPage = 6;
   const { scrollY } = useScroll();
   const bgY = useTransform(scrollY, [0, 500], [0, -50]);
@@ -278,7 +364,6 @@ const ClubDetailPage = () => {
       }
       setLoading(true);
       setError("");
-      // Fetch club details by ID
       const clubResponse = await axios.get(
         `http://localhost:5000/api/clubs/${clubId}`,
         {
@@ -289,7 +374,6 @@ const ClubDetailPage = () => {
       if (!clubData) {
         throw new Error("Club not found");
       }
-      // Validate headCoordinators
       const validCoordinators = (clubData.headCoordinators || []).filter(
         (coordinator) =>
           coordinator &&
@@ -300,7 +384,6 @@ const ClubDetailPage = () => {
       console.log("Fetched headCoordinators:", validCoordinators);
       setClub(clubData);
       setHeadCoordinators(validCoordinators);
-      // Fetch events
       const eventsResponse = await axios.get(
         `http://localhost:5000/api/events?club=${clubData._id}`,
         {
@@ -308,7 +391,6 @@ const ClubDetailPage = () => {
         }
       );
       setEvents(eventsResponse.data);
-      // Fetch members
       const membersResponse = await axios.get(
         `http://localhost:5000/api/clubs/${clubData._id}/members`,
         {
@@ -317,14 +399,12 @@ const ClubDetailPage = () => {
       );
       setMembers(membersResponse.data);
       setFilteredMembers(membersResponse.data);
-      // Fetch user data
       const userResponse = await axios.get(
         "http://localhost:5000/api/auth/user",
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      // Check if user is a member by comparing club IDs
       const userClubs = userResponse.data.clubs || [];
       const isUserMember = userClubs.some(
         (club) => club._id && club._id.toString() === clubData._id.toString()
@@ -335,7 +415,11 @@ const ClubDetailPage = () => {
         userResponse.data.isHeadCoordinator &&
           userResponse.data.headCoordinatorClubs.includes(clubData.name)
       );
-      // Enhanced debugging logs
+      setIsSuperAdmin(
+        clubData.superAdmins.some(
+          (admin) => admin._id.toString() === userResponse.data._id.toString()
+        )
+      );
       console.log("User data:", {
         userId: userResponse.data._id,
         userClubsRaw: userResponse.data.clubs,
@@ -346,6 +430,9 @@ const ClubDetailPage = () => {
         isHeadCoordinator:
           userResponse.data.isHeadCoordinator &&
           userResponse.data.headCoordinatorClubs.includes(clubData.name),
+        isSuperAdmin: clubData.superAdmins.some(
+          (admin) => admin._id.toString() === userResponse.data._id.toString()
+        ),
         headCoordinatorClubs: userResponse.data.headCoordinatorClubs,
         clubName: clubData.name,
       });
@@ -484,6 +571,24 @@ const ClubDetailPage = () => {
       toast.error(err.response?.data?.error || "Failed to send message");
     }
     setContactSending(false);
+  };
+
+  const handleWhatsAppLinkSubmit = async (whatsappLink) => {
+    setWhatsAppLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      await axios.patch(
+        `http://localhost:5000/api/clubs/${club._id}`,
+        { whatsappLink },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success("WhatsApp link updated successfully");
+      setClub({ ...club, whatsappLink });
+      setShowWhatsAppModal(false);
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to update WhatsApp link");
+    }
+    setWhatsAppLoading(false);
   };
 
   const tabs = [
@@ -637,7 +742,7 @@ const ClubDetailPage = () => {
             Back to Clubs
           </Link>
         </motion.div>
-        {(isAdmin || isHeadCoordinator) && (
+        {(isAdmin || isHeadCoordinator || isSuperAdmin) && (
           <motion.div
             initial={{ x: 100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -651,6 +756,15 @@ const ClubDetailPage = () => {
               <FaEdit className="w-4 h-4" />
               Edit Club
             </Link>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowWhatsAppModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600/80 backdrop-blur-sm text-white rounded-full hover:bg-green-700/80 transition-all shadow-lg"
+            >
+              <FaWhatsapp className="w-4 h-4" />
+              {club.whatsappLink ? "Edit WhatsApp Link" : "Add WhatsApp Link"}
+            </motion.button>
             {isAdmin && (
               <motion.button
                 whileHover={{ scale: 1.02 }}
@@ -739,7 +853,44 @@ const ClubDetailPage = () => {
                     {club.category || "General"}
                   </span>
                 </div>
+                {club.whatsappLink && (
+                  <a
+                    href={club.whatsappLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 hover:bg-green-600/30 px-3 py-1 rounded-full transition-all"
+                  >
+                    <FaWhatsapp className="w-5 h-5 text-green-400" />
+                    <span>Join WhatsApp Group</span>
+                  </a>
+                )}
               </motion.div>
+              {headCoordinators.length > 0 && (
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ duration: 0.6, delay: 0.4 }}
+                  className="mt-4 flex flex-wrap gap-3"
+                >
+                  {headCoordinators.map((coordinator, index) => (
+                    <div
+                      key={coordinator._id || `coordinator-${index}`}
+                      className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-white text-sm"
+                    >
+                      <FaCrown className="w-4 h-4 text-yellow-400" />
+                      <span>{coordinator.name || "Unknown Coordinator"}</span>
+                      <span className="text-white/70">•</span>
+                      <span>{coordinator.email || "No email"}</span>
+                      {coordinator.phone && (
+                        <>
+                          <span className="text-white/70">•</span>
+                          <span>{coordinator.phone}</span>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </motion.div>
+              )}
             </div>
           </div>
         </div>
@@ -812,6 +963,14 @@ const ClubDetailPage = () => {
           onConfirm={handleLeaveClub}
           clubName={club?.name || "this club"}
           loading={leaveLoading}
+        />
+        {/* WhatsApp Link Modal */}
+        <WhatsAppLinkModal
+          isOpen={showWhatsAppModal}
+          onClose={() => setShowWhatsAppModal(false)}
+          onSubmit={handleWhatsAppLinkSubmit}
+          currentLink={club?.whatsappLink}
+          loading={whatsAppLoading}
         />
         {/* Enhanced Tab Navigation */}
         <motion.div
