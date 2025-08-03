@@ -40,11 +40,9 @@ import Navbar from "../components/Navbar";
 // Simple Error Boundary Component
 class CoordinatorCardErrorBoundary extends Component {
   state = { hasError: false, error: null };
-
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
   }
-
   render() {
     if (this.state.hasError) {
       return (
@@ -57,18 +55,28 @@ class CoordinatorCardErrorBoundary extends Component {
   }
 }
 
-// Floating Particle Component
+// Floating Particle Component with Responsive Constraints
 const FloatingParticle = ({ delay, duration }) => {
+  const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
+  const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportWidth(window.innerWidth);
+      setViewportHeight(window.innerHeight);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
   return (
     <motion.div
       className="absolute w-2 h-2 bg-[#456882] rounded-full opacity-20"
       initial={{
-        x: Math.random() * window.innerWidth,
-        y: window.innerHeight + 20,
+        x: Math.random() * viewportWidth * 0.8,
+        y: viewportHeight,
         opacity: 0,
       }}
       animate={{
-        x: Math.random() * window.innerWidth,
+        x: Math.random() * viewportWidth * 0.8,
         y: -20,
         opacity: [0, 0.6, 0],
       }}
@@ -77,6 +85,10 @@ const FloatingParticle = ({ delay, duration }) => {
         repeat: Infinity,
         delay: delay,
         ease: "linear",
+      }}
+      style={{
+        x: `clamp(0px, ${viewportWidth * 0.8}px, ${viewportWidth - 20}px)`,
+        y: `clamp(-20px, ${viewportHeight}px, ${viewportHeight}px)`,
       }}
     />
   );
@@ -127,7 +139,6 @@ const CoordinatorCard = ({ coordinator, index }) => {
               <span>COORDINATOR</span>
             </div>
           </div>
-
           <div className="flex items-start gap-4">
             <div className="relative">
               <div className="w-16 h-16 bg-gradient-to-br from-[#456882] to-[#5a7a95] rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
@@ -141,12 +152,10 @@ const CoordinatorCard = ({ coordinator, index }) => {
                 <FaStar className="text-white text-xs" />
               </motion.div>
             </div>
-
             <div className="flex-1 min-w-0">
               <h3 className="text-lg font-bold text-[#456882] mb-1 truncate">
                 {displayName}
               </h3>
-
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2 text-gray-600">
                   <FaEnvelope className="w-4 h-4 text-[#456882]" />
@@ -154,25 +163,84 @@ const CoordinatorCard = ({ coordinator, index }) => {
                     {coordinator.email || "No email"}
                   </span>
                 </div>
-
                 {coordinator.phone && (
                   <div className="flex items-center gap-2 text-gray-600">
                     <FaPhone className="w-4 h-4 text-[#456882]" />
                     <span>{coordinator.phone}</span>
                   </div>
                 )}
-
                 {coordinator.rollNo && (
                   <div className="flex items-center gap-2 text-gray-600">
                     <FaIdCard className="w-4 h-4 text-[#456882]" />
                     <span>Roll: {coordinator.rollNo}</span>
                   </div>
                 )}
-
                 {coordinator.year && (
                   <div className="flex items-center gap-2 text-gray-600">
                     <FaGraduationCap className="w-4 h-4 text-[#456882]" />
                     <span>Year: {coordinator.year}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </CoordinatorCardErrorBoundary>
+  );
+};
+
+// Admin Card Component
+const AdminCard = ({ admin, index, isSuperAdmin }) => {
+  const displayName = admin.name || "Unknown Admin";
+  return (
+    <CoordinatorCardErrorBoundary>
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, delay: index * 0.1 }}
+        className="relative group"
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 rounded-2xl blur-sm opacity-30 group-hover:opacity-50 transition-opacity"></div>
+        <div className="relative bg-white/95 backdrop-blur-xl rounded-2xl p-6 border border-white/40 shadow-xl hover:shadow-2xl transition-all duration-300">
+          <div className="absolute top-3 right-3">
+            <div className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-bold rounded-full shadow-lg">
+              {isSuperAdmin ? (
+                <FaCrown className="w-3 h-3" />
+              ) : (
+                <FaUser className="w-3 h-3" />
+              )}
+              <span>{isSuperAdmin ? "SUPER ADMIN" : "ADMIN"}</span>
+            </div>
+          </div>
+          <div className="flex items-start gap-4">
+            <div className="relative">
+              <div className="w-16 h-16 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                {displayName.charAt(0).toUpperCase()}
+              </div>
+              {isSuperAdmin && (
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="absolute -bottom-1 -right-1 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center shadow-lg"
+                >
+                  <FaCrown className="text-white text-xs" />
+                </motion.div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-bold text-[#456882] mb-1 truncate">
+                {displayName}
+              </h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <FaEnvelope className="w-4 h-4 text-[#456882]" />
+                  <span className="truncate">{admin.email || "No email"}</span>
+                </div>
+                {admin.phone && (
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <FaPhone className="w-4 h-4 text-[#456882]" />
+                    <span>{admin.phone}</span>
                   </div>
                 )}
               </div>
@@ -206,7 +274,8 @@ const LeaveClubModal = ({ isOpen, onClose, onConfirm, clubName, loading }) => {
               Leave {clubName}?
             </h2>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to leave this club? You can rejoin later if needed.
+              Are you sure you want to leave this club? You can rejoin later if
+              needed.
             </p>
             <div className="flex justify-end gap-4">
               <motion.button
@@ -240,18 +309,25 @@ const LeaveClubModal = ({ isOpen, onClose, onConfirm, clubName, loading }) => {
 };
 
 // WhatsApp Link Modal
-const WhatsAppLinkModal = ({ isOpen, onClose, onSubmit, currentLink, loading }) => {
+const WhatsAppLinkModal = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  currentLink,
+  loading,
+}) => {
   const [whatsappLink, setWhatsappLink] = useState(currentLink || "");
-
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!whatsappLink.trim() || !whatsappLink.startsWith("https://chat.whatsapp.com/")) {
+    if (
+      !whatsappLink.trim() ||
+      !whatsappLink.startsWith("https://chat.whatsapp.com/")
+    ) {
       toast.error("Please enter a valid WhatsApp group link");
       return;
     }
     onSubmit(whatsappLink);
   };
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -341,7 +417,10 @@ const ClubDetailPage = () => {
   const [leaveLoading, setLeaveLoading] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [contactMessage, setContactMessage] = useState("");
+  const [coordinatorEmail, setCoordinatorEmail] = useState("");
   const [contactSending, setContactSending] = useState(false);
+  const [contactError, setContactError] = useState(null);
+  const [contactSuccess, setContactSuccess] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [membersPage, setMembersPage] = useState(1);
   const [eventsPage, setEventsPage] = useState(1);
@@ -381,7 +460,7 @@ const ClubDetailPage = () => {
           typeof coordinator.name === "string" &&
           coordinator.email
       );
-      console.log("Fetched headCoordinators:", validCoordinators);
+      console.log("Fetched headCoordinators:", validCoordinators); // Debug log
       setClub(clubData);
       setHeadCoordinators(validCoordinators);
       const eventsResponse = await axios.get(
@@ -420,22 +499,6 @@ const ClubDetailPage = () => {
           (admin) => admin._id.toString() === userResponse.data._id.toString()
         )
       );
-      console.log("User data:", {
-        userId: userResponse.data._id,
-        userClubsRaw: userResponse.data.clubs,
-        userClubsIds: userClubs.map((club) => club._id),
-        clubId: clubData._id,
-        isMember: isUserMember,
-        isAdmin: userResponse.data.isAdmin,
-        isHeadCoordinator:
-          userResponse.data.isHeadCoordinator &&
-          userResponse.data.headCoordinatorClubs.includes(clubData.name),
-        isSuperAdmin: clubData.superAdmins.some(
-          (admin) => admin._id.toString() === userResponse.data._id.toString()
-        ),
-        headCoordinatorClubs: userResponse.data.headCoordinatorClubs,
-        clubName: clubData.name,
-      });
       setLoading(false);
       setRetryCount(0);
     } catch (err) {
@@ -557,20 +620,37 @@ const ClubDetailPage = () => {
       toast.error("Please enter a message");
       return;
     }
+    if (!coordinatorEmail) {
+      toast.error("Please select a coordinator");
+      return;
+    }
     setContactSending(true);
+    setContactError(null);
+    setContactSuccess(null);
     try {
       const token = localStorage.getItem("token");
-      await axios.post(
-        `http://localhost:5000/api/clubs/${club._id}/contact`,
-        { message: contactMessage },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await axios.post(
+        `http://localhost:5000/api/clubs/${clubId}/contact`,
+        {
+          message: contactMessage,
+          coordinatorEmail,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
-      toast.success("Message sent successfully");
+      setContactSuccess(response.data.message);
       setContactMessage("");
+      setCoordinatorEmail("");
+      toast.success("Message sent successfully");
     } catch (err) {
-      toast.error(err.response?.data?.error || "Failed to send message");
+      console.error("Error submitting contact form:", err);
+      const errorMessage = err.response?.data?.error || "Failed to send message";
+      setContactError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setContactSending(false);
     }
-    setContactSending(false);
   };
 
   const handleWhatsAppLinkSubmit = async (whatsappLink) => {
@@ -586,7 +666,9 @@ const ClubDetailPage = () => {
       setClub({ ...club, whatsappLink });
       setShowWhatsAppModal(false);
     } catch (err) {
-      toast.error(err.response?.data?.error || "Failed to update WhatsApp link");
+      toast.error(
+        err.response?.data?.error || "Failed to update WhatsApp link"
+      );
     }
     setWhatsAppLoading(false);
   };
@@ -602,7 +684,6 @@ const ClubDetailPage = () => {
     (membersPage - 1) * itemsPerPage,
     membersPage * itemsPerPage
   );
-
   const paginatedEvents = events.slice(
     (eventsPage - 1) * itemsPerPage,
     eventsPage * itemsPerPage
@@ -612,6 +693,16 @@ const ClubDetailPage = () => {
     delay: i * 1.5,
     duration: 12 + Math.random() * 8,
   }));
+
+  // Filter super admins and admins from members
+  const superAdmins = club?.superAdmins || [];
+  const admins = members.filter(
+    (member) =>
+      member.isAdmin &&
+      !superAdmins.some(
+        (admin) => admin._id.toString() === member._id.toString()
+      )
+  );
 
   if (loading) {
     return (
@@ -865,68 +956,11 @@ const ClubDetailPage = () => {
                   </a>
                 )}
               </motion.div>
-              {headCoordinators.length > 0 && (
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ duration: 0.6, delay: 0.4 }}
-                  className="mt-4 flex flex-wrap gap-3"
-                >
-                  {headCoordinators.map((coordinator, index) => (
-                    <div
-                      key={coordinator._id || `coordinator-${index}`}
-                      className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-white text-sm"
-                    >
-                      <FaCrown className="w-4 h-4 text-yellow-400" />
-                      <span>{coordinator.name || "Unknown Coordinator"}</span>
-                      <span className="text-white/70">•</span>
-                      <span>{coordinator.email || "No email"}</span>
-                      {coordinator.phone && (
-                        <>
-                          <span className="text-white/70">•</span>
-                          <span>{coordinator.phone}</span>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </motion.div>
-              )}
             </div>
           </div>
         </div>
       </div>
       <div className="max-w-7xl mx-auto px-6 py-8 relative z-10">
-        {/* Highlighted Coordinators Section */}
-        {headCoordinators.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="mb-8"
-          >
-            <div className="relative overflow-hidden bg-gradient-to-r from-yellow-50 via-orange-50 to-red-50 rounded-3xl shadow-2xl border border-gradient-to-r from-yellow-200 to-orange-200 p-8">
-              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500"></div>
-
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold rounded-full shadow-lg">
-                  <FaCrown className="w-5 h-5" />
-                  <span>CLUB COORDINATORS</span>
-                </div>
-                <div className="flex-1 h-px bg-gradient-to-r from-yellow-300 to-transparent"></div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {headCoordinators.map((coordinator, index) => (
-                  <CoordinatorCard
-                    key={coordinator._id}
-                    coordinator={coordinator}
-                    index={index}
-                  />
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        )}
         {/* Membership Action Button */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
@@ -956,6 +990,53 @@ const ClubDetailPage = () => {
             </motion.button>
           )}
         </motion.div>
+        {/* Leadership Section (Super Admins, Admins, and Head Coordinators) */}
+        {(superAdmins.length > 0 ||
+          admins.length > 0 ||
+          headCoordinators.length > 0) && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="mb-8"
+          >
+            <div className="relative overflow-hidden bg-gradient-to-r from-yellow-200 via-yellow-300 to-yellow-400 rounded-3xl shadow-2xl border border-yellow-300 p-8">
+              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-yellow-500 via-orange-500 to-yellow-600"></div>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-bold rounded-full shadow-lg">
+                  <FaCrown className="w-5 h-5" />
+                  <span>CLUB LEADERSHIP</span>
+                </div>
+                <div className="flex-1 h-px bg-gradient-to-r from-yellow-400 to-transparent"></div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {superAdmins.map((admin, index) => (
+                  <AdminCard
+                    key={`super-admin-${admin._id}`}
+                    admin={admin}
+                    index={index}
+                    isSuperAdmin={true}
+                  />
+                ))}
+                {admins.map((admin, index) => (
+                  <AdminCard
+                    key={`admin-${admin._id}`}
+                    admin={admin}
+                    index={index + superAdmins.length}
+                    isSuperAdmin={false}
+                  />
+                ))}
+                {headCoordinators.map((coordinator, index) => (
+                  <CoordinatorCard
+                    key={`coordinator-${coordinator._id}`}
+                    coordinator={coordinator}
+                    index={index + superAdmins.length + admins.length}
+                  />
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
         {/* Leave Club Confirmation Modal */}
         <LeaveClubModal
           isOpen={showLeaveModal}
@@ -976,7 +1057,7 @@ const ClubDetailPage = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
           className="mb-8"
         >
           <div className="flex space-x-1 bg-gradient-to-r from-gray-100/50 to-gray-200/50 backdrop-blur-sm p-1 rounded-2xl shadow-lg">
@@ -1189,11 +1270,9 @@ const ClubDetailPage = () => {
                               </span>
                             </div>
                           </div>
-
                           <p className="text-gray-600 text-sm line-clamp-3 mb-4">
                             {event.description}
                           </p>
-
                           {isMember && (
                             <motion.button
                               whileHover={{ scale: 1.02 }}
@@ -1233,7 +1312,6 @@ const ClubDetailPage = () => {
                       </motion.div>
                     ))}
                   </div>
-
                   <div className="flex items-center justify-between mt-8 px-4">
                     <motion.button
                       whileHover={{ scale: 1.02 }}
@@ -1407,7 +1485,6 @@ const ClubDetailPage = () => {
                                           </motion.div>
                                         )}
                                       </div>
-
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
                                           <p className="font-bold text-gray-800 truncate">
@@ -1430,7 +1507,6 @@ const ClubDetailPage = () => {
                                             </span>
                                           )}
                                         </div>
-
                                         <div className="space-y-1">
                                           <p className="text-sm text-gray-500 flex items-center gap-2 truncate">
                                             <FaEnvelope className="w-3 h-3 text-[#456882]" />
@@ -1466,7 +1542,6 @@ const ClubDetailPage = () => {
                             );
                           })}
                         </div>
-
                         <div className="flex items-center justify-between mt-8 px-4">
                           <motion.button
                             whileHover={{ scale: 1.02 }}
@@ -1527,8 +1602,7 @@ const ClubDetailPage = () => {
                 <FaEnvelope className="w-8 h-8" />
                 Contact {club.name}
               </h2>
-
-              {headCoordinators.length > 0 && (
+              {headCoordinators.length > 0 ? (
                 <div className="mb-8">
                   <h3 className="text-lg font-semibold text-gray-700 mb-4">
                     Reach out to our Head Coordinators
@@ -1580,46 +1654,91 @@ const ClubDetailPage = () => {
                     ))}
                   </div>
                 </div>
+              ) : (
+                <p className="text-gray-600 text-lg mb-8">
+                  No head coordinators are currently assigned to this club.
+                </p>
               )}
-
-              <form onSubmit={handleContactSubmit} className="space-y-6">
-                <div>
-                  <label
-                    htmlFor="message"
-                    className="block text-lg font-semibold text-gray-700 mb-3"
-                  >
-                    Your Message
-                  </label>
-                  <textarea
-                    id="message"
-                    value={contactMessage}
-                    onChange={(e) => setContactMessage(e.target.value)}
-                    rows={6}
-                    className="w-full px-6 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#456882] focus:border-transparent bg-gray-50/50 text-lg shadow-lg resize-none"
-                    placeholder="Share your thoughts, questions, or ideas with the club coordinators..."
-                  />
-                </div>
-
-                <motion.button
-                  whileHover={{
-                    scale: 1.02,
-                    boxShadow: "0 15px 35px rgba(69, 104, 130, 0.3)",
-                  }}
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  disabled={contactSending}
-                  className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl hover:from-[#334d5e] hover:to-[#456882] transition-all shadow-lg disabled:opacity-50 font-medium text-lg"
-                >
-                  {contactSending ? (
-                    <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <FaPaperPlane className="w-5 h-5" />
+              {(isAdmin || isHeadCoordinator || isSuperAdmin) ? (
+                <form onSubmit={handleContactSubmit} className="space-y-6">
+                  <div>
+                    <label
+                      htmlFor="coordinatorEmail"
+                      className="block text-lg font-semibold text-gray-700 mb-3"
+                    >
+                      Select Coordinator
+                    </label>
+                    <select
+                      id="coordinatorEmail"
+                      value={coordinatorEmail}
+                      onChange={(e) => setCoordinatorEmail(e.target.value)}
+                      className="w-full px-6 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#456882] focus:border-transparent bg-gray-50/50 text-lg shadow-lg"
+                      required
+                    >
+                      <option value="" disabled>
+                        {headCoordinators.length > 0
+                          ? "Select a coordinator"
+                          : "No coordinators available"}
+                      </option>
+                      {headCoordinators.map((coordinator) => (
+                        <option
+                          key={coordinator._id || coordinator.email}
+                          value={coordinator.email}
+                        >
+                          {coordinator.name} ({coordinator.email})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="message"
+                      className="block text-lg font-semibold text-gray-700 mb-3"
+                    >
+                      Your Message
+                    </label>
+                    <textarea
+                      id="message"
+                      value={contactMessage}
+                      onChange={(e) => setContactMessage(e.target.value)}
+                      rows={6}
+                      className="w-full px-6 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#456882] focus:border-transparent bg-gray-50/50 text-lg shadow-lg resize-none"
+                      placeholder="Share your thoughts, questions, or ideas with the club coordinators..."
+                      required
+                    />
+                  </div>
+                  {contactError && (
+                    <p className="text-red-600 text-sm">{contactError}</p>
                   )}
-                  <span>
-                    {contactSending ? "Sending Message..." : "Send Message"}
-                  </span>
-                </motion.button>
-              </form>
+                  {contactSuccess && (
+                    <p className="text-green-600 text-sm">{contactSuccess}</p>
+                  )}
+                  <motion.button
+                    whileHover={{
+                      scale: 1.02,
+                      boxShadow: "0 15px 35px rgba(69, 104, 130, 0.3)",
+                    }}
+                    whileTap={{ scale: 0.98 }}
+                    type="submit"
+                    disabled={contactSending || headCoordinators.length === 0}
+                    className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl hover:from-[#334d5e] hover:to-[#456882] transition-all shadow-lg disabled:opacity-50 font-medium text-lg"
+                  >
+                    {contactSending ? (
+                      <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <FaPaperPlane className="w-5 h-5" />
+                    )}
+                    <span>
+                      {contactSending ? "Sending Message..." : "Send Message"}
+                    </span>
+                  </motion.button>
+                </form>
+              ) : (
+                <p className="text-gray-600 text-lg">
+                  The contact form is only available to club administrators and
+                  coordinators.
+                </p>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
