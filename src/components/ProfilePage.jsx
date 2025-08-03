@@ -116,8 +116,8 @@ const ProfilePage = () => {
               role: userData.isAdmin ? "Admin" : isHeadCoordinator ? "Head Coordinator" : "Member",
               joinedAt: userData.createdAt || new Date(),
               badge: club.category === "Technical" ? "🚀" :
-                    club.category === "Cultural" ? "🎭" :
-                    club.category === "Literary" ? "📚" :
+                club.category === "Cultural" ? "🎭" :
+                  club.category === "Literary" ? "📚" :
                     club.category === "Entrepreneurial" ? "💼" : "💡",
               headCoordinators: club.headCoordinators || [],
             };
@@ -204,12 +204,11 @@ const ProfilePage = () => {
           )
           .map((event) => ({
             id: event._id || "",
-            title: `Organized ${
-              event.type
+            title: `Organized ${event.type
                 ? event.type.charAt(0).toUpperCase() +
-                  event.type.slice(1).toLowerCase()
+                event.type.slice(1).toLowerCase()
                 : "Event"
-            }`,
+              }`,
             description: `Organized ${event.title || "an event"}`,
             icon:
               eventTypeIcons[event.type?.toLowerCase()] ||
@@ -242,28 +241,44 @@ const ProfilePage = () => {
     }
   }, [token, navigate]);
 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       setIsSubmitting(true);
+      setError("");
+      setSuccess("");
 
-      await axios.put(
+      // Validate required fields on the frontend
+      if (!profile.name || !profile.email) {
+        throw new Error("Name and email are required.");
+      }
+      if (!profile.isACEMStudent && !profile.collegeName) {
+        throw new Error("College name is required for non-ACEM students.");
+      }
+
+      const response = await axios.put(
         "http://localhost:5000/api/auth/user",
         {
-          name: profile.name,
-          email: profile.email,
-          phone: profile.phone,
-          semester: profile.semester,
-          course: profile.course,
-          specialization: profile.specialization,
-          rollNo: profile.rollNo,
+          name: profile.name ? String(profile.name).trim() : "",
+          email: profile.email ? String(profile.email).trim() : "",
+          phone: profile.phone ? String(profile.phone).trim() : undefined,
+          semester: profile.semester ? String(profile.semester).trim() : undefined,
+          course: profile.course ? String(profile.course).trim() : undefined,
+          specialization: profile.specialization ? String(profile.specialization).trim() : undefined,
+          rollNo: profile.rollNo ? String(profile.rollNo).trim() : undefined,
           isACEMStudent: profile.isACEMStudent,
-          collegeName: !profile.isACEMStudent ? profile.collegeName : null,
+          collegeName: !profile.isACEMStudent ? (profile.collegeName ? String(profile.collegeName).trim() : "") : null,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+
+      // Update local storage with new token
+      if (response.data.token) {
+        localStorage.setItem("token", response.data.token);
+      }
 
       setSuccess("Profile updated successfully!");
       setUser((prev) => ({
@@ -281,12 +296,27 @@ const ProfilePage = () => {
       setIsEditing(false);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      console.error("Error updating profile:", err);
-      setError(err.response?.data?.error || "Failed to update profile.");
+      console.error("Error updating profile:", {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+      });
+      let errorMessage = err.message || "Failed to update profile.";
+      if (err.response?.status === 400) {
+        errorMessage = err.response?.data?.error || "Invalid input data. Please check your entries.";
+      } else if (err.response?.status === 401) {
+        errorMessage = "Session expired. Please log in again.";
+        localStorage.removeItem("token");
+        navigate("/login");
+      } else if (err.response?.status === 500) {
+        errorMessage = "Server error while updating profile. Please try again or contact support.";
+      }
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
   };
+
 
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
@@ -378,8 +408,8 @@ const ProfilePage = () => {
                     user?.isAdmin
                       ? "superadmin"
                       : user?.isHeadCoordinator
-                      ? "Head Coordinator"
-                      : "Member"
+                        ? "Head Coordinator"
+                        : "Member"
                   )}
                 </div>
               </div>
@@ -398,9 +428,8 @@ const ProfilePage = () => {
                 </p>
                 <div className="flex items-center space-x-2 mt-1">
                   <span
-                    className={`px-2 py-1 rounded-full text-xs text-white ${
-                      getRoleBadge().color
-                    }`}
+                    className={`px-2 py-1 rounded-full text-xs text-white ${getRoleBadge().color
+                      }`}
                   >
                     {getRoleBadge().text}
                   </span>
@@ -441,11 +470,10 @@ const ProfilePage = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-md transition ${
-                activeTab === tab.id
+              className={`flex items-center space-x-2 px-4 py-2 rounded-md transition ${activeTab === tab.id
                   ? "bg-teal-600 text-white"
                   : "text-gray-600 hover:bg-gray-100"
-              }`}
+                }`}
               style={{
                 backgroundColor:
                   activeTab === tab.id ? "#456882" : "transparent",
@@ -484,11 +512,10 @@ const ProfilePage = () => {
                           setProfile({ ...profile, name: e.target.value })
                         }
                         disabled={!isEditing}
-                        className={`w-full px-4 py-2 rounded-lg border ${
-                          isEditing
+                        className={`w-full px-4 py-2 rounded-lg border ${isEditing
                             ? "border-gray-300 focus:ring-2 focus:ring-teal-600"
                             : "border-gray-200 bg-gray-50"
-                        } focus:outline-none`}
+                          } focus:outline-none`}
                         required
                       />
                     </div>
@@ -503,11 +530,10 @@ const ProfilePage = () => {
                           setProfile({ ...profile, email: e.target.value })
                         }
                         disabled={!isEditing}
-                        className={`w-full px-4 py-2 rounded-lg border ${
-                          isEditing
+                        className={`w-full px-4 py-2 rounded-lg border ${isEditing
                             ? "border-gray-300 focus:ring-2 focus:ring-teal-600"
                             : "border-gray-200 bg-gray-50"
-                        } focus:outline-none`}
+                          } focus:outline-none`}
                         required
                       />
                     </div>
@@ -525,11 +551,10 @@ const ProfilePage = () => {
                           setProfile({ ...profile, phone: e.target.value })
                         }
                         disabled={!isEditing}
-                        className={`w-full px-4 py-2 rounded-lg border ${
-                          isEditing
+                        className={`w-full px-4 py-2 rounded-lg border ${isEditing
                             ? "border-gray-300 focus:ring-2 focus:ring-teal-600"
                             : "border-gray-200 bg-gray-50"
-                        } focus:outline-none`}
+                          } focus:outline-none`}
                         placeholder="+1234567890"
                       />
                     </div>
@@ -544,11 +569,10 @@ const ProfilePage = () => {
                           setProfile({ ...profile, semester: e.target.value })
                         }
                         disabled={!isEditing}
-                        className={`w-full px-4 py-2 rounded-lg border ${
-                          isEditing
+                        className={`w-full px-4 py-2 rounded-lg border ${isEditing
                             ? "border-gray-300 focus:ring-2 focus:ring-teal-600"
                             : "border-gray-200 bg-gray-50"
-                        } focus:outline-none`}
+                          } focus:outline-none`}
                         min="1"
                         max="8"
                       />
@@ -567,11 +591,10 @@ const ProfilePage = () => {
                           setProfile({ ...profile, course: e.target.value })
                         }
                         disabled={!isEditing}
-                        className={`w-full px-4 py-2 rounded-lg border ${
-                          isEditing
+                        className={`w-full px-4 py-2 rounded-lg border ${isEditing
                             ? "border-gray-300 focus:ring-2 focus:ring-teal-600"
                             : "border-gray-200 bg-gray-50"
-                        } focus:outline-none`}
+                          } focus:outline-none`}
                       />
                     </div>
                     <div>
@@ -588,11 +611,10 @@ const ProfilePage = () => {
                           })
                         }
                         disabled={!isEditing}
-                        className={`w-full px-4 py-2 rounded-lg border ${
-                          isEditing
+                        className={`w-full px-4 py-2 rounded-lg border ${isEditing
                             ? "border-gray-300 focus:ring-2 focus:ring-teal-600"
                             : "border-gray-200 bg-gray-50"
-                        } focus:outline-none`}
+                          } focus:outline-none`}
                       />
                     </div>
                   </div>
@@ -609,11 +631,10 @@ const ProfilePage = () => {
                           setProfile({ ...profile, rollNo: e.target.value })
                         }
                         disabled={!isEditing}
-                        className={`w-full px-4 py-2 rounded-lg border ${
-                          isEditing
+                        className={`w-full px-4 py-2 rounded-lg border ${isEditing
                             ? "border-gray-300 focus:ring-2 focus:ring-teal-600"
                             : "border-gray-200 bg-gray-50"
-                        } focus:outline-none`}
+                          } focus:outline-none`}
                       />
                     </div>
                     <div>
@@ -665,11 +686,10 @@ const ProfilePage = () => {
                             })
                           }
                           disabled={!isEditing}
-                          className={`w-full px-4 py-2 rounded-lg border ${
-                            isEditing
+                          className={`w-full px-4 py-2 rounded-lg border ${isEditing
                               ? "border-gray-300 focus:ring-2 focus:ring-teal-600"
                               : "border-gray-200 bg-gray-50"
-                          } focus:outline-none`}
+                            } focus:outline-none`}
                           required
                         />
                       )}
@@ -682,11 +702,10 @@ const ProfilePage = () => {
                       disabled={isSubmitting}
                       whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
                       whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
-                      className={`w-full px-6 py-3 rounded-lg font-semibold transition ${
-                        isSubmitting
+                      className={`w-full px-6 py-3 rounded-lg font-semibold transition ${isSubmitting
                           ? "bg-gray-400 text-gray-700 cursor-not-allowed"
                           : "bg-teal-600 text-white hover:bg-teal-700"
-                      }`}
+                        }`}
                       style={{
                         backgroundColor: isSubmitting ? "#d1d5db" : "#456882",
                       }}
@@ -709,11 +728,10 @@ const ProfilePage = () => {
                     disabled={isSubmitting}
                     whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
                     whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
-                    className={`w-full px-6 py-3 rounded-lg font-semibold transition ${
-                      isSubmitting
+                    className={`w-full px-6 py-3 rounded-lg font-semibold transition ${isSubmitting
                         ? "bg-gray-400 text-gray-700 cursor-not-allowed"
                         : "bg-red-600 text-white hover:bg-red-700"
-                    } mt-4`}
+                      } mt-4`}
                   >
                     <FaTrash className="inline-block mr-2" />
                     Delete My Account
@@ -1030,11 +1048,10 @@ const ProfilePage = () => {
                     whileTap={{ scale: isDeleting ? 1 : 0.95 }}
                     onClick={handleDeleteAccount}
                     disabled={isDeleting}
-                    className={`w-full px-6 py-3 rounded-lg font-semibold transition ${
-                      isDeleting
+                    className={`w-full px-6 py-3 rounded-lg font-semibold transition ${isDeleting
                         ? "bg-gray-400 text-gray-700 cursor-not-allowed"
                         : "bg-red-600 text-white hover:bg-red-700"
-                    }`}
+                      }`}
                   >
                     {isDeleting ? (
                       <>
