@@ -34,8 +34,12 @@ class ErrorBoundary extends React.Component {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="bg-red-50 border border-red-200 rounded-xl p-6 sm:p-8 max-w-md mx-auto text-center">
             <AlertTriangle className="w-10 h-10 sm:w-12 sm:h-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-lg sm:text-xl font-semibold text-red-700 mb-2">Something went wrong</h2>
-            <p className="text-sm sm:text-base text-red-600 mb-4">Please try refreshing the page.</p>
+            <h2 className="text-lg sm:text-xl font-semibold text-red-700 mb-2">
+              Something went wrong
+            </h2>
+            <p className="text-sm sm:text-base text-red-600 mb-4">
+              Please try refreshing the page.
+            </p>
             <button
               onClick={() => window.location.reload()}
               className="px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors text-sm sm:text-base"
@@ -63,8 +67,12 @@ const ContactInfoCard = memo(({ icon: Icon, title, info, description }) => (
         <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
       </div>
       <div>
-        <h3 className="text-base sm:text-lg font-semibold text-[#456882] mb-1">{title}</h3>
-        <p className="text-sm sm:text-base text-gray-900 font-medium mb-1">{info}</p>
+        <h3 className="text-base sm:text-lg font-semibold text-[#456882] mb-1">
+          {title}
+        </h3>
+        <p className="text-sm sm:text-base text-gray-900 font-medium mb-1">
+          {info}
+        </p>
         <p className="text-xs sm:text-sm text-gray-600">{description}</p>
       </div>
     </div>
@@ -81,9 +89,10 @@ const FormInput = memo(({ label, icon: Icon, error, ...props }) => (
         {...props}
         className={`
           w-full pl-10 pr-4 py-2 sm:py-3 rounded-xl border transition-all duration-300 text-sm sm:text-base
-          ${error 
-            ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
-            : 'border-gray-300 focus:border-[#456882] focus:ring-[#456882]/20'
+          ${
+            error
+              ? "border-red-300 focus:border-red-500 focus:ring-red-200"
+              : "border-gray-300 focus:border-[#456882] focus:ring-[#456882]/20"
           }
           focus:ring-4 focus:outline-none
         `}
@@ -112,9 +121,10 @@ const FormTextarea = memo(({ label, icon: Icon, error, ...props }) => (
         {...props}
         className={`
           w-full pl-10 pr-4 py-2 sm:py-3 rounded-xl border transition-all duration-300 resize-none text-sm sm:text-base
-          ${error 
-            ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
-            : 'border-gray-300 focus:border-[#456882] focus:ring-[#456882]/20'
+          ${
+            error
+              ? "border-red-300 focus:border-red-500 focus:ring-red-200"
+              : "border-gray-300 focus:border-[#456882] focus:ring-[#456882]/20"
           }
           focus:ring-4 focus:outline-none
         `}
@@ -133,23 +143,69 @@ const FormTextarea = memo(({ label, icon: Icon, error, ...props }) => (
   </div>
 ));
 
+// Coordinator Select Component
+const CoordinatorSelect = memo(
+  ({ label, icon: Icon, value, onChange, options, error, disabled }) => (
+    <div className="space-y-2">
+      <label className="block text-sm font-medium text-gray-700">{label}</label>
+      <div className="relative">
+        <Icon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+        <select
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          className={`
+          w-full pl-10 pr-8 py-2 sm:py-3 rounded-xl border text-sm sm:text-base
+          ${
+            error
+              ? "border-red-300 focus:border-red-500 focus:ring-red-200"
+              : "border-gray-300 focus:border-[#456882] focus:ring-[#456882]/20"
+          }
+          focus:ring-4 focus:outline-none appearance-none
+        `}
+        >
+          <option value="">Select a coordinator</option>
+          {options.map((coord) => (
+            <option key={coord.email} value={coord.email}>
+              {coord.name} ({coord.role})
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+      </div>
+      {error && (
+        <motion.p
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-xs sm:text-sm text-red-600 flex items-center gap-1"
+        >
+          <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4" />
+          {error}
+        </motion.p>
+      )}
+    </div>
+  )
+);
+
 const ContactPage = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [clubs, setClubs] = useState([]);
   const [selectedClub, setSelectedClub] = useState("");
   const [contactInfo, setContactInfo] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [coordinators, setCoordinators] = useState([]);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     message: "",
     clubId: "",
+    coordinatorEmail: "",
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   // Fetch user and clubs
   useEffect(() => {
@@ -163,30 +219,45 @@ const ContactPage = () => {
         }
 
         const config = { headers: { Authorization: `Bearer ${token}` } };
+        console.log("Fetching data with token:", token.slice(0, 10) + "...");
 
         // Fetch user
-        const userResponse = await axios.get("http://localhost:5000/api/auth/user", config);
+        const userResponse = await axios.get(
+          "http://localhost:5000/api/auth/user",
+          config
+        );
         setUser(userResponse.data);
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
           name: userResponse.data.name || "",
           email: userResponse.data.email || "",
         }));
 
         // Fetch clubs
-        const clubsResponse = await axios.get("http://localhost:5000/api/clubs", config);
-        setClubs(clubsResponse.data);
-        if (clubsResponse.data.length > 0) {
-          setSelectedClub(clubsResponse.data[0]._id);
+        const clubsResponse = await axios.get(
+          "http://localhost:5000/api/clubs",
+          config
+        );
+        const validClubs = clubsResponse.data.filter((club) => club._id);
+        setClubs(validClubs);
+        if (validClubs.length > 0) {
+          setSelectedClub(validClubs[0]._id);
+          setFormData((prev) => ({ ...prev, clubId: validClubs[0]._id }));
+        } else {
+          setError("No clubs available to contact.");
         }
       } catch (err) {
-        console.error("Error fetching data:", err);
+        console.error("Error fetching data:", {
+          message: err.message,
+          response: err.response?.data,
+          status: err.response?.status,
+        });
         if (err.response?.status === 401 || err.response?.status === 403) {
           localStorage.removeItem("token");
           setError("Session expired. Please log in again.");
           navigate("/login");
         } else {
-          setError("Failed to load data. Please try again.");
+          setError("Failed to load clubs. Please try again.");
         }
       } finally {
         setLoading(false);
@@ -205,77 +276,120 @@ const ContactPage = () => {
         const token = localStorage.getItem("token");
         const config = { headers: { Authorization: `Bearer ${token}` } };
         const response = await axios.get(
-          `http://localhost:5000/api/clubs/${selectedClub}/contacts`,
+          `http://localhost:5000/api/clubs/${selectedClub}/contact-info`,
           config
         );
-        setContactInfo([
-          {
+        const { creator, superAdmins, headCoordinators, clubDetails } =
+          response.data;
+        // Prepare contact info cards
+        const contactCards = [];
+        if (creator) {
+          contactCards.push({
             icon: User,
-            title: "Super Admin",
-            info: response.data.superAdmin ? `${response.data.superAdmin.name} (${response.data.superAdmin.email})` : "Satyam Pandey (satyam.pandey@acem.edu.in)",
-            description: response.data.superAdmin ? "Primary contact for club management" : "Default contact for club management",
-          },
-          {
-            icon: User,
-            title: "Admin",
-            info: response.data.admin ? `${response.data.admin.name} (${response.data.admin.email})` : "Satyam Pandey (satyam.pandey@acem.edu.in)",
-            description: response.data.admin ? "Handles club operations" : "Default contact for club operations",
-          },
-          {
-            icon: User,
-            title: "Head Coordinator",
-            info: response.data.headCoordinator ? `${response.data.headCoordinator.name} (${response.data.headCoordinator.email})` : "Satyam Pandey (satyam.pandey@acem.edu.in)",
-            description: response.data.headCoordinator ? "Coordinates club activities" : "Default contact for club activities",
-          },
+            title: "Club Creator",
+            info: `${creator.name} (${creator.email})`,
+            description: "Primary contact for club management",
+          });
+        }
+        if (superAdmins && superAdmins.length > 0) {
+          superAdmins.forEach((admin, index) => {
+            contactCards.push({
+              icon: User,
+              title: `Super Admin ${index + 1}`,
+              info: `${admin.name} (${admin.email})`,
+              description: "Handles club administration",
+            });
+          });
+        }
+        if (headCoordinators && headCoordinators.length > 0) {
+          headCoordinators.forEach((coord, index) => {
+            const info = coord.phone
+              ? `${coord.name} (${coord.email}, ${coord.phone})`
+              : `${coord.name} (${coord.email})`;
+            contactCards.push({
+              icon: User,
+              title: `Head Coordinator ${index + 1}`,
+              info,
+              description: "Coordinates club activities",
+            });
+          });
+        }
+        contactCards.push(
           {
             icon: Phone,
             title: "Contact Number",
-            info: response.data.phone || "8851020767",
+            info: clubDetails.phone || "8851020767",
             description: "Call us for immediate assistance",
           },
           {
             icon: MapPin,
             title: "Location",
-            info: response.data.room || "CSE Dept.",
+            info: clubDetails.room || "CSE Dept.",
             description: "Visit us for in-person support",
           },
           {
             icon: Clock,
             title: "Support Hours",
-            info: response.data.timing || "9 to 4",
+            info: clubDetails.timing || "9 to 4",
             description: "Available for club-related queries",
-          },
-        ]);
+          }
+        );
+        setContactInfo(contactCards);
+        // Prepare coordinators for dropdown
+        const coordinatorOptions = [
+          ...(creator ? [{ ...creator, role: "Creator" }] : []),
+          ...(superAdmins || []).map((admin) => ({
+            ...admin,
+            role: "Super Admin",
+          })),
+          ...(headCoordinators || []).map((coord) => ({
+            ...coord,
+            role: "Head Coordinator",
+          })),
+        ];
+        setCoordinators(coordinatorOptions);
+        if (coordinatorOptions.length > 0 && !formData.coordinatorEmail) {
+          setFormData((prev) => ({
+            ...prev,
+            coordinatorEmail: coordinatorOptions[0].email,
+          }));
+        }
       } catch (err) {
-        console.error("Error fetching contact info:", err);
-        setError("Failed to load contact information.");
+        console.error("Error fetching contact info:", {
+          message: err.message,
+          response: err.response?.data,
+          status: err.response?.status,
+        });
+        setError(
+          "Failed to load contact information. Please try another club."
+        );
       } finally {
         setLoading(false);
       }
     };
 
     fetchContactInfo();
-  }, [selectedClub]);
+  }, [selectedClub, formData.coordinatorEmail]);
 
   const validateForm = () => {
     const newErrors = {};
 
-    if (!selectedClub) {
+    if (!selectedClub || !formData.clubId) {
       newErrors.clubId = "Please select a club";
     }
-
+    if (!formData.coordinatorEmail) {
+      newErrors.coordinatorEmail = "Please select a coordinator";
+    }
     if (!formData.name.trim()) {
       newErrors.name = "Name is required";
     } else if (formData.name.trim().length < 2) {
       newErrors.name = "Name must be at least 2 characters";
     }
-
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Please enter a valid email address";
     }
-
     if (!formData.message.trim()) {
       newErrors.message = "Message is required";
     } else if (formData.message.trim().length < 10) {
@@ -288,59 +402,78 @@ const ContactPage = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
+    setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: null }));
+      setErrors((prev) => ({ ...prev, [name]: null }));
     }
   };
 
   const handleClubChange = (e) => {
-    setSelectedClub(e.target.value);
-    setFormData(prev => ({ ...prev, clubId: e.target.value }));
+    const clubId = e.target.value;
+    setSelectedClub(clubId);
+    setFormData((prev) => ({ ...prev, clubId, coordinatorEmail: "" }));
     if (errors.clubId) {
-      setErrors(prev => ({ ...prev, clubId: null }));
+      setErrors((prev) => ({ ...prev, clubId: null }));
+    }
+  };
+
+  const handleCoordinatorChange = (e) => {
+    const coordinatorEmail = e.target.value;
+    setFormData((prev) => ({ ...prev, coordinatorEmail }));
+    if (errors.coordinatorEmail) {
+      setErrors((prev) => ({ ...prev, coordinatorEmail: null }));
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!validateForm()) {
       return;
     }
-
     try {
       setIsSubmitting(true);
-      setError(null);
+      setError("");
       setSuccess("");
 
       const token = localStorage.getItem("token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
-      
-      await axios.post("http://localhost:5000/api/contact", formData, config);
-      
+      const payload = {
+        message: formData.message,
+        coordinatorEmail: formData.coordinatorEmail,
+      };
+      console.log("Submitting contact form:", {
+        clubId: formData.clubId,
+        coordinatorEmail: formData.coordinatorEmail,
+        message: formData.message,
+      });
+      await axios.post(
+        `http://localhost:5000/api/clubs/${formData.clubId}/contact`,
+        payload,
+        config
+      );
       setSuccess("🎉 Message sent successfully! We'll get back to you soon.");
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         message: "",
-        clubId: selectedClub,
+        coordinatorEmail: coordinators.length > 0 ? coordinators[0].email : "",
       }));
-      
-      setTimeout(() => setSuccess(""), 5000);
     } catch (err) {
-      console.error("Contact form error:", err);
+      console.error("Contact form error:", {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+      });
       setError(
-        err.response?.data?.msg || 
-        err.response?.data?.message || 
-        "Failed to send message. Please try again."
+        err.response?.data?.error ||
+          err.response?.data?.message ||
+          "Failed to send message. Please try again."
       );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (loading) {
+  if (loading && !selectedClub) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -365,10 +498,13 @@ const ContactPage = () => {
             >
               <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
                 <Headphones className="w-8 h-8 sm:w-10 sm:h-10" />
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">Contact Support</h1>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">
+                  Contact Support
+                </h1>
               </div>
               <p className="text-base sm:text-lg text-blue-100 max-w-xl sm:max-w-2xl mx-auto">
-                Select a club to contact the appropriate team members for assistance.
+                Select a club and coordinator to contact the appropriate team
+                members for assistance.
               </p>
             </motion.div>
           </div>
@@ -392,19 +528,24 @@ const ContactPage = () => {
                   onChange={handleClubChange}
                   className={`
                     w-full pl-10 pr-8 py-2 sm:py-3 rounded-xl border text-sm sm:text-base
-                    ${errors.clubId 
-                      ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
-                      : 'border-gray-300 focus:border-[#456882] focus:ring-[#456882]/20'
+                    ${
+                      errors.clubId
+                        ? "border-red-300 focus:border-red-500 focus:ring-red-200"
+                        : "border-gray-300 focus:border-[#456882] focus:ring-[#456882]/20"
                     }
                     focus:ring-4 focus:outline-none appearance-none
                   `}
                   disabled={isSubmitting || loading}
                 >
-                  {clubs.map((club) => (
-                    <option key={club._id} value={club._id}>
-                      {club.name}
-                    </option>
-                  ))}
+                  {clubs.length === 0 ? (
+                    <option value="">No clubs available</option>
+                  ) : (
+                    clubs.map((club) => (
+                      <option key={club._id} value={club._id}>
+                        {club.name}
+                      </option>
+                    ))
+                  )}
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
               </div>
@@ -434,8 +575,13 @@ const ContactPage = () => {
                   >
                     <div className="bg-red-50 border border-red-200 rounded-xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
                       <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 flex-shrink-0" />
-                      <p className="text-xs sm:text-sm text-red-700 flex-1">{error}</p>
-                      <button onClick={() => setError("")} className="text-red-600 hover:text-red-800">
+                      <p className="text-xs sm:text-sm text-red-700 flex-1">
+                        {error}
+                      </p>
+                      <button
+                        onClick={() => setError("")}
+                        className="text-red-600 hover:text-red-800"
+                      >
                         <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                       </button>
                     </div>
@@ -450,8 +596,13 @@ const ContactPage = () => {
                   >
                     <div className="bg-green-50 border border-green-200 rounded-xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
                       <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
-                      <p className="text-xs sm:text-sm text-green-700 flex-1">{success}</p>
-                      <button onClick={() => setSuccess("")} className="text-green-600 hover:text-green-800">
+                      <p className="text-xs sm:text-sm text-green-700 flex-1">
+                        {success}
+                      </p>
+                      <button
+                        onClick={() => setSuccess("")}
+                        className="text-green-600 hover:text-green-800"
+                      >
                         <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                       </button>
                     </div>
@@ -471,9 +622,15 @@ const ContactPage = () => {
                       Get in Touch
                     </h2>
                     <div className="space-y-4">
-                      {contactInfo.map((info, index) => (
-                        <ContactInfoCard key={index} {...info} />
-                      ))}
+                      {contactInfo.length === 0 ? (
+                        <p className="text-sm text-gray-500">
+                          No contact information available.
+                        </p>
+                      ) : (
+                        contactInfo.map((info, index) => (
+                          <ContactInfoCard key={index} {...info} />
+                        ))
+                      )}
                     </div>
                   </motion.div>
 
@@ -513,9 +670,12 @@ const ContactPage = () => {
                     className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sm:p-8"
                   >
                     <div className="mb-6 sm:mb-8">
-                      <h2 className="text-xl sm:text-2xl font-semibold text-[#456882] mb-2">Send us a Message</h2>
+                      <h2 className="text-xl sm:text-2xl font-semibold text-[#456882] mb-2">
+                        Send us a Message
+                      </h2>
                       <p className="text-sm sm:text-base text-gray-600">
-                        Fill out the form below and we'll get back to you as soon as possible.
+                        Fill out the form below and we'll get back to you as
+                        soon as possible.
                       </p>
                     </div>
 
@@ -532,7 +692,6 @@ const ContactPage = () => {
                           placeholder="Enter your full name"
                           disabled={isSubmitting}
                         />
-                        
                         <FormInput
                           label="Email Address"
                           icon={Mail}
@@ -545,7 +704,17 @@ const ContactPage = () => {
                           disabled={isSubmitting}
                         />
                       </div>
-
+                      <CoordinatorSelect
+                        label="Select Coordinator"
+                        icon={Users}
+                        value={formData.coordinatorEmail}
+                        onChange={handleCoordinatorChange}
+                        options={coordinators}
+                        error={errors.coordinatorEmail}
+                        disabled={
+                          isSubmitting || loading || coordinators.length === 0
+                        }
+                      />
                       <FormTextarea
                         label="Message"
                         icon={MessageSquare}
@@ -557,7 +726,6 @@ const ContactPage = () => {
                         rows="5 sm:rows-6"
                         disabled={isSubmitting}
                       />
-
                       <motion.button
                         type="submit"
                         disabled={isSubmitting}
@@ -565,9 +733,10 @@ const ContactPage = () => {
                         whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
                         className={`
                           w-full py-3 sm:py-4 px-6 rounded-xl font-semibold text-sm sm:text-lg transition-all duration-300
-                          ${isSubmitting 
-                            ? 'bg-gray-400 cursor-not-allowed' 
-                            : 'bg-gradient-to-r from-[#456882] to-[#5a7a98] hover:from-[#334d5e] hover:to-[#456882] shadow-lg hover:shadow-xl'
+                          ${
+                            isSubmitting
+                              ? "bg-gray-400 cursor-not-allowed"
+                              : "bg-gradient-to-r from-[#456882] to-[#5a7a98] hover:from-[#334d5e] hover:to-[#456882] shadow-lg hover:shadow-xl"
                           }
                           text-white
                         `}
@@ -590,7 +759,8 @@ const ContactPage = () => {
 
                     <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200">
                       <p className="text-xs sm:text-sm text-gray-500 text-center">
-                        By submitting this form, you agree to our terms of service and privacy policy.
+                        By submitting this form, you agree to our terms of
+                        service and privacy policy.
                       </p>
                     </div>
                   </motion.div>
