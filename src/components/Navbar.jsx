@@ -386,17 +386,17 @@ const Navbar = memo(() => {
             label: "Attendance",
             icon: <BookOpen className="w-5 h-5 mr-2" />,
           },
+          {
+            to: "/ranking-system",
+            label: "Ranking",
+            icon: <Trophy className="w-5 h-5 mr-2" />,
+          },
         ],
       },
       {
         to: "/admin/users",
         label: "Users",
         icon: <Users className="w-5 h-5 mr-2" />,
-      },
-      {
-        to: "/ranking-system",
-        label: "Ranking",
-        icon: <Trophy className="w-5 h-5 mr-2" />,
       },
       {
         to: "/contact-manage",
@@ -447,17 +447,17 @@ const Navbar = memo(() => {
             label: "Attendance",
             icon: <BookOpen className="w-5 h-5 mr-2" />,
           },
+          {
+            to: "/ranking-system",
+            label: "Ranking",
+            icon: <Trophy className="w-5 h-5 mr-2" />,
+          },
         ],
       },
       {
         to: "/admin/users",
         label: "Users",
         icon: <Users className="w-5 h-5 mr-2" />,
-      },
-      {
-        to: "/ranking-system",
-        label: "Ranking",
-        icon: <Trophy className="w-5 h-5 mr-2" />,
       },
       {
         to: "/contact-manage",

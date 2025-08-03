@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import { debounce } from 'lodash';
+import Navbar from '../Navbar';
 
 // Backend base URL
 const BASE_URL = "http://localhost:5000";
@@ -521,6 +522,7 @@ const RankingSystem = () => {
 
   return (
     <ErrorBoundary>
+      <Navbar />
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8 px-4 sm:px-6 lg:px-8 font-[Poppins]">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
