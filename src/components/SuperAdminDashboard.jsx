@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useState, useMemo } from "react";
+import React, { memo, useEffect, useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -19,6 +19,7 @@ import {
   FileText,
 } from "lucide-react";
 import Navbar from "./Navbar";
+import NotificationCard from "./NotificationCard";
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -354,17 +355,45 @@ const SuperAdminDashboard = () => {
   const [membershipRequests, setMembershipRequests] = useState([]);
   const [allMembershipRequests, setAllMembershipRequests] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
-  const [practiceAttendanceRecords, setPracticeAttendanceRecords] = useState(
-    []
-  );
+  const [practiceAttendanceRecords, setPracticeAttendanceRecords] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [categories, setCategories] = useState(["all"]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [requestLoading, setRequestLoading] = useState({});
   const navigate = useNavigate();
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const response = await axios.get("http://localhost:5000/api/notifications", config);
+      const newNotifications = response.data.slice(0, 5); // Limit to 5 notifications
+      const newUnreadCount = newNotifications.filter((n) => !n.read).length;
+      if (newUnreadCount > unreadCount && unreadCount !== 0) {
+        setToast(`You have ${newUnreadCount - unreadCount} new notification(s)`);
+        setTimeout(() => setToast(null), 5000);
+      }
+      setNotifications(newNotifications);
+      setUnreadCount(newUnreadCount);
+    } catch (err) {
+      console.error("Error fetching notifications:", err);
+      setError(err.response?.data?.error || "Failed to load notifications.");
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        localStorage.removeItem("token");
+        navigate("/login");
+      }
+    }
+  }, [navigate, unreadCount]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -378,11 +407,23 @@ const SuperAdminDashboard = () => {
 
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
-        // Fetch user data
-        const userResponse = await axios.get(
-          "http://localhost:5000/api/auth/user",
-          config
-        );
+        // Fetch user data, clubs, requests, attendance, and notifications
+        const [
+          userResponse,
+          clubsResponse,
+          requestsResponse,
+          attendanceResponse,
+          practiceAttendanceResponse,
+          notificationsResponse,
+        ] = await Promise.all([
+          axios.get("http://localhost:5000/api/auth/user", config),
+          axios.get("http://localhost:5000/api/clubs", config),
+          axios.get("http://localhost:5000/api/membership-requests?all=true", config),
+          axios.get("http://localhost:5000/api/attendance", config),
+          axios.get("http://localhost:5000/api/practice-attendance", config),
+          axios.get("http://localhost:5000/api/notifications", config),
+        ]);
+
         const userData = userResponse.data;
         if (!userData || !userData._id) {
           setError("Failed to load user data.");
@@ -391,11 +432,7 @@ const SuperAdminDashboard = () => {
         }
         setUser(userData);
 
-        // Fetch clubs
-        const clubsResponse = await axios.get(
-          "http://localhost:5000/api/clubs",
-          config
-        );
+        // Process clubs
         const processedClubs = clubsResponse.data
           .filter(
             (club) =>
@@ -438,16 +475,11 @@ const SuperAdminDashboard = () => {
           });
         });
 
-        // Check if user has access
         if (processedClubs.length === 0) {
           setError("You do not have access to manage any clubs.");
         }
 
-        // Fetch all membership requests
-        const requestsResponse = await axios.get(
-          "http://localhost:5000/api/membership-requests?all=true",
-          config
-        );
+        // Process membership requests
         const allRequests = requestsResponse.data;
         setAllMembershipRequests(allRequests);
         const filteredRequests = allRequests.filter(
@@ -457,19 +489,14 @@ const SuperAdminDashboard = () => {
         );
         setMembershipRequests(filteredRequests);
 
-        // Fetch attendance records
-        const attendanceResponse = await axios.get(
-          "http://localhost:5000/api/attendance",
-          config
-        );
+        // Process attendance records
         setAttendanceRecords(attendanceResponse.data);
-
-        // Fetch practice attendance records
-        const practiceAttendanceResponse = await axios.get(
-          "http://localhost:5000/api/practice-attendance",
-          config
-        );
         setPracticeAttendanceRecords(practiceAttendanceResponse.data);
+
+        // Process notifications
+        const newNotifications = notificationsResponse.data.slice(0, 5); // Limit to 5
+        setNotifications(newNotifications);
+        setUnreadCount(newNotifications.filter((n) => !n.read).length);
 
         // Set categories
         setCategories([
@@ -500,7 +527,11 @@ const SuperAdminDashboard = () => {
       }
     };
     fetchData();
-  }, [navigate]);
+
+    // Poll notifications every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [navigate, fetchNotifications]);
 
   const handleApprove = async (requestId) => {
     setRequestLoading((prev) => ({ ...prev, [requestId]: true }));
@@ -673,6 +704,72 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      await axios.patch(
+        `http://localhost:5000/api/notifications/${notificationId}/read`,
+        {},
+        config
+      );
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === notificationId ? { ...n, read: true } : n))
+      );
+      setUnreadCount((prev) => Math.max(prev - 1, 0));
+      setSuccess("Notification marked as read.");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      console.error("Error marking notification as read:", err);
+      const errorMessage =
+        err.response?.status === 404
+          ? "Notification not found."
+          : err.response?.status === 403
+          ? "You are not authorized to mark this notification as read."
+          : err.response?.data?.error || "Failed to mark notification as read.";
+      setError(errorMessage);
+      setTimeout(() => setError(""), 3000);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        localStorage.removeItem("token");
+        navigate("/login");
+      }
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      await axios.patch(
+        "http://localhost:5000/api/notifications/mark-all-read",
+        {},
+        config
+      );
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      setUnreadCount(0);
+      setSuccess("All notifications marked as read.");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      console.error("Error marking all notifications as read:", err);
+      setError(
+        err.response?.data?.error || "Failed to mark all notifications as read."
+      );
+      setTimeout(() => setError(""), 3000);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        localStorage.removeItem("token");
+        navigate("/login");
+      }
+    }
+  };
+
   const filteredClubs = useMemo(
     () =>
       clubs.filter(
@@ -792,8 +889,12 @@ const SuperAdminDashboard = () => {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gray-50">
-        <Navbar user={user} />
+      <div className="min-h-screen bg-gray-50 font-[Poppins]">
+        <Navbar
+          user={user}
+          role={user?.isAdmin ? "superadmin" : "user"}
+          unreadCount={unreadCount}
+        />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
           {/* Header */}
           <motion.div
@@ -808,7 +909,7 @@ const SuperAdminDashboard = () => {
                 </h1>
                 <p className="text-sm text-gray-600">
                   Welcome, {user?.name || "Super Admin"}! Manage clubs,
-                  membership requests, and attendance.
+                  membership requests, attendance, and notifications.
                 </p>
               </div>
               <div className="flex gap-2">
@@ -869,6 +970,27 @@ const SuperAdminDashboard = () => {
                     <XCircle className="w-4 h-4 text-green-600" />
                   </button>
                 </div>
+              </motion.div>
+            )}
+            {toast && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="fixed top-4 right-4 bg-[#456882] text-white rounded-lg p-4 shadow-lg max-w-sm"
+                role="alert"
+                aria-live="polite"
+              >
+                <p className="text-sm">{toast}</p>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="text-white underline text-sm mt-2"
+                  onClick={() => setToast(null)}
+                  aria-label="Dismiss notification toast"
+                >
+                  Dismiss
+                </motion.button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -1029,6 +1151,57 @@ const SuperAdminDashboard = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {filteredAllRequests.map((request) => (
                       <RequestHistoryCard key={request._id} request={request} />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Notifications */}
+              <div>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Notifications
+                    {unreadCount > 0 && (
+                      <span className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">
+                        {unreadCount} unread
+                      </span>
+                    )}
+                  </h2>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    {unreadCount > 0 && (
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleMarkAllAsRead}
+                        className="px-4 py-2 bg-[#456882] text-white rounded-md text-sm font-medium hover:bg-[#334d5e]"
+                        aria-label="Mark all notifications as read"
+                      >
+                        Mark All as Read
+                      </motion.button>
+                    )}
+                    <Link
+                      to="/notifications"
+                      className="px-4 py-2 bg-[#456882] text-white rounded-md text-sm font-medium hover:bg-[#334d5e]"
+                    >
+                      View All Notifications
+                    </Link>
+                  </div>
+                </div>
+                {notifications.length === 0 ? (
+                  <div className="bg-white rounded-xl shadow-sm p-6 text-center">
+                    <FileText className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">
+                      No notifications available.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4">
+                    {notifications.map((notification) => (
+                      <NotificationCard
+                        key={notification._id}
+                        notification={notification}
+                        onMarkAsRead={handleMarkAsRead}
+                      />
                     ))}
                   </div>
                 )}
