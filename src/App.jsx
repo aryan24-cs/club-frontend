@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -20,32 +20,29 @@ import ClubDetailPage from "./components/ClubDetailPage";
 import CreateClubPage from "./components/CreateClubPage";
 import EditClubPage from "./components/EditClubPage";
 import ManageEvents from "./components/ManageEvents";
-// import ManageActivities from "./components/ManageActivities";
 import ManageUsers from "./components/ManageUsers";
 import EventEditPage from "./components/EventEditPage";
-// import ActivityEditPage from "./components/ActivityEditPage";
 import NotificationsPage from "./components/NotificationsPage";
 import ContactPage from "./components/ContactPage";
 import ProfilePage from "./components/ProfilePage";
 import ManageClubsPage from "./components/ManageClubsPage";
 import AttendanceTracker from "./components/Admin/AttendanceTracker";
 import AdminContactPanel from "./components/Admin/AdminContactPanel";
-import axios from "axios";
-import { useEffect, useState } from "react";
 import ClubPage from "./components/Admin/ClubPage";
 import RankingSystem from "./components/Admin/RankingSystem";
 import Events from "./components/Events";
 import CreateEventPage from "./components/CreateEvent";
 import GalleryPage from "./components/GalleryPage";
+import axios from "axios";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem("token");
-  return token ? children : <Navigate to="/login" />;
+  return token ? children : <Navigate to="/login" replace />;
 };
 
 // Role-Based Route Component
-const RoleBasedRoute = ({ children, role }) => {
+const RoleBasedRoute = ({ children, allowedRoles }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -64,41 +61,67 @@ const RoleBasedRoute = ({ children, role }) => {
           config
         );
         setUser(response.data);
-        setLoading(false);
       } catch (err) {
         console.error("Error fetching user:", err);
         localStorage.removeItem("token");
         navigate("/login");
+      } finally {
+        setLoading(false);
       }
     };
     fetchUser();
   }, [navigate]);
 
   if (loading) {
-    return <div></div>;
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-[#456882] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
   }
 
   if (!user) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace />;
   }
 
-  if (role === "super-admin" && !user.isAdmin) {
-    return <Navigate to="/dashboard" />;
-  }
+  const isSuperAdmin = user.isAdmin;
+  const isAdmin = user.isHeadCoordinator;
+  const isUser = !isSuperAdmin && !isAdmin;
 
-  if (role === "admin" && !user.isHeadCoordinator) {
-    return <Navigate to="/dashboard" />;
-  }
-
-  if (role === "user" && (user.isAdmin || user.isHeadCoordinator)) {
+  // Redirect super-admins and admins trying to access user routes
+  if (allowedRoles.includes("user") && (isSuperAdmin || isAdmin)) {
     return (
       <Navigate
-        to={user.isAdmin ? "/super-admin-dashboard" : "/admin-dashboard"}
+        to={isSuperAdmin ? "/super-admin-dashboard" : "/admin-dashboard"}
+        replace
       />
     );
   }
 
-  return children;
+  // Redirect non-super-admins trying to access super-admin routes
+  if (allowedRoles.includes("super-admin") && !isSuperAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // Redirect non-admins (and non-super-admins) trying to access admin routes
+  if (allowedRoles.includes("admin") && !isAdmin && !isSuperAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // Allow super-admins to access admin routes
+  if (allowedRoles.includes("admin") && isSuperAdmin) {
+    return children;
+  }
+
+  // Check if user has one of the allowed roles
+  const hasAccess = allowedRoles.some((role) => {
+    if (role === "user" && isUser) return true;
+    if (role === "admin" && isAdmin) return true;
+    if (role === "super-admin" && isSuperAdmin) return true;
+    return false;
+  });
+
+  return hasAccess ? children : <Navigate to="/dashboard" replace />;
 };
 
 // Layout Component
@@ -119,10 +142,22 @@ const AnimatedRoutes = () => {
         transition={{ duration: 0.3 }}
       >
         <Routes location={location}>
+          {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/gallery" element={<GalleryPage />} />
+
+          {/* Protected Routes */}
+          <Route
+            path="/gallery"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <GalleryPage />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/user-details"
             element={
@@ -136,7 +171,7 @@ const AnimatedRoutes = () => {
           <Route
             path="/dashboard"
             element={
-              <RoleBasedRoute role="user">
+              <RoleBasedRoute allowedRoles={["user"]}>
                 <Layout>
                   <UserDashboard />
                 </Layout>
@@ -146,17 +181,17 @@ const AnimatedRoutes = () => {
           <Route
             path="/events"
             element={
-              <RoleBasedRoute role="user">
+              <ProtectedRoute>
                 <Layout>
                   <Events />
                 </Layout>
-              </RoleBasedRoute>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/admin-dashboard"
             element={
-              <RoleBasedRoute role="admin">
+              <RoleBasedRoute allowedRoles={["admin", "super-admin"]}>
                 <Layout>
                   <AdminDashboard />
                 </Layout>
@@ -166,7 +201,7 @@ const AnimatedRoutes = () => {
           <Route
             path="/super-admin-dashboard"
             element={
-              <RoleBasedRoute role="super-admin">
+              <RoleBasedRoute allowedRoles={["super-admin"]}>
                 <Layout>
                   <SuperAdminDashboard />
                 </Layout>
@@ -206,7 +241,7 @@ const AnimatedRoutes = () => {
           <Route
             path="/create-club"
             element={
-              <RoleBasedRoute role="super-admin">
+              <RoleBasedRoute allowedRoles={["super-admin"]}>
                 <Layout>
                   <CreateClubPage />
                 </Layout>
@@ -226,7 +261,7 @@ const AnimatedRoutes = () => {
           <Route
             path="/admin/events"
             element={
-              <RoleBasedRoute roles={["super-admin", "admin"]}>
+              <RoleBasedRoute allowedRoles={["admin", "super-admin"]}>
                 <Layout>
                   <ManageEvents />
                 </Layout>
@@ -236,7 +271,7 @@ const AnimatedRoutes = () => {
           <Route
             path="/admin/users"
             element={
-              <RoleBasedRoute roles={["super-admin", "admin"]}>
+              <RoleBasedRoute allowedRoles={["admin", "super-admin"]}>
                 <Layout>
                   <ManageUsers />
                 </Layout>
@@ -246,7 +281,7 @@ const AnimatedRoutes = () => {
           <Route
             path="/events/:id/edit"
             element={
-              <RoleBasedRoute roles={["super-admin", "admin"]}>
+              <RoleBasedRoute allowedRoles={["admin", "super-admin"]}>
                 <Layout>
                   <EventEditPage />
                 </Layout>
@@ -286,7 +321,7 @@ const AnimatedRoutes = () => {
           <Route
             path="/manage-clubs"
             element={
-              <RoleBasedRoute roles={["super-admin", "admin"]}>
+              <RoleBasedRoute allowedRoles={["admin", "super-admin"]}>
                 <Layout>
                   <ManageClubsPage />
                 </Layout>
@@ -296,7 +331,7 @@ const AnimatedRoutes = () => {
           <Route
             path="/attendance"
             element={
-              <RoleBasedRoute roles={["super-admin", "admin"]}>
+              <RoleBasedRoute allowedRoles={["admin", "super-admin"]}>
                 <Layout>
                   <AttendanceTracker />
                 </Layout>
@@ -306,7 +341,7 @@ const AnimatedRoutes = () => {
           <Route
             path="/contact-manage"
             element={
-              <RoleBasedRoute roles={["super-admin", "admin"]}>
+              <RoleBasedRoute allowedRoles={["admin", "super-admin"]}>
                 <Layout>
                   <AdminContactPanel />
                 </Layout>
@@ -316,7 +351,7 @@ const AnimatedRoutes = () => {
           <Route
             path="/ranking-system"
             element={
-              <RoleBasedRoute roles={["super-admin", "admin"]}>
+              <RoleBasedRoute allowedRoles={["admin", "super-admin"]}>
                 <Layout>
                   <RankingSystem />
                 </Layout>
@@ -326,13 +361,15 @@ const AnimatedRoutes = () => {
           <Route
             path="/clubpage"
             element={
-              <RoleBasedRoute roles={["super-admin", "admin"]}>
+              <RoleBasedRoute allowedRoles={["admin", "super-admin"]}>
                 <Layout>
                   <ClubPage />
                 </Layout>
               </RoleBasedRoute>
             }
           />
+          {/* Catch-all route for undefined paths */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </motion.div>
     </AnimatePresence>
