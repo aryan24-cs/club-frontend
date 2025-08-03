@@ -36,6 +36,7 @@ import ClubPage from "./components/Admin/ClubPage";
 import RankingSystem from "./components/Admin/RankingSystem";
 import Events from "./components/Events";
 import CreateEventPage from "./components/CreateEvent";
+import GalleryPage from "./components/GalleryPage";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -121,6 +122,7 @@ const AnimatedRoutes = () => {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/gallery" element={<GalleryPage />} />
           <Route
             path="/user-details"
             element={
