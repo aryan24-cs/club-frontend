@@ -64,6 +64,9 @@ const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [pendingProfile, setPendingProfile] = useState(null);
 
   const token = localStorage.getItem("token");
 
@@ -117,8 +120,8 @@ const ProfilePage = () => {
               joinedAt: userData.createdAt || new Date(),
               badge: club.category === "Technical" ? "🚀" :
                 club.category === "Cultural" ? "🎭" :
-                  club.category === "Literary" ? "📚" :
-                    club.category === "Entrepreneurial" ? "💼" : "💡",
+                club.category === "Literary" ? "📚" :
+                club.category === "Entrepreneurial" ? "💼" : "💡",
               headCoordinators: club.headCoordinators || [],
             };
           });
@@ -241,7 +244,6 @@ const ProfilePage = () => {
     }
   }, [token, navigate]);
 
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -249,31 +251,46 @@ const ProfilePage = () => {
       setError("");
       setSuccess("");
 
-      // Validate required fields on the frontend
-      if (!profile.name || !profile.email) {
-        throw new Error("Name and email are required.");
+      // Validate required fields
+      if (!profile.name || !profile.name.trim()) {
+        throw new Error("Name is required.");
       }
-      if (!profile.isACEMStudent && !profile.collegeName) {
-        throw new Error("College name is required for non-ACEM students.");
+      if (!profile.email || !profile.email.trim()) {
+        throw new Error("Email is required.");
       }
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(profile.email)) {
+        throw new Error("Invalid email format.");
+      }
+
+      const payload = {
+        name: profile.name.trim(),
+        email: profile.email.trim(),
+        phone: profile.phone ? profile.phone.trim() : undefined,
+        semester: profile.semester ? String(profile.semester).trim() : undefined,
+        course: profile.course ? profile.course.trim() : undefined,
+        specialization: profile.specialization ? profile.specialization.trim() : undefined,
+        rollNo: profile.rollNo ? profile.rollNo.trim() : undefined,
+      };
+
+      console.log("Sending payload to backend:", payload);
 
       const response = await axios.put(
         "http://localhost:5000/api/auth/user",
-        {
-          name: profile.name ? String(profile.name).trim() : "",
-          email: profile.email ? String(profile.email).trim() : "",
-          phone: profile.phone ? String(profile.phone).trim() : undefined,
-          semester: profile.semester ? String(profile.semester).trim() : undefined,
-          course: profile.course ? String(profile.course).trim() : undefined,
-          specialization: profile.specialization ? String(profile.specialization).trim() : undefined,
-          rollNo: profile.rollNo ? String(profile.rollNo).trim() : undefined,
-          isACEMStudent: profile.isACEMStudent,
-          collegeName: !profile.isACEMStudent ? (profile.collegeName ? String(profile.collegeName).trim() : "") : null,
-        },
+        payload,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+
+      if (response.data.requiresOtp) {
+        setPendingProfile(payload);
+        setShowOtpModal(true);
+        setSuccess("OTP sent to your new email. Please verify.");
+        setTimeout(() => setSuccess(""), 3000);
+        return;
+      }
 
       // Update local storage with new token
       if (response.data.token) {
@@ -291,7 +308,7 @@ const ProfilePage = () => {
         specialization: profile.specialization,
         rollNo: profile.rollNo,
         isACEMStudent: profile.isACEMStudent,
-        collegeName: !profile.isACEMStudent ? profile.collegeName : null,
+        collegeName: profile.collegeName,
       }));
       setIsEditing(false);
       setTimeout(() => setSuccess(""), 3000);
@@ -317,6 +334,58 @@ const ProfilePage = () => {
     }
   };
 
+  const handleOtpSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setIsSubmitting(true);
+      setError("");
+      setSuccess("");
+
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/verify-email-otp",
+        { otp },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      // Update local storage with new token
+      if (response.data.token) {
+        localStorage.setItem("token", response.data.token);
+      }
+
+      setSuccess("Email updated successfully!");
+      setUser((prev) => ({
+        ...prev,
+        ...pendingProfile,
+        email: response.data.user.email,
+      }));
+      setShowOtpModal(false);
+      setOtp("");
+      setPendingProfile(null);
+      setIsEditing(false);
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      console.error("Error verifying OTP:", {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+      });
+      let errorMessage = err.message || "Failed to verify OTP.";
+      if (err.response?.status === 400) {
+        errorMessage = err.response?.data?.error || "Invalid or expired OTP.";
+      } else if (err.response?.status === 401) {
+        errorMessage = "Session expired. Please log in again.";
+        localStorage.removeItem("token");
+        navigate("/login");
+      } else if (err.response?.status === 500) {
+        errorMessage = "Server error while verifying OTP. Please try again or contact support.";
+      }
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
@@ -339,6 +408,13 @@ const ProfilePage = () => {
   const closeDeleteModal = () => {
     setShowDeleteModal(false);
     setError("");
+  };
+
+  const closeOtpModal = () => {
+    setShowOtpModal(false);
+    setOtp("");
+    setError("");
+    setPendingProfile(null);
   };
 
   const getRoleIcon = (role) => {
@@ -408,8 +484,8 @@ const ProfilePage = () => {
                     user?.isAdmin
                       ? "superadmin"
                       : user?.isHeadCoordinator
-                        ? "Head Coordinator"
-                        : "Member"
+                      ? "Head Coordinator"
+                      : "Member"
                   )}
                 </div>
               </div>
@@ -645,17 +721,8 @@ const ProfilePage = () => {
                         <input
                           type="checkbox"
                           checked={profile.isACEMStudent}
-                          onChange={(e) =>
-                            setProfile({
-                              ...profile,
-                              isACEMStudent: e.target.checked,
-                              collegeName: e.target.checked
-                                ? ""
-                                : profile.collegeName,
-                            })
-                          }
-                          disabled={!isEditing}
-                          className="w-5 h-5 text-teal-600 focus:ring-teal-600 rounded"
+                          disabled
+                          className="w-5 h-5 text-teal-600 focus:ring-teal-600 rounded opacity-50 cursor-not-allowed"
                           style={{ accentColor: "#456882" }}
                         />
                         <span className="text-gray-700">ACEM Student</span>
@@ -668,31 +735,12 @@ const ProfilePage = () => {
                       <label className="block text-gray-700 text-sm font-semibold mb-2">
                         College Name
                       </label>
-                      {profile.isACEMStudent ? (
-                        <input
-                          type="text"
-                          value="Aravali College Of Engineering And Management"
-                          disabled
-                          className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 focus:outline-none"
-                        />
-                      ) : (
-                        <input
-                          type="text"
-                          value={profile.collegeName}
-                          onChange={(e) =>
-                            setProfile({
-                              ...profile,
-                              collegeName: e.target.value,
-                            })
-                          }
-                          disabled={!isEditing}
-                          className={`w-full px-4 py-2 rounded-lg border ${isEditing
-                              ? "border-gray-300 focus:ring-2 focus:ring-teal-600"
-                              : "border-gray-200 bg-gray-50"
-                            } focus:outline-none`}
-                          required
-                        />
-                      )}
+                      <input
+                        type="text"
+                        value={profile.isACEMStudent ? "Aravali College Of Engineering And Management" : profile.collegeName}
+                        disabled
+                        className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 focus:outline-none opacity-50 cursor-not-allowed"
+                      />
                     </div>
                   </div>
 
@@ -1066,6 +1114,93 @@ const ProfilePage = () => {
                     )}
                   </motion.button>
                 </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* OTP Verification Modal */}
+        <AnimatePresence>
+          {showOtpModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+            >
+              <motion.div
+                variants={modalVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="bg-white rounded-2xl p-8 max-w-md w-full mx-4"
+              >
+                <div className="flex items-center justify-center mb-4">
+                  <FaEnvelope className="text-teal-600 text-4xl" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800 text-center mb-4">
+                  Verify Your New Email
+                </h2>
+                <p className="text-gray-600 text-center mb-6">
+                  An OTP has been sent to {profile.email}. Enter the 6-digit code below to verify your new email address.
+                </p>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-center"
+                  >
+                    <p className="text-red-600 font-medium">{error}</p>
+                  </motion.div>
+                )}
+                <form onSubmit={handleOtpSubmit} className="space-y-4">
+                  <input
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    placeholder="Enter 6-digit OTP"
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-600 focus:outline-none"
+                    required
+                  />
+                  <div className="flex justify-between gap-4">
+                    <motion.button
+                      type="button"
+                      onClick={closeOtpModal}
+                      disabled={isSubmitting}
+                      whileHover={{ scale: isSubmitting ? 1 : 1.05 }}
+                      whileTap={{ scale: isSubmitting ? 1 : 0.95 }}
+                      className="w-full px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition"
+                    >
+                      <FaTimes className="inline-block mr-2" />
+                      Cancel
+                    </motion.button>
+                    <motion.button
+                      type="submit"
+                      disabled={isSubmitting}
+                      whileHover={{ scale: isSubmitting ? 1 : 1.05 }}
+                      whileTap={{ scale: isSubmitting ? 1 : 0.95 }}
+                      className={`w-full px-6 py-3 rounded-lg font-semibold transition ${isSubmitting
+                          ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                          : "bg-teal-600 text-white hover:bg-teal-700"
+                        }`}
+                      style={{
+                        backgroundColor: isSubmitting ? "#d1d5db" : "#456882",
+                      }}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <FaSpinner className="animate-spin inline-block mr-2" />
+                          Verifying...
+                        </>
+                      ) : (
+                        <>
+                          <FaCheck className="inline-block mr-2" />
+                          Verify OTP
+                        </>
+                      )}
+                    </motion.button>
+                  </div>
+                </form>
               </motion.div>
             </motion.div>
           )}
