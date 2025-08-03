@@ -14,7 +14,7 @@ import {
   FaEnvelope,
   FaSearch,
   FaCheckCircle,
-  FaUserPlus,
+  FaSignOutAlt,
   FaEye,
   FaEyeSlash,
   FaTimes,
@@ -31,7 +31,6 @@ import {
   FaStar,
   FaIdCard,
   FaGraduationCap,
-  FaSignOutAlt,
 } from "react-icons/fa";
 import toast, { Toaster } from "react-hot-toast";
 import Navbar from "../components/Navbar";
@@ -200,7 +199,6 @@ const ClubDetailPage = () => {
   const [showMembers, setShowMembers] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("about");
-  const [joinLoading, setJoinLoading] = useState(false);
   const [leaveLoading, setLeaveLoading] = useState(false);
   const [contactMessage, setContactMessage] = useState("");
   const [contactSending, setContactSending] = useState(false);
@@ -243,7 +241,7 @@ const ClubDetailPage = () => {
           typeof coordinator.name === "string" &&
           coordinator.email
       );
-      console.log("Fetched headCoordinators:", validCoordinators); // Debug log
+      console.log("Fetched headCoordinators:", validCoordinators);
       setClub(clubData);
       setHeadCoordinators(validCoordinators);
       // Fetch events
@@ -270,25 +268,35 @@ const ClubDetailPage = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      const isUserMember = userResponse.data.clubs.includes(clubData._id);
+      // Check if user is a member by comparing club IDs
+      const userClubs = userResponse.data.clubs || [];
+      const isUserMember = userClubs.some(
+        (club) => club._id && club._id.toString() === clubData._id.toString()
+      );
       setIsMember(isUserMember);
       setIsAdmin(userResponse.data.isAdmin);
       setIsHeadCoordinator(
         userResponse.data.isHeadCoordinator &&
-          userResponse.data.headCoordinatorClubs.includes(clubData._id)
+          userResponse.data.headCoordinatorClubs.includes(clubData.name)
       );
-      console.log(
-        "isMember:",
-        isUserMember,
-        "User clubs:",
-        userResponse.data.clubs,
-        "Club ID:",
-        clubData._id
-      );
+      // Enhanced debugging logs
+      console.log("User data:", {
+        userId: userResponse.data._id,
+        userClubsRaw: userResponse.data.clubs,
+        userClubsIds: userClubs.map((club) => club._id),
+        clubId: clubData._id,
+        isMember: isUserMember,
+        isAdmin: userResponse.data.isAdmin,
+        isHeadCoordinator:
+          userResponse.data.isHeadCoordinator &&
+          userResponse.data.headCoordinatorClubs.includes(clubData.name),
+        headCoordinatorClubs: userResponse.data.headCoordinatorClubs,
+        clubName: clubData.name,
+      });
       setLoading(false);
       setRetryCount(0);
     } catch (err) {
-      console.error("Fetch error:", err.message, err.response?.data); // Debug log
+      console.error("Fetch error:", err.message, err.response?.data);
       if (retryCount < 3) {
         setTimeout(() => {
           setRetryCount((prev) => prev + 1);
@@ -325,7 +333,7 @@ const ClubDetailPage = () => {
               (admin) => admin._id.toString() === a._id.toString()
             )) ||
           (Array.isArray(a.headCoordinatorClubs) &&
-            a.headCoordinatorClubs.includes(club?._id));
+            a.headCoordinatorClubs.includes(club?.name));
         const isBPrivileged =
           b.isAdmin ||
           (Array.isArray(club?.superAdmins) &&
@@ -333,7 +341,7 @@ const ClubDetailPage = () => {
               (admin) => admin._id.toString() === b._id.toString()
             )) ||
           (Array.isArray(b.headCoordinatorClubs) &&
-            b.headCoordinatorClubs.includes(club?._id));
+            a.headCoordinatorClubs.includes(club?.name));
         if (isAPrivileged && !isBPrivileged) return -1;
         if (!isAPrivileged && isBPrivileged) return 1;
         return a.name.localeCompare(b.name);
@@ -341,27 +349,6 @@ const ClubDetailPage = () => {
     setFilteredMembers(sortedMembers);
     setMembersPage(1);
   }, [searchQuery, members, club]);
-
-  const handleJoinClub = async () => {
-    setJoinLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        `http://localhost:5000/api/clubs/${club._id}/join`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      toast.success("Membership request sent successfully");
-      await fetchClubData();
-    } catch (err) {
-      toast.error(
-        err.response?.data?.error || "Failed to send membership request"
-      );
-    }
-    setJoinLoading(false);
-  };
 
   const handleLeaveClub = async () => {
     if (!window.confirm("Are you sure you want to leave this club?")) {
@@ -409,7 +396,9 @@ const ClubDetailPage = () => {
       try {
         const token = localStorage.getItem("token");
         await axios.delete(`http://localhost:5000/api/events/${eventId}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
         toast.success("Event deleted successfully");
         await fetchClubData();
@@ -738,7 +727,7 @@ const ClubDetailPage = () => {
           transition={{ duration: 0.6 }}
           className="mb-8"
         >
-          {isMember ? (
+          {isMember && (
             <motion.button
               whileHover={{
                 scale: 1.02,
@@ -755,27 +744,7 @@ const ClubDetailPage = () => {
                 <FaSignOutAlt className="w-5 h-5" />
               )}
               <span className="font-medium">
-                {leaveLoading ? "Leaving Club..." : "Leave this Club"}
-              </span>
-            </motion.button>
-          ) : (
-            <motion.button
-              whileHover={{
-                scale: 1.02,
-                boxShadow: "0 10px 25px rgba(69, 104, 130, 0.2)",
-              }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleJoinClub}
-              disabled={joinLoading}
-              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl hover:from-[#334d5e] hover:to-[#456882] transition-all shadow-lg disabled:opacity-50"
-            >
-              {joinLoading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <FaUserPlus className="w-5 h-5" />
-              )}
-              <span className="font-medium">
-                {joinLoading ? "Sending Request..." : "Request to Join Club"}
+                {leaveLoading ? "Leaving Club..." : "Leave Club"}
               </span>
             </motion.button>
           )}
@@ -1033,7 +1002,7 @@ const ClubDetailPage = () => {
                               }}
                               className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl hover:from-[#334d5e] hover:to-[#456882] transition-all shadow-lg"
                             >
-                              <FaUserPlus className="w-4 h-4" />
+                              <FaUser className="w-4 h-4" />
                               Register for Event
                             </motion.button>
                           )}
@@ -1165,7 +1134,7 @@ const ClubDetailPage = () => {
                                   )) ||
                                 (Array.isArray(member.headCoordinatorClubs) &&
                                   member.headCoordinatorClubs.includes(
-                                    club?._id
+                                    club?.name
                                   )));
                             return (
                               <motion.div
