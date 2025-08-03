@@ -63,14 +63,32 @@ const AirplaneMenu = ({
               <X className="w-6 h-6" />
             </button>
             <div className="pt-16 px-6">
-              <motion.h2
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="text-2xl font-bold text-[#456882] mb-8 truncate"
+                className="flex items-center space-x-4 mb-8"
               >
-                {user?.name || "User"}
-              </motion.h2>
+                {user?.profilePicture ? (
+                  <img
+                    src={user.profilePicture}
+                    alt="Profile"
+                    className="w-12 h-12 rounded-full object-cover"
+                    onError={(e) => {
+                      console.error('Mobile menu profile picture load error:', user.profilePicture);
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
+                  />
+                ) : (
+                  <div className="w-12 h-12 bg-gradient-to-r from-teal-400 to-blue-500 rounded-full flex items-center justify-center text-white text-xl font-bold">
+                    {user?.name?.charAt(0) || "U"}
+                  </div>
+                )}
+                <h2 className="text-2xl font-bold text-[#456882] truncate">
+                  {user?.name || "User"}
+                </h2>
+              </motion.div>
               <div className="space-y-2">
                 {navLinks.map((link, index) => (
                   <motion.div
@@ -175,7 +193,7 @@ const AirplaneMenu = ({
                         location.pathname === link.to
                           ? "bg-[#334d5e] text-white"
                           : ""
-                      }`}
+                        }`}
                       onClick={() => {
                         onClose();
                         navigate(link.to);
@@ -245,7 +263,11 @@ const Navbar = memo(() => {
         }
         setLoading(false);
       } catch (err) {
-        console.error("Error fetching user:", err);
+        console.error("Error fetching user:", {
+          message: err.message,
+          status: err.response?.status,
+          data: err.response?.data,
+        });
         localStorage.removeItem("token");
         navigate("/login");
       }
@@ -586,8 +608,23 @@ const Navbar = memo(() => {
                 onMouseLeave={() => setIsProfileOpen(false)}
               >
                 <div className="flex items-center text-[#456882] hover:bg-[#456882] hover:text-white px-4 py-2 rounded-md text-sm font-medium transition-colors min-w-fit max-w-[150px] truncate cursor-pointer">
-                  <User className="w-5 h-5 mr-2" />
-                  <span className="ml-2">{user?.name || "User"}</span>
+                  {user?.profilePicture ? (
+                    <img
+                      src={user.profilePicture}
+                      alt="Profile"
+                      className="w-6 h-6 rounded-full object-cover mr-2"
+                      onError={(e) => {
+                        console.error('Desktop profile picture load error:', user.profilePicture);
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-6 h-6 bg-gradient-to-r from-teal-400 to-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold mr-2">
+                      {user?.name?.charAt(0) || "U"}
+                    </div>
+                  )}
+                  <span className="truncate">{user?.name || "User"}</span>
                 </div>
                 <AnimatePresence>
                   {isProfileOpen && (
@@ -598,9 +635,32 @@ const Navbar = memo(() => {
                       transition={{ duration: 0.2 }}
                       className="absolute right-0 top-full mt-1 bg-white shadow-lg rounded-md p-4 min-w-[200px] z-50"
                     >
-                      <p className="px-4 py-2 text-sm text-gray-600 border-b border-gray-200 truncate">
-                        {user?.email || "user@acem.edu"}
-                      </p>
+                      <div className="flex items-center px-4 py-2 border-b border-gray-200">
+                        {user?.profilePicture ? (
+                          <img
+                            src={user.profilePicture}
+                            alt="Profile"
+                            className="w-8 h-8 rounded-full object-cover mr-2"
+                            onError={(e) => {
+                              console.error('Dropdown profile picture load error:', user.profilePicture);
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-8 h-8 bg-gradient-to-r from-teal-400 to-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold mr-2">
+                            {user?.name?.charAt(0) || "U"}
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-sm text-gray-800 font-medium truncate">
+                            {user?.name || "User"}
+                          </p>
+                          <p className="text-xs text-gray-600 truncate">
+                            {user?.email || "user@acem.edu"}
+                          </p>
+                        </div>
+                      </div>
                       {userLinks.map((link) => (
                         <Link
                           key={link.to}

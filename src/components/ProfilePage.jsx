@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FaUser,
@@ -22,10 +22,13 @@ import {
   FaExclamationTriangle,
   FaTimes,
   FaCheck,
+  FaCamera,
 } from "react-icons/fa";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
+import Cropper from "react-easy-crop";
+import { getCroppedImg } from "./CropImage";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -40,6 +43,7 @@ const ProfilePage = () => {
     rollNo: "",
     isACEMStudent: false,
     collegeName: "",
+    profilePicture: "",
   });
   const [profileData, setProfileData] = useState({
     clubs: [],
@@ -67,176 +71,270 @@ const ProfilePage = () => {
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otp, setOtp] = useState("");
   const [pendingProfile, setPendingProfile] = useState(null);
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [imageSrc, setImageSrc] = useState(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
 
   const token = localStorage.getItem("token");
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        setIsLoading(true);
+  const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
 
-        const [userResponse, clubsResponse, eventsResponse, attendanceResponse, practiceAttendanceResponse] = await Promise.all([
-          axios.get("http://localhost:5000/api/auth/user", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get("http://localhost:5000/api/clubs", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get("http://localhost:5000/api/events", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get("http://localhost:5000/api/attendance/user", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get("http://localhost:5000/api/practice-attendance/user", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImageSrc(reader.result);
+        setShowCropModal(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
-        const userData = userResponse.data;
-        setUser(userData);
-        setProfile({
-          name: userData.name || "",
-          email: userData.email || "",
-          phone: userData.phone || "",
-          semester: userData.semester || "",
-          course: userData.course || "",
-          specialization: userData.specialization || "",
-          rollNo: userData.rollNo || "",
-          isACEMStudent: userData.isACEMStudent || false,
-          collegeName: userData.collegeName || "",
+  const fetchUserData = async () => {
+    try {
+      setIsLoading(true);
+
+      const [userResponse, clubsResponse, eventsResponse, attendanceResponse, practiceAttendanceResponse] = await Promise.all([
+        axios.get("http://localhost:5000/api/auth/user", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get("http://localhost:5000/api/clubs", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get("http://localhost:5000/api/events", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get("http://localhost:5000/api/attendance/user", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get("http://localhost:5000/api/practice-attendance/user", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      const userData = userResponse.data;
+      console.log('Fetched user data:', userData); // Log to verify profilePicture
+
+      setUser(userData);
+      setProfile({
+        name: userData.name || "",
+        email: userData.email || "",
+        phone: userData.phone || "",
+        semester: userData.semester || "",
+        course: userData.course || "",
+        specialization: userData.specialization || "",
+        rollNo: userData.rollNo || "",
+        isACEMStudent: userData.isACEMStudent || false,
+        collegeName: userData.collegeName || "",
+        profilePicture: userData.profilePicture || "",
+      });
+
+      const formattedClubs = clubsResponse.data
+        .filter((club) => Array.isArray(userData.clubName) && userData.clubName.includes(club.name))
+        .map((club) => {
+          const isHeadCoordinator = userData.isHeadCoordinator &&
+            Array.isArray(userData.headCoordinatorClubs) &&
+            userData.headCoordinatorClubs.includes(club.name);
+          return {
+            id: club._id || "",
+            name: club.name || "",
+            role: userData.isAdmin ? "Admin" : isHeadCoordinator ? "Head Coordinator" : "Member",
+            joinedAt: userData.createdAt || new Date(),
+            badge: club.category === "Technical" ? "🚀" :
+              club.category === "Cultural" ? "🎭" :
+              club.category === "Literary" ? "📚" :
+              club.category === "Entrepreneurial" ? "💼" : "💡",
+            headCoordinators: club.headCoordinators || [],
+          };
         });
 
-        const formattedClubs = clubsResponse.data
-          .filter((club) => Array.isArray(userData.clubName) && userData.clubName.includes(club.name))
-          .map((club) => {
-            const isHeadCoordinator = userData.isHeadCoordinator &&
-              Array.isArray(userData.headCoordinatorClubs) &&
-              userData.headCoordinatorClubs.includes(club.name);
-            return {
-              id: club._id || "",
-              name: club.name || "",
-              role: userData.isAdmin ? "Admin" : isHeadCoordinator ? "Head Coordinator" : "Member",
-              joinedAt: userData.createdAt || new Date(),
-              badge: club.category === "Technical" ? "🚀" :
-                club.category === "Cultural" ? "🎭" :
-                club.category === "Literary" ? "📚" :
-                club.category === "Entrepreneurial" ? "💼" : "💡",
-              headCoordinators: club.headCoordinators || [],
-            };
-          });
+      const userEvents = eventsResponse.data.filter((event) =>
+        Array.isArray(userData.clubName) && userData.clubName.includes(event.club?.name)
+      );
+      const eventAttendanceRecords = attendanceResponse.data || [];
+      const practiceAttendanceRecords = practiceAttendanceResponse.data || [];
 
-        const userEvents = eventsResponse.data.filter((event) =>
-          Array.isArray(userData.clubName) && userData.clubName.includes(event.club?.name)
-        );
-        const eventAttendanceRecords = attendanceResponse.data || [];
-        const practiceAttendanceRecords = practiceAttendanceResponse.data || [];
+      const eventAttendance = eventAttendanceRecords.filter(
+        (record) => record.status === "present"
+      );
+      const eventPresentCount = eventAttendance.length;
+      const eventTotalCount = eventAttendanceRecords.length;
+      const eventAttendanceRate =
+        eventTotalCount > 0
+          ? Math.round((eventPresentCount / eventTotalCount) * 100)
+          : 0;
+      const eventPoints = eventAttendance.reduce(
+        (sum, record) => sum + (record.points || 0),
+        0
+      );
 
-        const eventAttendance = eventAttendanceRecords.filter(
-          (record) => record.status === "present"
-        );
-        const eventPresentCount = eventAttendance.length;
-        const eventTotalCount = eventAttendanceRecords.length;
-        const eventAttendanceRate =
-          eventTotalCount > 0
-            ? Math.round((eventPresentCount / eventTotalCount) * 100)
-            : 0;
-        const eventPoints = eventAttendance.reduce(
-          (sum, record) => sum + (record.points || 0),
+      const practiceAttendance = practiceAttendanceRecords.filter(
+        (record) => record.status === "present"
+      );
+      const practicePresentCount = practiceAttendance.length;
+      const practiceTotalCount = practiceAttendanceRecords.length;
+      const practiceAttendanceRate =
+        practiceTotalCount > 0
+          ? Math.round((practicePresentCount / practiceTotalCount) * 100)
+          : 0;
+      const practicePoints = practiceAttendance.reduce(
+        (sum, record) => sum + (record.points || 0),
+        0
+      );
+
+      const totalAttendanceCount = eventTotalCount + practiceTotalCount;
+      const totalPresentCount = eventPresentCount + practicePresentCount;
+      const combinedAttendanceRate =
+        totalAttendanceCount > 0
+          ? Math.round((totalPresentCount / totalAttendanceCount) * 100)
+          : 0;
+      const totalPoints = eventPoints + practicePoints;
+
+      const stats = {
+        totalEvents: userEvents.length,
+        attendanceRate: combinedAttendanceRate,
+        eventsOrganized: eventsResponse.data.filter(
+          (event) => event.createdBy?._id === userData._id
+        ).length,
+        overallRank: 0,
+        totalMembers: clubsResponse.data.reduce(
+          (sum, club) =>
+            sum +
+            (Array.isArray(userData.clubName) && userData.clubName.includes(club.name) ? club.memberCount || 0 : 0),
           0
-        );
+        ),
+        seminarsAttended: userEvents.filter(
+          (event) => event.type === "seminar"
+        ).length,
+        competitionsAttended: userEvents.filter(
+          (event) => event.type === "competition"
+        ).length,
+        workshopsAttended: userEvents.filter(
+          (event) => event.type === "workshop"
+        ).length,
+        totalPoints,
+      };
 
-        const practiceAttendance = practiceAttendanceRecords.filter(
-          (record) => record.status === "present"
-        );
-        const practicePresentCount = practiceAttendance.length;
-        const practiceTotalCount = practiceAttendanceRecords.length;
-        const practiceAttendanceRate =
-          practiceTotalCount > 0
-            ? Math.round((practicePresentCount / practiceTotalCount) * 100)
-            : 0;
-        const practicePoints = practiceAttendance.reduce(
-          (sum, record) => sum + (record.points || 0),
-          0
-        );
+      const eventTypeIcons = {
+        seminar: "🎤",
+        competition: "🏆",
+        workshop: "🛠️",
+        default: "⭐",
+      };
 
-        const totalAttendanceCount = eventTotalCount + practiceTotalCount;
-        const totalPresentCount = eventPresentCount + practicePresentCount;
-        const combinedAttendanceRate =
-          totalAttendanceCount > 0
-            ? Math.round((totalPresentCount / totalAttendanceCount) * 100)
-            : 0;
-        const totalPoints = eventPoints + practicePoints;
+      const achievements = eventsResponse.data
+        .filter(
+          (event) =>
+            event?.createdBy?._id && event.createdBy._id === userData._id
+        )
+        .map((event) => ({
+          id: event._id || "",
+          title: `Organized ${event.type
+              ? event.type.charAt(0).toUpperCase() +
+              event.type.slice(1).toLowerCase()
+              : "Event"
+            }`,
+          description: `Organized ${event.title || "an event"}`,
+          icon:
+            eventTypeIcons[event.type?.toLowerCase()] ||
+            eventTypeIcons.default,
+          earnedAt: event.createdAt || new Date(),
+        }));
 
-        const stats = {
-          totalEvents: userEvents.length,
-          attendanceRate: combinedAttendanceRate,
-          eventsOrganized: eventsResponse.data.filter(
-            (event) => event.createdBy?._id === userData._id
-          ).length,
-          overallRank: 0,
-          totalMembers: clubsResponse.data.reduce(
-            (sum, club) =>
-              sum +
-              (Array.isArray(userData.clubName) && userData.clubName.includes(club.name) ? club.memberCount || 0 : 0),
-            0
-          ),
-          seminarsAttended: userEvents.filter(
-            (event) => event.type === "seminar"
-          ).length,
-          competitionsAttended: userEvents.filter(
-            (event) => event.type === "competition"
-          ).length,
-          workshopsAttended: userEvents.filter(
-            (event) => event.type === "workshop"
-          ).length,
-          totalPoints,
-        };
+      setProfileData({
+        clubs: formattedClubs,
+        achievements,
+        stats,
+      });
 
-        const eventTypeIcons = {
-          seminar: "🎤",
-          competition: "🏆",
-          workshop: "🛠️",
-          default: "⭐",
-        };
-
-        const achievements = eventsResponse.data
-          .filter(
-            (event) =>
-              event?.createdBy?._id && event.createdBy._id === userData._id
-          )
-          .map((event) => ({
-            id: event._id || "",
-            title: `Organized ${event.type
-                ? event.type.charAt(0).toUpperCase() +
-                event.type.slice(1).toLowerCase()
-                : "Event"
-              }`,
-            description: `Organized ${event.title || "an event"}`,
-            icon:
-              eventTypeIcons[event.type?.toLowerCase()] ||
-              eventTypeIcons.default,
-            earnedAt: event.createdAt || new Date(),
-          }));
-
-        setProfileData({
-          clubs: formattedClubs,
-          achievements,
-          stats,
-        });
-
-        setIsLoading(false);
-      } catch (err) {
-        console.error("Error fetching user:", err);
-        if (err.response?.status === 401) {
-          localStorage.removeItem("token");
-          navigate("/login");
-        }
-        setError("Failed to load profile.");
-        setIsLoading(false);
+      setIsLoading(false);
+    } catch (err) {
+      console.error("Error fetching user:", {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+      });
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
       }
-    };
+      setError("Failed to load profile. Please try again.");
+      setIsLoading(false);
+    }
+  };
 
+  const handleCropSave = async () => {
+    try {
+      setIsSubmitting(true);
+      setError("");
+
+      // Generate cropped image
+      const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels, "image/jpeg", 0.8);
+
+      // Convert cropped image to a Blob
+      const response = await fetch(croppedImage);
+      if (!response.ok) {
+        throw new Error("Failed to fetch cropped image data");
+      }
+      const blob = await response.blob();
+
+      // Create FormData and append the file
+      const formData = new FormData();
+      const fileExtension = blob.type.split("/")[1] || "jpg";
+      formData.append("profilePicture", blob, `profile_${Date.now()}.${fileExtension}`);
+
+      const responseAxios = await axios.post(
+        "http://localhost:5000/api/auth/upload-profile-picture",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      // Update local state
+      setProfile((prev) => ({
+        ...prev,
+        profilePicture: responseAxios.data.profilePicture,
+      }));
+      setUser((prev) => ({
+        ...prev,
+        profilePicture: responseAxios.data.profilePicture,
+      }));
+
+      // Refresh user data to confirm database persistence
+      await fetchUserData();
+
+      setSuccess("Profile picture uploaded successfully!");
+      setShowCropModal(false);
+      setImageSrc(null);
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+      setCroppedAreaPixels(null);
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      console.error("Error uploading profile picture:", {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+      });
+      const errorMessage = err.response?.data?.details
+        ? err.response.data.details
+        : err.response?.data?.error || err.message || "Failed to upload profile picture. Please try again.";
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
     if (token) {
       fetchUserData();
     } else {
@@ -251,14 +349,12 @@ const ProfilePage = () => {
       setError("");
       setSuccess("");
 
-      // Validate required fields
       if (!profile.name || !profile.name.trim()) {
         throw new Error("Name is required.");
       }
       if (!profile.email || !profile.email.trim()) {
         throw new Error("Email is required.");
       }
-      // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(profile.email)) {
         throw new Error("Invalid email format.");
@@ -292,7 +388,6 @@ const ProfilePage = () => {
         return;
       }
 
-      // Update local storage with new token
       if (response.data.token) {
         localStorage.setItem("token", response.data.token);
       }
@@ -309,6 +404,7 @@ const ProfilePage = () => {
         rollNo: profile.rollNo,
         isACEMStudent: profile.isACEMStudent,
         collegeName: profile.collegeName,
+        profilePicture: profile.profilePicture,
       }));
       setIsEditing(false);
       setTimeout(() => setSuccess(""), 3000);
@@ -349,7 +445,6 @@ const ProfilePage = () => {
         }
       );
 
-      // Update local storage with new token
       if (response.data.token) {
         localStorage.setItem("token", response.data.token);
       }
@@ -417,6 +512,14 @@ const ProfilePage = () => {
     setPendingProfile(null);
   };
 
+  const closeCropModal = () => {
+    setShowCropModal(false);
+    setImageSrc(null);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
+  };
+
   const getRoleIcon = (role) => {
     switch (role) {
       case "superadmin":
@@ -466,7 +569,6 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 font-[Poppins]">
       <Navbar />
-      {/* Header Section */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -476,9 +578,32 @@ const ProfilePage = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="relative">
-                <div className="w-20 h-20 bg-gradient-to-r from-teal-400 to-blue-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                  {user?.name?.charAt(0) || "U"}
-                </div>
+                {profile.profilePicture ? (
+                  <img
+                    src={profile.profilePicture}
+                    alt="Profile"
+                    className="w-20 h-20 rounded-full object-cover"
+                    onError={(e) => {
+                      console.error('Profile picture load error:', profile.profilePicture);
+                      e.target.src = '/default-profile.png'; // Fallback image
+                    }}
+                  />
+                ) : (
+                  <div className="w-20 h-20 bg-gradient-to-r from-teal-400 to-blue-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                    {user?.name?.charAt(0) || "U"}
+                  </div>
+                )}
+                {isEditing && (
+                  <label className="absolute -bottom-1 -right-1 bg-teal-600 rounded-full p-2 cursor-pointer">
+                    <FaCamera className="text-white text-sm" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                  </label>
+                )}
                 <div className="absolute -bottom-1 -right-1">
                   {getRoleIcon(
                     user?.isAdmin
@@ -504,8 +629,7 @@ const ProfilePage = () => {
                 </p>
                 <div className="flex items-center space-x-2 mt-1">
                   <span
-                    className={`px-2 py-1 rounded-full text-xs text-white ${getRoleBadge().color
-                      }`}
+                    className={`px-2 py-1 rounded-full text-xs text-white ${getRoleBadge().color}`}
                   >
                     {getRoleBadge().text}
                   </span>
@@ -532,7 +656,6 @@ const ProfilePage = () => {
         </div>
       </motion.div>
 
-      {/* Navigation Tabs */}
       <div className="container mx-auto px-4 py-4">
         <div className="flex space-x-1 bg-white rounded-lg p-1 shadow-sm">
           {[
@@ -546,10 +669,11 @@ const ProfilePage = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-md transition ${activeTab === tab.id
+              className={`flex items-center space-x-2 px-4 py-2 rounded-md transition ${
+                activeTab === tab.id
                   ? "bg-teal-600 text-white"
                   : "text-gray-600 hover:bg-gray-100"
-                }`}
+              }`}
               style={{
                 backgroundColor:
                   activeTab === tab.id ? "#456882" : "transparent",
@@ -564,7 +688,6 @@ const ProfilePage = () => {
 
       <div className="container mx-auto px-4 pb-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
           <div className="lg:col-span-2">
             {activeTab === "profile" && (
               <motion.div
@@ -588,10 +711,11 @@ const ProfilePage = () => {
                           setProfile({ ...profile, name: e.target.value })
                         }
                         disabled={!isEditing}
-                        className={`w-full px-4 py-2 rounded-lg border ${isEditing
+                        className={`w-full px-4 py-2 rounded-lg border ${
+                          isEditing
                             ? "border-gray-300 focus:ring-2 focus:ring-teal-600"
                             : "border-gray-200 bg-gray-50"
-                          } focus:outline-none`}
+                        } focus:outline-none`}
                         required
                       />
                     </div>
@@ -606,10 +730,11 @@ const ProfilePage = () => {
                           setProfile({ ...profile, email: e.target.value })
                         }
                         disabled={!isEditing}
-                        className={`w-full px-4 py-2 rounded-lg border ${isEditing
+                        className={`w-full px-4 py-2 rounded-lg border ${
+                          isEditing
                             ? "border-gray-300 focus:ring-2 focus:ring-teal-600"
                             : "border-gray-200 bg-gray-50"
-                          } focus:outline-none`}
+                        } focus:outline-none`}
                         required
                       />
                     </div>
@@ -627,10 +752,11 @@ const ProfilePage = () => {
                           setProfile({ ...profile, phone: e.target.value })
                         }
                         disabled={!isEditing}
-                        className={`w-full px-4 py-2 rounded-lg border ${isEditing
+                        className={`w-full px-4 py-2 rounded-lg border ${
+                          isEditing
                             ? "border-gray-300 focus:ring-2 focus:ring-teal-600"
                             : "border-gray-200 bg-gray-50"
-                          } focus:outline-none`}
+                        } focus:outline-none`}
                         placeholder="+1234567890"
                       />
                     </div>
@@ -645,10 +771,11 @@ const ProfilePage = () => {
                           setProfile({ ...profile, semester: e.target.value })
                         }
                         disabled={!isEditing}
-                        className={`w-full px-4 py-2 rounded-lg border ${isEditing
+                        className={`w-full px-4 py-2 rounded-lg border ${
+                          isEditing
                             ? "border-gray-300 focus:ring-2 focus:ring-teal-600"
                             : "border-gray-200 bg-gray-50"
-                          } focus:outline-none`}
+                        } focus:outline-none`}
                         min="1"
                         max="8"
                       />
@@ -667,10 +794,11 @@ const ProfilePage = () => {
                           setProfile({ ...profile, course: e.target.value })
                         }
                         disabled={!isEditing}
-                        className={`w-full px-4 py-2 rounded-lg border ${isEditing
+                        className={`w-full px-4 py-2 rounded-lg border ${
+                          isEditing
                             ? "border-gray-300 focus:ring-2 focus:ring-teal-600"
                             : "border-gray-200 bg-gray-50"
-                          } focus:outline-none`}
+                        } focus:outline-none`}
                       />
                     </div>
                     <div>
@@ -687,10 +815,11 @@ const ProfilePage = () => {
                           })
                         }
                         disabled={!isEditing}
-                        className={`w-full px-4 py-2 rounded-lg border ${isEditing
+                        className={`w-full px-4 py-2 rounded-lg border ${
+                          isEditing
                             ? "border-gray-300 focus:ring-2 focus:ring-teal-600"
                             : "border-gray-200 bg-gray-50"
-                          } focus:outline-none`}
+                        } focus:outline-none`}
                       />
                     </div>
                   </div>
@@ -707,10 +836,11 @@ const ProfilePage = () => {
                           setProfile({ ...profile, rollNo: e.target.value })
                         }
                         disabled={!isEditing}
-                        className={`w-full px-4 py-2 rounded-lg border ${isEditing
+                        className={`w-full px-4 py-2 rounded-lg border ${
+                          isEditing
                             ? "border-gray-300 focus:ring-2 focus:ring-teal-600"
                             : "border-gray-200 bg-gray-50"
-                          } focus:outline-none`}
+                        } focus:outline-none`}
                       />
                     </div>
                     <div>
@@ -737,7 +867,11 @@ const ProfilePage = () => {
                       </label>
                       <input
                         type="text"
-                        value={profile.isACEMStudent ? "Aravali College Of Engineering And Management" : profile.collegeName}
+                        value={
+                          profile.isACEMStudent
+                            ? "Aravali College Of Engineering And Management"
+                            : profile.collegeName
+                        }
                         disabled
                         className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 focus:outline-none opacity-50 cursor-not-allowed"
                       />
@@ -748,12 +882,13 @@ const ProfilePage = () => {
                     <motion.button
                       type="submit"
                       disabled={isSubmitting}
-                      whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
-                      whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
-                      className={`w-full px-6 py-3 rounded-lg font-semibold transition ${isSubmitting
+                      whileHover={{ scale: isSubmitting ? 1 : 1.05 }}
+                      whileTap={{ scale: isSubmitting ? 1 : 0.95 }}
+                      className={`w-full px-6 py-3 rounded-lg font-semibold transition ${
+                        isSubmitting
                           ? "bg-gray-400 text-gray-700 cursor-not-allowed"
                           : "bg-teal-600 text-white hover:bg-teal-700"
-                        }`}
+                      }`}
                       style={{
                         backgroundColor: isSubmitting ? "#d1d5db" : "#456882",
                       }}
@@ -774,12 +909,13 @@ const ProfilePage = () => {
                   <motion.button
                     onClick={openDeleteModal}
                     disabled={isSubmitting}
-                    whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
-                    whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
-                    className={`w-full px-6 py-3 rounded-lg font-semibold transition ${isSubmitting
+                    whileHover={{ scale: isSubmitting ? 1 : 1.05 }}
+                    whileTap={{ scale: isSubmitting ? 1 : 0.95 }}
+                    className={`w-full px-6 py-3 rounded-lg font-semibold transition ${
+                      isSubmitting
                         ? "bg-gray-400 text-gray-700 cursor-not-allowed"
                         : "bg-red-600 text-white hover:bg-red-700"
-                      } mt-4`}
+                    } mt-4`}
                   >
                     <FaTrash className="inline-block mr-2" />
                     Delete My Account
@@ -814,11 +950,14 @@ const ProfilePage = () => {
                           </p>
                           {club.role === "Head Coordinator" && (
                             <div className="mt-2">
-                              <p className="text-sm font-semibold text-gray-700">Coordinator Contact:</p>
+                              <p className="text-sm font-semibold text-gray-700">
+                                Coordinator Contact:
+                              </p>
                               <ul className="text-sm text-gray-600">
                                 {club.headCoordinators.map((coordinator, index) => (
                                   <li key={index}>
-                                    {coordinator.name} ({coordinator.email}, {coordinator.phone || "No phone"})
+                                    {coordinator.name} ({coordinator.email},{" "}
+                                    {coordinator.phone || "No phone"})
                                   </li>
                                 ))}
                               </ul>
@@ -874,9 +1013,7 @@ const ProfilePage = () => {
                           </p>
                           <p className="text-xs text-gray-500 mt-1">
                             Earned:{" "}
-                            {new Date(
-                              achievement.earnedAt
-                            ).toLocaleDateString()}
+                            {new Date(achievement.earnedAt).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
@@ -959,7 +1096,6 @@ const ProfilePage = () => {
             )}
           </div>
 
-          {/* Sidebar */}
           <div className="lg:col-span-1">
             <motion.div
               initial={{ opacity: 0, x: 20 }}
@@ -1024,7 +1160,6 @@ const ProfilePage = () => {
           </div>
         </div>
 
-        {/* Error/Success Messages */}
         {error && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -1044,7 +1179,6 @@ const ProfilePage = () => {
           </motion.div>
         )}
 
-        {/* Delete Confirmation Modal */}
         <AnimatePresence>
           {showDeleteModal && (
             <motion.div
@@ -1082,8 +1216,8 @@ const ProfilePage = () => {
                 )}
                 <div className="flex justify-between gap-4">
                   <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: isDeleting ? 1 : 1.05 }}
+                    whileTap={{ scale: isDeleting ? 1 : 0.95 }}
                     onClick={closeDeleteModal}
                     disabled={isDeleting}
                     className="w-full px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition"
@@ -1096,10 +1230,11 @@ const ProfilePage = () => {
                     whileTap={{ scale: isDeleting ? 1 : 0.95 }}
                     onClick={handleDeleteAccount}
                     disabled={isDeleting}
-                    className={`w-full px-6 py-3 rounded-lg font-semibold transition ${isDeleting
+                    className={`w-full px-6 py-3 rounded-lg font-semibold transition ${
+                      isDeleting
                         ? "bg-gray-400 text-gray-700 cursor-not-allowed"
                         : "bg-red-600 text-white hover:bg-red-700"
-                      }`}
+                    }`}
                   >
                     {isDeleting ? (
                       <>
@@ -1119,7 +1254,6 @@ const ProfilePage = () => {
           )}
         </AnimatePresence>
 
-        {/* OTP Verification Modal */}
         <AnimatePresence>
           {showOtpModal && (
             <motion.div
@@ -1142,7 +1276,8 @@ const ProfilePage = () => {
                   Verify Your New Email
                 </h2>
                 <p className="text-gray-600 text-center mb-6">
-                  An OTP has been sent to {profile.email}. Enter the 6-digit code below to verify your new email address.
+                  An OTP has been sent to {profile.email}. Enter the 6-digit code
+                  below to verify your new email address.
                 </p>
                 {error && (
                   <motion.div
@@ -1179,10 +1314,11 @@ const ProfilePage = () => {
                       disabled={isSubmitting}
                       whileHover={{ scale: isSubmitting ? 1 : 1.05 }}
                       whileTap={{ scale: isSubmitting ? 1 : 0.95 }}
-                      className={`w-full px-6 py-3 rounded-lg font-semibold transition ${isSubmitting
+                      className={`w-full px-6 py-3 rounded-lg font-semibold transition ${
+                        isSubmitting
                           ? "bg-gray-400 text-gray-700 cursor-not-allowed"
                           : "bg-teal-600 text-white hover:bg-teal-700"
-                        }`}
+                      }`}
                       style={{
                         backgroundColor: isSubmitting ? "#d1d5db" : "#456882",
                       }}
@@ -1201,6 +1337,96 @@ const ProfilePage = () => {
                     </motion.button>
                   </div>
                 </form>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showCropModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+            >
+              <motion.div
+                variants={modalVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="bg-white rounded-2xl p-8 max-w-md w-full mx-4"
+              >
+                <h2 className="text-2xl font-bold text-gray-800 text-center mb-4">
+                  Adjust Profile Picture
+                </h2>
+                <div className="relative w-full h-64">
+                  <Cropper
+                    image={imageSrc}
+                    crop={crop}
+                    zoom={zoom}
+                    aspect={1}
+                    onCropChange={setCrop}
+                    onZoomChange={setZoom}
+                    onCropComplete={onCropComplete}
+                    showGrid={true}
+                    style={{
+                      containerStyle: { height: "100%", width: "100%" },
+                    }}
+                  />
+                </div>
+                <div className="mt-4">
+                  <label className="block text-gray-700 text-sm font-semibold mb-2">
+                    Zoom
+                  </label>
+                  <input
+                    type="range"
+                    value={zoom}
+                    min={1}
+                    max={3}
+                    step={0.1}
+                    onChange={(e) => setZoom(Number(e.target.value))}
+                    className="w-full"
+                  />
+                </div>
+                <div className="flex justify-between gap-4 mt-6">
+                  <motion.button
+                    onClick={closeCropModal}
+                    disabled={isSubmitting}
+                    whileHover={{ scale: isSubmitting ? 1 : 1.05 }}
+                    whileTap={{ scale: isSubmitting ? 1 : 0.95 }}
+                    className="w-full px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition"
+                  >
+                    <FaTimes className="inline-block mr-2" />
+                    Cancel
+                  </motion.button>
+                  <motion.button
+                    onClick={handleCropSave}
+                    disabled={isSubmitting}
+                    whileHover={{ scale: isSubmitting ? 1 : 1.05 }}
+                    whileTap={{ scale: isSubmitting ? 1 : 0.95 }}
+                    className={`w-full px-6 py-3 rounded-lg font-semibold transition ${
+                      isSubmitting
+                        ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                        : "bg-teal-600 text-white hover:bg-teal-700"
+                    }`}
+                    style={{
+                      backgroundColor: isSubmitting ? "#d1d5db" : "#456882",
+                    }}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <FaSpinner className="animate-spin inline-block mr-2" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <FaCheck className="inline-block mr-2" />
+                        Save
+                      </>
+                    )}
+                  </motion.button>
+                </div>
               </motion.div>
             </motion.div>
           )}
