@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios';
 import {
   Trophy,
   Medal,
@@ -18,7 +17,11 @@ import {
   Minus,
   RefreshCw,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Sparkles,
+  Target,
+  Mail,
+  User
 } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import { debounce } from 'lodash';
@@ -27,27 +30,34 @@ import { debounce } from 'lodash';
 const BASE_URL = "http://localhost:5000";
 
 // Custom Axios instance for centralized token management
-const api = axios.create({
-  baseURL: BASE_URL,
-  headers: { "Content-Type": "application/json" },
-});
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
-
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401 || error.response?.status === 403) {
+const api = {
+  get: async (url, config = {}) => {
+    const token = localStorage.getItem("token");
+    const headers = {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...config.headers
+    };
+    
+    const response = await fetch(`${BASE_URL}${url}`, {
+      method: 'GET',
+      headers,
+      ...config
+    });
+    
+    if (response.status === 401 || response.status === 403) {
       localStorage.removeItem("token");
       window.location.href = "/login";
+      throw new Error('Unauthorized');
     }
-    return Promise.reject(error);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return { data: await response.json() };
   }
-);
+};
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -87,12 +97,38 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+// Profile Picture Component
+const ProfilePicture = ({ src, name, size = "w-12 h-12", textSize = "text-lg" }) => {
+  const [imageError, setImageError] = useState(false);
+
+  return (
+    <div className="relative">
+      {src && !imageError ? (
+        <img
+          src={src}
+          alt={`${name}'s profile`}
+          className={`${size} rounded-full object-cover shadow-md`}
+          onError={(e) => {
+            console.error(`Profile picture load error for ${name}:`, src);
+            setImageError(true);
+          }}
+          onLoad={() => console.log(`Profile picture loaded for ${name}:`, src)}
+        />
+      ) : (
+        <div className={`${size} bg-gradient-to-br from-[#456882] to-[#5a7a98] rounded-full flex items-center justify-center text-white ${textSize} font-semibold shadow-md`}>
+          {name?.charAt(0).toUpperCase() || "?"}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Stats Card Component
 const StatsCard = ({ title, value, icon: Icon, color = "text-[#456882]", bgColor = "bg-white" }) => (
   <motion.div
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
-    className={`${bgColor} rounded-xl shadow-sm p-4 border border-gray-100 transition-all duration-300 hover:shadow-md`}
+    className={`${bgColor} rounded-xl shadow-sm p-4 border border-gray-100 transition-all duration-300 hover:shadow-md hover:scale-105`}
   >
     <div className="flex items-center justify-between">
       <div>
@@ -108,8 +144,8 @@ const StatsCard = ({ title, value, icon: Icon, color = "text-[#456882]", bgColor
 const RankChangeIndicator = ({ current, previous }) => {
   if (!previous || current === previous) {
     return (
-      <div className="flex items-center text-gray-500">
-        <Minus className="w-4 h-4" />
+      <div className="flex items-center text-gray-500 bg-gray-100 rounded-full px-2 py-1">
+        <Minus className="w-3 h-3" />
         <span className="text-xs ml-1">No Change</span>
       </div>
     );
@@ -119,15 +155,17 @@ const RankChangeIndicator = ({ current, previous }) => {
   const change = Math.abs(current - previous);
   
   return (
-    <div className={`flex items-center ${isUp ? 'text-green-500' : 'text-red-500'}`}>
-      {isUp ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+    <div className={`flex items-center rounded-full px-2 py-1 ${
+      isUp ? 'text-green-500 bg-green-50' : 'text-red-500 bg-red-50'
+    }`}>
+      {isUp ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
       <span className="text-xs ml-1">{change}</span>
     </div>
   );
 };
 
 // Student Rank Card Component
-const StudentRankCard = ({ student, index, onViewDetails }) => {
+const StudentRankCard = ({ student, index, onViewDetails, isTopThree = false }) => {
   const getRankIcon = (rank) => {
     switch (rank) {
       case 1: return <Crown className="w-6 h-6 text-yellow-500" />;
@@ -152,12 +190,12 @@ const StudentRankCard = ({ student, index, onViewDetails }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
       className={`
-        flex items-center justify-between p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer group hover:shadow-lg
-        ${getRankBg(student.rank)}
+        flex items-center justify-between p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer group
+        ${getRankBg(student.rank)} ${isTopThree ? 'p-6 shadow-lg scale-105 border-[#456882]/30' : 'hover:shadow-lg hover:scale-[1.02]'}
       `}
       onClick={() => onViewDetails(student)}
     >
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 flex-1 min-w-0">
         <div className="flex items-center gap-2">
           {getRankIcon(student.rank)}
           <div className="text-center">
@@ -167,21 +205,24 @@ const StudentRankCard = ({ student, index, onViewDetails }) => {
         </div>
         
         <div className="relative">
-          <div className="w-12 h-12 bg-gradient-to-br from-[#456882] to-[#5a7a98] rounded-xl flex items-center justify-center text-white text-lg font-semibold shadow-md">
-            {student.name?.charAt(0).toUpperCase() || "?"}
-          </div>
+          <ProfilePicture 
+            src={student.profilePicture} 
+            name={student.name}
+            size={isTopThree ? "w-16 h-16" : "w-12 h-12"}
+            textSize={isTopThree ? "text-2xl" : "text-lg"}
+          />
           {student.rank <= 3 && (
-            <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-yellow-500 flex items-center justify-center">
+            <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-yellow-500 flex items-center justify-center shadow-sm">
               <Star className="w-3 h-3 text-white" />
             </div>
           )}
         </div>
         
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-semibold text-gray-900 truncate">
             {student.name || "Unknown"}
           </h3>
-          <p className="text-xs text-gray-500 flex items-center gap-1">
+          <p className="text-xs text-gray-500 flex items-center gap-1 truncate">
             <Users className="w-3 h-3" />
             Clubs: {student.clubNames || "None"}
           </p>
@@ -194,11 +235,9 @@ const StudentRankCard = ({ student, index, onViewDetails }) => {
           <span className="text-lg font-bold text-[#456882]">{student.totalPoints || 0}</span>
           <span className="text-xs text-gray-500">pts</span>
         </div>
-        <div className="space-y-1">
-          <div className="flex items-center gap-1 text-xs text-gray-600">
-            <Trophy className="w-3 h-3" />
-            <span>{student.level || "Bronze"} Level</span>
-          </div>
+        <div className="flex items-center gap-1 text-xs text-gray-600">
+          <Trophy className="w-3 h-3" />
+          <span>{student.level || "Bronze"} Level</span>
         </div>
       </div>
     </motion.div>
@@ -214,19 +253,22 @@ const StudentDetailsModal = ({ isOpen, onClose, student }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
     >
       <motion.div
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 20 }}
-        className="bg-white rounded-xl p-6 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto"
+        className="bg-white rounded-xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-xl"
       >
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-16 h-16 bg-gradient-to-br from-[#456882] to-[#5a7a98] rounded-xl flex items-center justify-center text-white text-2xl font-semibold">
-              {student.name?.charAt(0).toUpperCase() || "?"}
-            </div>
+            <ProfilePicture 
+              src={student.profilePicture} 
+              name={student.name}
+              size="w-16 h-16"
+              textSize="text-2xl"
+            />
             <div>
               <h2 className="text-xl font-semibold text-gray-900">{student.name}</h2>
               <p className="text-sm text-gray-600">Rank #{student.rank}</p>
@@ -311,9 +353,9 @@ const RankingSystem = () => {
   const fetchWithRetry = async (url, options, retries = 3, delay = 1000) => {
     for (let i = 0; i < retries; i++) {
       try {
-        return await api(url, options);
+        return await api.get(url, options);
       } catch (err) {
-        if (i === retries - 1 || err.response?.status === 401 || err.response?.status === 403) {
+        if (i === retries - 1 || err.message === 'Unauthorized') {
           throw err;
         }
         await new Promise((resolve) => setTimeout(resolve, delay * Math.pow(2, i)));
@@ -368,8 +410,8 @@ const RankingSystem = () => {
         email: user.email || 'N/A',
         totalPoints: user.totalPoints || 0,
         clubNames: Array.isArray(user.clubName) ? user.clubName.join(', ') : user.clubName || 'None',
+        profilePicture: user.profilePicture || null,
         rank: index + 1,
-        avatar: user.avatar || 'https://via.placeholder.com/60/60',
         level: user.totalPoints >= 900 ? 'Platinum' :
                user.totalPoints >= 800 ? 'Gold' :
                user.totalPoints >= 700 ? 'Silver' : 'Bronze',
@@ -421,7 +463,8 @@ const RankingSystem = () => {
       "Email",
       "Club Names",
       "Total Points",
-      "Level"
+      "Level",
+      "Profile Picture"
     ];
 
     const rows = filteredRankings.map((student) => [
@@ -431,7 +474,8 @@ const RankingSystem = () => {
       `"${student.email || "N/A"}"`,
       `"${student.clubNames || "None"}"`,
       student.totalPoints || 0,
-      student.level || "Bronze"
+      student.level || "Bronze",
+      `"${student.profilePicture || "N/A"}"`
     ]);
 
     const csvContent = [headers, ...rows].map((row) => row.join(",")).join("\n");
@@ -490,7 +534,9 @@ const RankingSystem = () => {
               Member Rankings
             </h1>
             <div className="flex gap-2">
-              <button
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => fetchPointsTable()}
                 className="px-4 py-2 bg-[#456882] text-white rounded-full hover:bg-[#5a7a98] transition-colors flex items-center gap-2"
                 disabled={isLoading.rankings}
@@ -498,8 +544,10 @@ const RankingSystem = () => {
               >
                 <RefreshCw className={`w-5 h-5 ${isLoading.rankings ? 'animate-spin' : ''}`} />
                 Refresh
-              </button>
-              <button
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={handleExportCSV}
                 className="px-4 py-2 bg-[#456882] text-white rounded-full hover:bg-[#5a7a98] transition-colors flex items-center gap-2"
                 disabled={isLoading.rankings || filteredRankings.length === 0}
@@ -507,7 +555,7 @@ const RankingSystem = () => {
               >
                 <Download className="w-5 h-5" />
                 Export CSV
-              </button>
+              </motion.button>
             </div>
           </motion.div>
 
@@ -618,63 +666,55 @@ const RankingSystem = () => {
                 <StatsCard 
                   title="Average Points" 
                   value={`${stats.avgPoints}`} 
-                  icon={Award}
+                  icon={Target}
                   color="text-green-500"
                   bgColor="bg-green-50"
                 />
                 <StatsCard 
                   title="Platinum Members" 
                   value={stats.platinumMembers} 
-                  icon={Trophy}
-                  color="text-yellow-500"
-                  bgColor="bg-yellow-50"
+                  icon={Crown}
+                  color="text-purple-500"
+                  bgColor="bg-purple-50"
                 />
                 <StatsCard 
                   title="Gold Members" 
                   value={stats.goldMembers} 
                   icon={Medal}
-                  color="text-amber-500"
-                  bgColor="bg-amber-50"
+                  color="text-yellow-500"
+                  bgColor="bg-yellow-50"
                 />
               </motion.div>
-
-              {/* Top 3 Quick View */}
-              {rankings.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
-                >
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <Crown className="w-5 h-5 text-yellow-500" />
-                    Top 3 Members
-                  </h3>
-                  <div className="space-y-3">
-                    {rankings.slice(0, 3).map((student, index) => (
-                      <div key={student.id} className="flex items-center gap-3">
-                        <div className="flex items-center gap-2">
-                          {index === 0 && <Crown className="w-4 h-4 text-yellow-500" />}
-                          {index === 1 && <Medal className="w-4 h-4 text-gray-400" />}
-                          {index === 2 && <Award className="w-4 h-4 text-amber-600" />}
-                          <span className="font-semibold text-sm">#{student.rank}</span>
-                        </div>
-                        <div className="w-8 h-8 bg-gradient-to-br from-[#456882] to-[#5a7a98] rounded-lg flex items-center justify-center text-white text-sm font-semibold">
-                          {student.name?.charAt(0).toUpperCase() || "?"}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{student.name}</p>
-                          <p className="text-xs text-gray-500">{student.totalPoints} pts</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
             </div>
 
             {/* Main Content */}
             <div className="lg:col-span-3">
+              {/* Top 3 Showcase */}
+              {filteredRankings.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-8"
+                >
+                  <h2 className="text-2xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Crown className="w-6 h-6 text-yellow-500" />
+                    Top 3 Members
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {filteredRankings.slice(0, 3).map((student, index) => (
+                      <StudentRankCard
+                        key={student.id}
+                        student={student}
+                        index={index}
+                        onViewDetails={setSelectedStudent}
+                        isTopThree={true}
+                      />
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* All Rankings */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -716,7 +756,7 @@ const RankingSystem = () => {
                   </div>
                 ) : (
                   <div className="space-y-4 h-[calc(100vh-220px)] overflow-y-auto scrollbar-thin scrollbar-thumb-[#456882] scrollbar-track-gray-200">
-                    {filteredRankings.map((student, index) => (
+                    {filteredRankings.slice(3).map((student, index) => (
                       <StudentRankCard
                         key={student.id}
                         student={student}
