@@ -183,6 +183,61 @@ const CoordinatorCard = ({ coordinator, index }) => {
   );
 };
 
+// Modal Component for Confirmation
+const LeaveClubModal = ({ isOpen, onClose, onConfirm, clubName, loading }) => {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border border-gray-200"
+          >
+            <h2 className="text-2xl font-bold text-[#456882] mb-4">
+              Leave {clubName}?
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to leave this club? You can rejoin later if needed.
+            </p>
+            <div className="flex justify-end gap-4">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onClose}
+                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium shadow-lg hover:bg-gray-300 transition-all"
+              >
+                Cancel
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onConfirm}
+                disabled={loading}
+                className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-700 text-white rounded-xl font-medium shadow-lg hover:from-red-600 hover:to-red-800 transition-all disabled:opacity-50"
+              >
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block mr-2" />
+                ) : (
+                  <FaSignOutAlt className="w-5 h-5 inline-block mr-2" />
+                )}
+                Confirm
+              </motion.button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 const ClubDetailPage = () => {
   const { clubId } = useParams();
   const navigate = useNavigate();
@@ -200,6 +255,7 @@ const ClubDetailPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("about");
   const [leaveLoading, setLeaveLoading] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [contactMessage, setContactMessage] = useState("");
   const [contactSending, setContactSending] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -341,7 +397,7 @@ const ClubDetailPage = () => {
               (admin) => admin._id.toString() === b._id.toString()
             )) ||
           (Array.isArray(b.headCoordinatorClubs) &&
-            a.headCoordinatorClubs.includes(club?.name));
+            b.headCoordinatorClubs.includes(club?.name));
         if (isAPrivileged && !isBPrivileged) return -1;
         if (!isAPrivileged && isBPrivileged) return 1;
         return a.name.localeCompare(b.name);
@@ -351,9 +407,6 @@ const ClubDetailPage = () => {
   }, [searchQuery, members, club]);
 
   const handleLeaveClub = async () => {
-    if (!window.confirm("Are you sure you want to leave this club?")) {
-      return;
-    }
     setLeaveLoading(true);
     try {
       const token = localStorage.getItem("token");
@@ -365,9 +418,12 @@ const ClubDetailPage = () => {
         }
       );
       toast.success("You have successfully left the club");
+      setShowLeaveModal(false);
       await fetchClubData();
+      navigate("/clubs");
     } catch (err) {
       toast.error(err.response?.data?.error || "Failed to leave the club");
+      setShowLeaveModal(false);
     }
     setLeaveLoading(false);
   };
@@ -734,7 +790,7 @@ const ClubDetailPage = () => {
                 boxShadow: "0 10px 25px rgba(220, 38, 38, 0.2)",
               }}
               whileTap={{ scale: 0.98 }}
-              onClick={handleLeaveClub}
+              onClick={() => setShowLeaveModal(true)}
               disabled={leaveLoading}
               className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-red-500 to-red-700 text-white rounded-xl hover:from-red-600 hover:to-red-800 transition-all shadow-lg disabled:opacity-50"
             >
@@ -749,6 +805,14 @@ const ClubDetailPage = () => {
             </motion.button>
           )}
         </motion.div>
+        {/* Leave Club Confirmation Modal */}
+        <LeaveClubModal
+          isOpen={showLeaveModal}
+          onClose={() => setShowLeaveModal(false)}
+          onConfirm={handleLeaveClub}
+          clubName={club?.name || "this club"}
+          loading={leaveLoading}
+        />
         {/* Enhanced Tab Navigation */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
