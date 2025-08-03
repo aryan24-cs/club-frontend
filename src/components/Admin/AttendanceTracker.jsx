@@ -115,7 +115,6 @@ const StatsCard = memo(
 );
 
 // Member Card Component
-// Member Card Component
 const MemberCard = memo(({ member, attendance, onToggleAttendance, index }) => {
   const isPresent = attendance[member._id] === "present";
   const isAbsent = attendance[member._id] === "absent";
@@ -679,6 +678,7 @@ const PracticeAttendanceModal = ({
 };
 
 // Present Students Modal
+// Present Students Modal
 const PresentStudentsModal = ({ isOpen, onClose, recordId, type }) => {
   const [students, setStudents] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -689,19 +689,41 @@ const PresentStudentsModal = ({ isOpen, onClose, recordId, type }) => {
     if (!recordId) {
       setError("Invalid record ID.");
       setIsLoading(false);
+      console.error("fetchPresentStudents: Invalid recordId provided", { recordId, type });
       return;
     }
     setIsLoading(true);
     setError("");
     try {
       console.log(`Fetching present students for recordId: ${recordId}, type: ${type}`);
-      const endpoint = `/api/attendance/${recordId}/present`;
+      const endpoint = type === "practice" 
+        ? `/api/practice-attendance/${recordId}/present`
+        : `/api/attendance/${recordId}/present`;
       const response = await api.get(endpoint);
+      console.log("fetchPresentStudents Response:", response.data);
+      if (!response.data.presentStudents) {
+        throw new Error("No present students data returned from the server.");
+      }
       setStudents(response.data.presentStudents || []);
-      setTimestamp(response.data.timestamp ? new Date(response.data.timestamp).toLocaleString() : "N/A");
+      setTimestamp(response.data.date ? new Date(response.data.date).toLocaleString() : "N/A");
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to load present students. Record may not exist.");
-      console.error("PresentStudentsModal Error:", err);
+      let errorMessage;
+      if (err.response?.status === 404) {
+        errorMessage = `Record not found for ID ${recordId}. It may have been deleted or does not exist.`;
+      } else if (err.response?.status === 500) {
+        errorMessage = `Server error while fetching present students for ${type} record. Please contact support or try again later.`;
+      } else {
+        errorMessage = err.response?.data?.error || "Failed to load present students. Please try again later.";
+      }
+      setError(errorMessage);
+      console.error("PresentStudentsModal Error:", {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+        endpoint: type === "practice" 
+          ? `/api/practice-attendance/${recordId}/present`
+          : `/api/attendance/${recordId}/present`,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -751,7 +773,7 @@ const PresentStudentsModal = ({ isOpen, onClose, recordId, type }) => {
         {isLoading ? (
           <div className="text-center text-gray-600">Loading...</div>
         ) : students.length === 0 ? (
-          <div className="text-center text-gray-600">No students marked present.</div>
+          <div className="text-center text-gray-600">No students marked present for this record.</div>
         ) : (
           <div className="space-y-3">
             {students.map((student, index) => (
@@ -784,7 +806,6 @@ const PresentStudentsModal = ({ isOpen, onClose, recordId, type }) => {
     </motion.div>
   );
 };
-
 // Main Attendance Tracker Component
 const AttendanceTracker = () => {
   const [user, setUser] = useState(null);
@@ -1355,69 +1376,69 @@ const AttendanceTracker = () => {
   };
 
   const generateDocxReport = async (record, type) => {
-  if (!record._id) {
-    setError("Cannot generate report: Invalid attendance record ID.");
-    console.error("generateDocxReport Error: Invalid record ID", record);
-    return;
-  }
-  try {
-    console.log(`Generating ${type} report for record ID: ${record._id}`);
-    const endpoint = type === "event" ? `/api/attendance/${record._id}/report` : `/api/practice-attendance/${record._id}/report`;
-    const response = await fetchWithRetry(endpoint, {
-      method: "GET",
-      responseType: "arraybuffer",
-      headers: {
-        Accept: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      },
-    });
-
-    // Log response details for debugging
-    console.log("generateDocxReport Response:", {
-      status: response.status,
-      headers: response.headers,
-      dataLength: response.data?.byteLength || "unknown",
-    });
-
-    // Verify response data
-    if (!response.data || response.data.byteLength === 0) {
-      throw new Error("Empty or invalid response data received from server.");
+    if (!record._id) {
+      setError("Cannot generate report: Invalid attendance record ID.");
+      console.error("generateDocxReport Error: Invalid record ID", record);
+      return;
     }
+    try {
+      console.log(`Generating ${type} report for record ID: ${record._id}`);
+      const endpoint = type === "event" ? `/api/attendance/${record._id}/report` : `/api/practice-attendance/${record._id}/report`;
+      const response = await fetchWithRetry(endpoint, {
+        method: "GET",
+        responseType: "arraybuffer",
+        headers: {
+          Accept: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        },
+      });
 
-    // Create Blob with fallback content type
-    const contentType =
-      response.headers["content-type"] ||
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-    const blob = new Blob([response.data], { type: contentType });
+      // Log response details for debugging
+      console.log("generateDocxReport Response:", {
+        status: response.status,
+        headers: response.headers,
+        dataLength: response.data?.byteLength || "unknown",
+      });
 
-    // Generate safe filename
-    const safeTitle = (record.title || "Untitled").replace(/[^a-zA-Z0-9]/g, "_");
-    const filename = `${type === "event" ? "Event" : "Practice"}_Attendance_${safeTitle}_${record.date || "Unknown"}.docx`;
-
-    // Trigger download
-    saveAs(blob, filename);
-    setSuccess("Report downloaded successfully!");
-  } catch (err) {
-    // Parse error response if available (e.g., JSON error from server)
-    let errorMsg = errorMessages[err.response?.data?.error] || `Failed to generate report: ${err.message}`;
-    if (err.response?.data instanceof ArrayBuffer) {
-      try {
-        const textDecoder = new TextDecoder("utf-8");
-        const errorText = textDecoder.decode(err.response.data);
-        const errorJson = JSON.parse(errorText);
-        errorMsg = errorMessages[errorJson.error] || `Failed to generate report: ${errorJson.error || err.message}`;
-      } catch (decodeErr) {
-        console.error("Failed to decode error response:", decodeErr);
+      // Verify response data
+      if (!response.data || response.data.byteLength === 0) {
+        throw new Error("Empty or invalid response data received from server.");
       }
+
+      // Create Blob with fallback content type
+      const contentType =
+        response.headers["content-type"] ||
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+      const blob = new Blob([response.data], { type: contentType });
+
+      // Generate safe filename
+      const safeTitle = (record.title || "Untitled").replace(/[^a-zA-Z0-9]/g, "_");
+      const filename = `${type === "event" ? "Event" : "Practice"}_Attendance_${safeTitle}_${record.date || "Unknown"}.docx`;
+
+      // Trigger download
+      saveAs(blob, filename);
+      setSuccess("Report downloaded successfully!");
+    } catch (err) {
+      // Parse error response if available (e.g., JSON error from server)
+      let errorMsg = errorMessages[err.response?.data?.error] || `Failed to generate report: ${err.message}`;
+      if (err.response?.data instanceof ArrayBuffer) {
+        try {
+          const textDecoder = new TextDecoder("utf-8");
+          const errorText = textDecoder.decode(err.response.data);
+          const errorJson = JSON.parse(errorText);
+          errorMsg = errorMessages[errorJson.error] || `Failed to generate report: ${errorJson.error || err.message}`;
+        } catch (decodeErr) {
+          console.error("Failed to decode error response:", decodeErr);
+        }
+      }
+      setError(errorMsg);
+      console.error("generateDocxReport Error:", {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        headers: err.response?.headers,
+      });
     }
-    setError(errorMsg);
-    console.error("generateDocxReport Error:", {
-      message: err.message,
-      response: err.response?.data,
-      status: err.response?.status,
-      headers: err.response?.headers,
-    });
-  }
-};
+  };
 
   const handleViewPresentStudents = async (recordId, type) => {
     if (!recordId) {
@@ -1812,31 +1833,30 @@ const AttendanceTracker = () => {
                               </span>
                               {record.roomNo && (
                                 <>
-                                  • <span className="ml-1">Room: {record.roomNo}</span>
+                                 • Room: {record.roomNo}
                                 </>
                               )}
                             </p>
                             <p className="text-xs text-gray-600">
-                              Present: {record.totalPresent} • Absent: {record.totalAbsent} • Rate:{" "}
-                              {record.attendanceRate}%
+                              Present: {record.totalPresent} • Absent: {record.totalAbsent} • Rate: {record.attendanceRate}%
                             </p>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex gap-2">
                             <button
                               onClick={() => handleViewPresentStudents(record._id, record.type)}
                               className="p-2 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors"
-                              title="View Present Students"
+                              title="View present students"
                               aria-label={`View present students for ${record.title}`}
                             >
-                              <Eye className="w-4 h-4" />
+                              <Eye className="w-5 h-5" />
                             </button>
                             <button
                               onClick={() => generateDocxReport(record, record.type)}
                               className="p-2 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors"
-                              title="Download Report"
+                              title="Download report"
                               aria-label={`Download report for ${record.title}`}
                             >
-                              <Download className="w-4 h-4" />
+                              <Download className="w-5 h-5" />
                             </button>
                           </div>
                         </motion.div>
@@ -1847,35 +1867,35 @@ const AttendanceTracker = () => {
             </div>
           </div>
         </div>
-
-        <AddStudentModal
-          isOpen={isAddStudentModalOpen}
-          onClose={() => setIsAddStudentModalOpen(false)}
-          onSubmit={handleAddStudent}
-          isLoading={isLoading.members}
-          error={error}
-        />
-
-        <PracticeAttendanceModal
-          isOpen={isPracticeModalOpen}
-          onClose={() => setIsPracticeModalOpen(false)}
-          onSubmit={handleSavePracticeAttendance}
-          onAddStudent={handleAddStudent}
-          isLoading={isLoading.practice}
-          error={error}
-          members={members}
-          selectedClub={selectedClub}
-          attendance={attendance}
-          setAttendance={setAttendance}
-        />
-
-        <PresentStudentsModal
-          isOpen={isPresentStudentsModalOpen}
-          onClose={() => setIsPresentStudentsModalOpen(false)}
-          recordId={selectedRecord.id}
-          type={selectedRecord.type}
-        />
       </div>
+
+      <AddStudentModal
+        isOpen={isAddStudentModalOpen}
+        onClose={() => setIsAddStudentModalOpen(false)}
+        onSubmit={handleAddStudent}
+        isLoading={isLoading.members}
+        error={error}
+      />
+
+      <PracticeAttendanceModal
+        isOpen={isPracticeModalOpen}
+        onClose={() => setIsPracticeModalOpen(false)}
+        onSubmit={handleSavePracticeAttendance}
+        onAddStudent={handleAddStudent}
+        isLoading={isLoading.practice}
+        error={error}
+        members={members}
+        selectedClub={selectedClub}
+        attendance={attendance}
+        setAttendance={setAttendance}
+      />
+
+      <PresentStudentsModal
+        isOpen={isPresentStudentsModalOpen}
+        onClose={() => setIsPresentStudentsModalOpen(false)}
+        recordId={selectedRecord.id}
+        type={selectedRecord.type}
+      />
     </ErrorBoundary>
   );
 };
