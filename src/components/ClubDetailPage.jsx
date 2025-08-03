@@ -1528,6 +1528,60 @@ const ClubDetailPage = () => {
                 Contact {club.name}
               </h2>
 
+              {headCoordinators.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold text-gray-700 mb-4">
+                    Reach out to our Head Coordinators
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {headCoordinators.map((coordinator, index) => (
+                      <motion.div
+                        key={coordinator._id || `coordinator-${index}`}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                        className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl"
+                      >
+                        <FaCrown className="w-5 h-5 text-yellow-600" />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-gray-800">
+                              {coordinator.name || "Unknown Coordinator"}
+                            </span>
+                            <span className="text-xs font-bold text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">
+                              Head Coordinator
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
+                            {coordinator.phone ? (
+                              <>
+                                <FaPhone className="w-4 h-4 text-[#456882]" />
+                                <a
+                                  href={`tel:${coordinator.phone}`}
+                                  className="hover:underline"
+                                >
+                                  {coordinator.phone}
+                                </a>
+                              </>
+                            ) : (
+                              <>
+                                <FaEnvelope className="w-4 h-4 text-[#456882]" />
+                                <a
+                                  href={`mailto:${coordinator.email}`}
+                                  className="hover:underline truncate"
+                                >
+                                  {coordinator.email || "No email"}
+                                </a>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <form onSubmit={handleContactSubmit} className="space-y-6">
                 <div>
                   <label
@@ -1566,31 +1620,6 @@ const ClubDetailPage = () => {
                   </span>
                 </motion.button>
               </form>
-
-              {headCoordinators.length > 0 && (
-                <div className="mt-8 pt-8 border-t border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-700 mb-4">
-                    Or reach out directly to our coordinators:
-                  </h3>
-                  <div className="flex flex-wrap gap-3">
-                    {headCoordinators.map((coordinator, index) => (
-                      <div
-                        key={coordinator._id || `coordinator-${index}`}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl"
-                      >
-                        <FaCrown className="w-4 h-4 text-yellow-600" />
-                        <span className="font-medium text-gray-700">
-                          {coordinator.name || "Unknown Coordinator"}
-                        </span>
-                        <span className="text-gray-500">•</span>
-                        <span className="text-sm text-gray-600">
-                          {coordinator.email || "No email"}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </motion.div>
           )}
         </AnimatePresence>
