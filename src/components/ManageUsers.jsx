@@ -1,6 +1,7 @@
-import React, { useEffect, useState, memo } from "react";
+import React, { useEffect, useState, useMemo, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaUser, FaSpinner } from "react-icons/fa";
+import { Search, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Navbar from "./Navbar";
@@ -38,43 +39,55 @@ class ErrorBoundary extends React.Component {
 const MembershipRequestCard = memo(
   ({ request, handleApprove, handleReject, isLoading }) => (
     <motion.div
-      initial={{ opacity: 0, y: 50 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ type: "spring", stiffness: 100, damping: 15 }}
-      whileHover={{ scale: 1.03, boxShadow: "0 8px 16px rgba(0,0,0,0.1)" }}
-      className="p-6 bg-white rounded-xl shadow-md border border-gray-200"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-xl shadow-sm p-4 border border-gray-100"
     >
-      <div className="flex items-center gap-3 mb-3">
-        <FaUser className="text-[#456882] text-xl" />
-        <h4 className="text-lg font-semibold text-gray-900">
-          {request.userId?.name || "Unknown User"}
-        </h4>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-[#456882] rounded-lg flex items-center justify-center text-white text-sm font-semibold">
+            {request.userId?.name?.charAt(0).toUpperCase() || "U"}
+          </div>
+          <div>
+            <h4 className="text-sm font-semibold text-gray-900">
+              {request.userId?.name || "Unknown User"}
+            </h4>
+            <p className="text-xs text-gray-500">
+              Club: {request.clubId?.name || "Unknown Club"}
+            </p>
+            <p className="text-xs text-gray-500">
+              Email: {request.userId?.email || "N/A"}
+            </p>
+          </div>
+        </div>
+        <span
+          className={`px-2 py-1 rounded-full text-xs ${
+            request.status === "pending"
+              ? "bg-yellow-100 text-yellow-700"
+              : request.status === "approved"
+              ? "bg-green-100 text-green-700"
+              : "bg-red-100 text-red-700"
+          }`}
+        >
+          {request.status || "Pending"}
+        </span>
       </div>
-      <p className="text-gray-600 text-sm mb-2">
-        Email: {request.userId?.email || "N/A"}
-      </p>
-      <p className="text-gray-600 text-sm mb-2">
-        Club: {request.clubId?.name || "Unknown Club"}
-      </p>
-      <p className="text-gray-600 text-sm mb-2">
-        Status: {request.status || "Pending"}
-      </p>
       {request.status === "pending" && (
-        <div className="flex gap-2">
+        <div className="flex gap-2 mt-2">
           <motion.button
             onClick={() => handleApprove(request._id)}
             disabled={isLoading[request._id]}
             whileHover={{ scale: isLoading[request._id] ? 1 : 1.05 }}
             whileTap={{ scale: isLoading[request._id] ? 1 : 0.95 }}
-            className={`px-4 py-1 rounded-full font-semibold transition ${isLoading[request._id]
-                ? "bg-gray-400 text-gray-700 cursor-not-allowed"
-                : "bg-[#456882] text-white hover:bg-[#334d5e]"
-              }`}
+            className={`flex-1 flex items-center justify-center gap-1 px-3 py-1 rounded-lg text-xs text-white font-medium transition ${
+              isLoading[request._id]
+                ? "bg-green-400 cursor-not-allowed"
+                : "bg-green-600 hover:bg-green-700"
+            }`}
             aria-label={`Approve request for ${request.userId?.name || "user"} to join ${request.clubId?.name || "club"}`}
           >
             {isLoading[request._id] ? (
-              <FaSpinner className="animate-spin inline-block mr-2" />
+              <FaSpinner className="animate-spin w-3 h-3" />
             ) : (
               "Approve"
             )}
@@ -84,14 +97,15 @@ const MembershipRequestCard = memo(
             disabled={isLoading[request._id]}
             whileHover={{ scale: isLoading[request._id] ? 1 : 1.05 }}
             whileTap={{ scale: isLoading[request._id] ? 1 : 0.95 }}
-            className={`px-4 py-1 rounded-full font-semibold transition ${isLoading[request._id]
-                ? "bg-gray-400 text-gray-700 cursor-not-allowed"
-                : "bg-red-600 text-white hover:bg-red-700"
-              }`}
+            className={`flex-1 flex items-center justify-center gap-1 px-3 py-1 rounded-lg text-xs text-white font-medium transition ${
+              isLoading[request._id]
+                ? "bg-red-400 cursor-not-allowed"
+                : "bg-red-600 hover:bg-red-700"
+            }`}
             aria-label={`Reject request for ${request.userId?.name || "user"} to join ${request.clubId?.name || "club"}`}
           >
             {isLoading[request._id] ? (
-              <FaSpinner className="animate-spin inline-block mr-2" />
+              <FaSpinner className="animate-spin w-3 h-3" />
             ) : (
               "Reject"
             )}
@@ -105,34 +119,32 @@ const MembershipRequestCard = memo(
 // Memoized RequestHistoryCard Component
 const RequestHistoryCard = memo(({ request }) => (
   <motion.div
-    initial={{ opacity: 0, y: 50 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true }}
-    transition={{ type: "spring", stiffness: 100, damping: 15 }}
-    whileHover={{ scale: 1.03, boxShadow: "0 8px 16px rgba(0,0,0,0.1)" }}
-    className="p-6 bg-white rounded-xl shadow-md border border-gray-200"
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="bg-white rounded-xl shadow-sm p-4 border border-gray-100"
   >
     <div className="flex items-center justify-between">
       <div>
-        <h4 className="text-lg font-semibold text-gray-900">
+        <h4 className="text-sm font-semibold text-gray-900">
           {request.userId?.name || "Unknown User"}
         </h4>
-        <p className="text-gray-600 text-sm mb-2">
+        <p className="text-xs text-gray-500">
           Club: {request.clubId?.name || "Unknown Club"}
         </p>
-        <p className="text-gray-600 text-sm mb-2">
+        <p className="text-xs text-gray-500">
           Date: {new Date(request.updatedAt || request.createdAt).toLocaleString()}
         </p>
       </div>
       <span
-        className={`px-2 py-1 rounded-full text-xs font-semibold ${request.status === "pending"
+        className={`px-2 py-1 rounded-full text-xs ${
+          request.status === "pending"
             ? "bg-yellow-100 text-yellow-700"
             : request.status === "approved"
-              ? "bg-green-100 text-green-700"
-              : "bg-red-100 text-red-700"
-          }`}
+            ? "bg-green-100 text-green-700"
+            : "bg-red-100 text-red-700"
+        }`}
       >
-        {request.status}
+        {request.status || "Unknown"}
       </span>
     </div>
   </motion.div>
@@ -142,22 +154,23 @@ const RequestHistoryCard = memo(({ request }) => (
 const UserCard = memo(
   ({ user, handleUpdateRole, handleDeleteUser, isLoading }) => (
     <motion.div
-      initial={{ opacity: 0, y: 50 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ type: "spring", stiffness: 100, damping: 15 }}
-      whileHover={{ scale: 1.03, boxShadow: "0 8px 16px rgba(0,0,0,0.1)" }}
-      className="p-6 bg-white rounded-xl shadow-md border border-gray-200"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-xl shadow-sm p-4 border border-gray-100"
     >
-      <div className="flex items-center gap-3 mb-3">
-        <FaUser className="text-[#456882] text-xl" />
-        <h4 className="text-lg font-semibold text-gray-900">
-          {user.name || "Unknown User"}
-        </h4>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <FaUser className="text-[#456882] w-5 h-5" />
+          <div>
+            <h4 className="text-sm font-semibold text-gray-900">
+              {user.name || "Unknown User"}
+            </h4>
+            <p className="text-xs text-gray-500">Email: {user.email || "N/A"}</p>
+            <p className="text-xs text-gray-500">Role: {user.role || "User"}</p>
+          </div>
+        </div>
       </div>
-      <p className="text-gray-600 text-sm mb-2">Email: {user.email || "N/A"}</p>
-      <p className="text-gray-600 text-sm mb-2">Role: {user.role || "User"}</p>
-      <div className="flex gap-2">
+      <div className="flex gap-2 mt-2">
         <motion.button
           onClick={() =>
             handleUpdateRole(user._id, user.role === "user" ? "admin" : "user")
@@ -169,14 +182,15 @@ const UserCard = memo(
           whileTap={{
             scale: isLoading[user._id] || user.role === "superAdmin" ? 1 : 0.95,
           }}
-          className={`px-4 py-1 rounded-full font-semibold transition ${isLoading[user._id] || user.role === "superAdmin"
-              ? "bg-gray-400 text-gray-700 cursor-not-allowed"
-              : "bg-[#456882] text-white hover:bg-[#334d5e]"
-            }`}
+          className={`flex-1 flex items-center justify-center gap-1 px-3 py-1 rounded-lg text-xs text-white font-medium transition ${
+            isLoading[user._id] || user.role === "superAdmin"
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-[#456882] hover:bg-[#334d5e]"
+          }`}
           aria-label={`Change role for ${user.name || "user"}`}
         >
           {isLoading[user._id] ? (
-            <FaSpinner className="animate-spin inline-block mr-2" />
+            <FaSpinner className="animate-spin w-3 h-3" />
           ) : (
             "Change Role"
           )}
@@ -190,14 +204,15 @@ const UserCard = memo(
           whileTap={{
             scale: isLoading[user._id] || user.role === "superAdmin" ? 1 : 0.95,
           }}
-          className={`px-4 py-1 rounded-full font-semibold transition ${isLoading[user._id] || user.role === "superAdmin"
-              ? "bg-gray-400 text-gray-700 cursor-not-allowed"
-              : "bg-red-600 text-white hover:bg-red-700"
-            }`}
+          className={`flex-1 flex items-center justify-center gap-1 px-3 py-1 rounded-lg text-xs text-white font-medium transition ${
+            isLoading[user._id] || user.role === "superAdmin"
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-red-600 hover:bg-red-700"
+          }`}
           aria-label={`Delete ${user.name || "user"}`}
         >
           {isLoading[user._id] ? (
-            <FaSpinner className="animate-spin inline-block mr-2" />
+            <FaSpinner className="animate-spin w-3 h-3" />
           ) : (
             "Delete"
           )}
@@ -212,10 +227,12 @@ const ManageUsers = () => {
   const [membershipRequests, setMembershipRequests] = useState([]);
   const [allMembershipRequests, setAllMembershipRequests] = useState([]);
   const [users, setUsers] = useState([]);
+  const [clubs, setClubs] = useState([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState({});
+  const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -232,6 +249,7 @@ const ManageUsers = () => {
         const config = { headers: { Authorization: `Bearer ${token}` } };
         console.log("Fetching data with token:", token.slice(0, 10) + "...");
 
+        // Fetch user, clubs, and requests in parallel
         const [
           userResponse,
           clubsResponse,
@@ -246,7 +264,7 @@ const ManageUsers = () => {
             console.error("Error fetching clubs:", err.response?.data || err.message);
             return { data: [] };
           }),
-          axios.get("http://localhost:5000/api/membership-requests", config).catch((err) => {
+          axios.get("http://localhost:5000/api/membership-requests?all=true", config).catch((err) => {
             console.error("Error fetching membership requests:", err.response?.data || err.message);
             return { data: [] };
           }),
@@ -256,14 +274,8 @@ const ManageUsers = () => {
           }),
         ]);
 
-        console.log("Raw User Response:", userResponse.data);
-        console.log("Raw Clubs Response:", clubsResponse.data);
-        console.log("Raw Requests Response:", requestsResponse.data);
-        console.log("Raw All Requests Response:", allRequestsResponse.data);
-
         const userData = userResponse.data;
         setUser(userData);
-
         console.log("User Data:", {
           _id: userData._id,
           name: userData.name,
@@ -272,15 +284,18 @@ const ManageUsers = () => {
           headCoordinatorClubs: userData.headCoordinatorClubs || [],
         });
 
+        // Filter clubs user can manage
         const managedClubs = clubsResponse.data.filter(
           (club) =>
-            (club.creator?._id && club.creator._id.toString() === userData._id?.toString()) ||
+            (club.creator?._id?.toString() === userData._id?.toString()) ||
             (club.superAdmins?.some(
-              (admin) => admin?._id && admin._id.toString() === userData._id?.toString()
+              (admin) => admin?._id?.toString() === userData._id?.toString()
             )) ||
-            (userData.headCoordinatorClubs?.includes(club.name))
+            (userData.headCoordinatorClubs?.some((clubName) =>
+              clubName.toLowerCase() === club.name?.toLowerCase()
+            ))
         );
-
+        setClubs(managedClubs);
         console.log("Managed Clubs:", managedClubs.map(c => ({
           _id: c._id,
           name: c.name,
@@ -288,27 +303,28 @@ const ManageUsers = () => {
           superAdmins: c.superAdmins?.map(a => a._id),
         })));
 
+        // Determine user roles
         const isGlobalAdmin = userData.isAdmin === true;
         const isSuperAdmin = managedClubs.some(
           (club) =>
-            (club.creator?._id && club.creator._id.toString() === userData._id?.toString()) ||
+            (club.creator?._id?.toString() === userData._id?.toString()) ||
             (club.superAdmins?.some(
-              (admin) => admin?._id && admin._id.toString() === userData._id?.toString()
+              (admin) => admin?._id?.toString() === userData._id?.toString()
             ))
         );
         const isAdmin = userData.headCoordinatorClubs?.length > 0;
-
         console.log("Roles:", { isGlobalAdmin, isSuperAdmin, isAdmin });
 
+        // Filter membership requests
         let filteredRequests = requestsResponse.data.filter(
-          (request) => request.clubId?._id && request.userId?._id
+          (request) => request.clubId?._id && request.userId?._id && request.status === "pending"
         );
         let filteredAllRequests = allRequestsResponse.data.filter(
           (request) => request.clubId?._id && request.userId?._id
         );
 
-        if (!isGlobalAdmin && (isSuperAdmin || isAdmin)) {
-          const managedClubIds = managedClubs.map((club) => club._id.toString());
+        if (!isGlobalAdmin) {
+          const managedClubIds = managedClubs.map((club) => club._id?.toString());
           console.log("Managed Club IDs:", managedClubIds);
           filteredRequests = filteredRequests.filter(
             (request) =>
@@ -318,10 +334,6 @@ const ManageUsers = () => {
             (request) =>
               request.clubId?._id && managedClubIds.includes(request.clubId._id.toString())
           );
-        } else if (!isGlobalAdmin && !isSuperAdmin && !isAdmin) {
-          console.log("No permissions: Setting requests to empty arrays");
-          filteredRequests = [];
-          filteredAllRequests = [];
         }
 
         console.log("Filtered Pending Requests:", filteredRequests.map(r => ({
@@ -346,76 +358,82 @@ const ManageUsers = () => {
           )
         );
 
-        const managedClubIds = managedClubs.map((club) => club._id.toString());
-        console.log("Fetching members for clubs:", managedClubIds);
-        const clubMembersPromises = managedClubIds.map((clubId) =>
-          axios.get(`http://localhost:5000/api/clubs/${clubId}/members`, config).catch((err) => {
-            console.error(`Error fetching members for club ${clubId}:`, err.response?.data || err.message);
+        // Fetch users
+        let allUsers = [];
+        if (isGlobalAdmin) {
+          const usersResponse = await axios.get("http://localhost:5000/api/users", config).catch((err) => {
+            console.error("Error fetching users:", err.response?.data || err.message);
             return { data: [] };
-          })
-        );
-
-        const clubMembersResponses = await Promise.all(clubMembersPromises);
-
-        const allUsers = new Map();
-        managedClubs.forEach((club, index) => {
-          const membersResponse = clubMembersResponses[index];
-          console.log(`Members for club ${club._id} (${club.name}):`, membersResponse.data);
-          membersResponse.data.forEach((member) => {
-            if (member._id && member.name && member.email) {
-              allUsers.set(member._id.toString(), {
-                _id: member._id,
-                name: member.name,
-                email: member.email,
-                role: member.role || "user",
-              });
-            } else {
-              console.warn(`Invalid member data for club ${club._id}:`, member);
-            }
           });
+          allUsers = usersResponse.data.filter(
+            (u) => u._id && u.name && u.email
+          ).map((u) => ({
+            _id: u._id,
+            name: u.name,
+            email: u.email,
+            role: u.role || "user",
+          }));
+        } else {
+          const managedClubIds = managedClubs.map((club) => club._id.toString());
+          console.log("Fetching members for clubs:", managedClubIds);
+          const clubMembersPromises = managedClubIds.map((clubId) =>
+            axios.get(`http://localhost:5000/api/clubs/${clubId}/members`, config).catch((err) => {
+              console.error(`Error fetching members for club ${clubId}:`, err.response?.data || err.message);
+              return { data: [] };
+            })
+          );
 
-          if (club.superAdmins?.length > 0) {
-            club.superAdmins.forEach((admin) => {
-              if (admin._id && admin.name && admin.email) {
-                allUsers.set(admin._id.toString(), {
-                  _id: admin._id,
-                  name: admin.name,
-                  email: admin.email,
-                  role: "superAdmin",
+          const clubMembersResponses = await Promise.all(clubMembersPromises);
+          const usersMap = new Map();
+          managedClubs.forEach((club, index) => {
+            const membersResponse = clubMembersResponses[index];
+            console.log(`Members for club ${club._id} (${club.name}):`, membersResponse.data);
+            membersResponse.data.forEach((member) => {
+              if (member._id && member.name && member.email) {
+                usersMap.set(member._id.toString(), {
+                  _id: member._id,
+                  name: member.name,
+                  email: member.email,
+                  role: member.role || "user",
                 });
-              } else {
-                console.warn(`Invalid superAdmin data for club ${club._id}:`, admin);
               }
             });
-          }
 
-          if (club.creator?._id && club.creator.name && club.creator.email) {
-            allUsers.set(club.creator._id.toString(), {
-              _id: club.creator._id,
-              name: club.creator.name,
-              email: club.creator.email,
-              role: "superAdmin",
-            });
-          } else {
-            console.warn(`Invalid creator data for club ${club._id}:`, club.creator);
-          }
-        });
+            if (club.superAdmins?.length > 0) {
+              club.superAdmins.forEach((admin) => {
+                if (admin._id && admin.name && admin.email) {
+                  usersMap.set(admin._id.toString(), {
+                    _id: admin._id,
+                    name: admin.name,
+                    email: admin.email,
+                    role: "superAdmin",
+                  });
+                }
+              });
+            }
 
-        const filteredUsers = Array.from(allUsers.values());
-        console.log("Filtered Users:", filteredUsers.map(u => ({
+            if (club.creator?._id && club.creator.name && club.creator.email) {
+              usersMap.set(club.creator._id.toString(), {
+                _id: club.creator._id,
+                name: club.creator.name,
+                email: club.creator.email,
+                role: "superAdmin",
+              });
+            }
+          });
+          allUsers = Array.from(usersMap.values());
+        }
+
+        console.log("Filtered Users:", allUsers.map(u => ({
           _id: u._id,
           name: u.name,
           email: u.email,
           role: u.role,
         })));
-        setUsers(filteredUsers);
+        setUsers(allUsers);
 
-        if (managedClubs.length === 0 && filteredUsers.length === 0 && filteredRequests.length === 0) {
-          console.log("No managed clubs or data to display");
+        if (managedClubs.length === 0 && allUsers.length === 0 && filteredRequests.length === 0) {
           setError("You do not have access to manage any clubs, users, or membership requests.");
-        } else if (filteredRequests.length === 0 && filteredAllRequests.length === 0) {
-          console.log("No membership requests available for user");
-          setError("No membership requests or history available for your managed clubs.");
         }
 
         setIsLoading(false);
@@ -441,7 +459,6 @@ const ManageUsers = () => {
   const handleApprove = async (requestId) => {
     if (!requestId || typeof requestId !== "string") {
       setError("Invalid request ID.");
-      setTimeout(() => setError(""), 3000);
       return;
     }
     try {
@@ -455,23 +472,39 @@ const ManageUsers = () => {
         config
       );
       console.log("Approve response:", response.data);
+      const request = allMembershipRequests.find((req) => req._id === requestId);
+      if (request) {
+        setClubs((prev) =>
+          prev.map((club) =>
+            club._id === request.clubId?._id
+              ? { ...club, memberCount: (club.memberCount || 0) + 1 }
+              : club
+          )
+        );
+      }
       setMembershipRequests((prev) =>
         prev.filter((req) => req._id !== requestId)
       );
-      setAllMembershipRequests((prev) => [
-        ...prev.filter((req) => req._id !== requestId),
-        { ...prev.find((req) => req._id === requestId), status: "approved", updatedAt: new Date() },
-      ].sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)));
+      setAllMembershipRequests((prev) =>
+        prev.map((req) =>
+          req._id === requestId
+            ? { ...req, status: "approved", updatedAt: new Date() }
+            : req
+        ).sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+      );
       setSuccess("Request approved successfully.");
-      setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       console.error("Approve error:", {
         message: err.message,
         response: err.response?.data,
         status: err.response?.status,
       });
-      setError(err.response?.data?.error || "Failed to approve request. Please try again.");
-      setTimeout(() => setError(""), 3000);
+      const errorMessage = err.response?.data?.error || "Failed to approve request.";
+      setError(errorMessage);
+      if (errorMessage.includes("Club") && errorMessage.includes("not found")) {
+        setMembershipRequests((prev) => prev.filter((req) => req._id !== requestId));
+        setAllMembershipRequests((prev) => prev.filter((req) => req._id !== requestId));
+      }
     } finally {
       setActionLoading((prev) => ({ ...prev, [requestId]: false }));
     }
@@ -480,7 +513,6 @@ const ManageUsers = () => {
   const handleReject = async (requestId) => {
     if (!requestId || typeof requestId !== "string") {
       setError("Invalid request ID.");
-      setTimeout(() => setError(""), 3000);
       return;
     }
     try {
@@ -497,20 +529,26 @@ const ManageUsers = () => {
       setMembershipRequests((prev) =>
         prev.filter((req) => req._id !== requestId)
       );
-      setAllMembershipRequests((prev) => [
-        ...prev.filter((req) => req._id !== requestId),
-        { ...prev.find((req) => req._id === requestId), status: "rejected", updatedAt: new Date() },
-      ].sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)));
+      setAllMembershipRequests((prev) =>
+        prev.map((req) =>
+          req._id === requestId
+            ? { ...req, status: "rejected", updatedAt: new Date() }
+            : req
+        ).sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+      );
       setSuccess("Request rejected successfully.");
-      setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       console.error("Reject error:", {
         message: err.message,
         response: err.response?.data,
         status: err.response?.status,
       });
-      setError(err.response?.data?.error || "Failed to reject request. Please try again.");
-      setTimeout(() => setError(""), 3000);
+      const errorMessage = err.response?.data?.error || "Failed to reject request.";
+      setError(errorMessage);
+      if (errorMessage.includes("Club") && errorMessage.includes("not found")) {
+        setMembershipRequests((prev) => prev.filter((req) => req._id !== requestId));
+        setAllMembershipRequests((prev) => prev.filter((req) => req._id !== requestId));
+      }
     } finally {
       setActionLoading((prev) => ({ ...prev, [requestId]: false }));
     }
@@ -532,7 +570,6 @@ const ManageUsers = () => {
         prev.map((u) => (u._id === userId ? { ...u, role: newRole } : u))
       );
       setSuccess(`User role updated to ${newRole}.`);
-      setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       console.error("Update role error:", {
         message: err.message,
@@ -540,7 +577,6 @@ const ManageUsers = () => {
         status: err.response?.status,
       });
       setError(err.response?.data?.error || "Failed to update user role.");
-      setTimeout(() => setError(""), 3000);
     } finally {
       setActionLoading((prev) => ({ ...prev, [userId]: false }));
     }
@@ -560,7 +596,6 @@ const ManageUsers = () => {
       console.log("Delete user response:", response.data);
       setUsers((prev) => prev.filter((u) => u._id !== userId));
       setSuccess("User deleted successfully.");
-      setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       console.error("Delete user error:", {
         message: err.message,
@@ -568,11 +603,45 @@ const ManageUsers = () => {
         status: err.response?.status,
       });
       setError(err.response?.data?.error || "Failed to delete user.");
-      setTimeout(() => setError(""), 3000);
     } finally {
       setActionLoading((prev) => ({ ...prev, [userId]: false }));
     }
   };
+
+  // Memoized filtered data
+  const filteredRequests = useMemo(
+    () =>
+      membershipRequests.filter(
+        (request) =>
+          request.userId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          request.clubId?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+    [membershipRequests, searchTerm]
+  );
+
+  const filteredAllRequests = useMemo(
+    () =>
+      allMembershipRequests.filter(
+        (request) =>
+          request.userId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          request.clubId?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      ).sort(
+        (a, b) =>
+          new Date(b.updatedAt || b.createdAt) -
+          new Date(a.updatedAt || a.createdAt)
+      ),
+    [allMembershipRequests, searchTerm]
+  );
+
+  const filteredUsers = useMemo(
+    () =>
+      users.filter(
+        (user) =>
+          user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+    [users, searchTerm]
+  );
 
   return (
     <ErrorBoundary>
@@ -588,35 +657,98 @@ const ManageUsers = () => {
           </motion.div>
         )}
         <Navbar user={user} role={user?.isAdmin ? "admin" : user?.role || "user"} />
-        <div className="container mx-auto px-2 sm:px-4 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-semibold text-[#456882]">
+                  Manage Users
+                </h1>
+                <p className="text-sm text-gray-600">
+                  Welcome, {user?.name || "Admin"}! Manage membership requests and users.
+                </p>
+              </div>
+              <div className="relative flex-1 sm:flex-none">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Search users or requests..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full sm:w-64 pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
+                />
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Messages */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mb-4"
+              >
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
+                  <p className="text-sm text-red-700">{error}</p>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setError("")}
+                    className="ml-auto text-red-600"
+                  >
+                    Dismiss
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
+            {success && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mb-4"
+              >
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
+                  <p className="text-sm text-green-700">{success}</p>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setSuccess("")}
+                    className="ml-auto text-green-600"
+                  >
+                    Dismiss
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Membership Requests */}
           <section className="mb-12">
-            <motion.h2
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="text-3xl font-bold text-center mb-8 text-[#456882]"
-            >
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Membership Requests
-              {membershipRequests.length > 0 && (
+              {filteredRequests.length > 0 && (
                 <span className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">
-                  {membershipRequests.length} pending
+                  {filteredRequests.length} pending
                 </span>
               )}
-            </motion.h2>
-            {membershipRequests.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="text-center bg-gray-100 p-6 rounded-xl"
-              >
-                <p className="text-gray-700 mb-4 text-lg">
+            </h2>
+            {filteredRequests.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm p-6 text-center">
+                <p className="text-sm text-gray-500">
                   No pending membership requests.
                 </p>
-              </motion.div>
+              </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-6">
-                {membershipRequests.map((request) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredRequests.map((request) => (
                   <MembershipRequestCard
                     key={request._id}
                     request={request}
@@ -629,66 +761,48 @@ const ManageUsers = () => {
             )}
           </section>
 
+          {/* Request History */}
           <section className="mb-12">
-            <motion.h2
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="text-3xl font-bold text-center mb-8 text-[#456882]"
-            >
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Membership Request History
-              {allMembershipRequests.length > 0 && (
+              {filteredAllRequests.length > 0 && (
                 <span className="ml-2 px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
-                  {allMembershipRequests.length} total
+                  {filteredAllRequests.length} total
                 </span>
               )}
-            </motion.h2>
-            {allMembershipRequests.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="text-center bg-gray-100 p-6 rounded-xl"
-              >
-                <p className="text-gray-700 mb-4 text-lg">
+            </h2>
+            {filteredAllRequests.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm p-6 text-center">
+                <p className="text-sm text-gray-500">
                   No request history available.
                 </p>
-              </motion.div>
+              </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-6">
-                {allMembershipRequests.map((request) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredAllRequests.map((request) => (
                   <RequestHistoryCard key={request._id} request={request} />
                 ))}
               </div>
             )}
           </section>
 
-          <section className="bg-gradient-to-br from-[#456882]/10 to-gray-50 py-12">
-            <motion.h2
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="text-3xl font-bold text-center mb-8 text-[#456882]"
-            >
+          {/* Manage Users */}
+          <section className="bg-gradient-to-br  py-12">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Manage Users
-              {users.length > 0 && (
+              {filteredUsers.length > 0 && (
                 <span className="ml-2 px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
-                  {users.length} users
+                  {filteredUsers.length} users
                 </span>
               )}
-            </motion.h2>
-            {users.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="text-center bg-gray-100 p-6 rounded-xl"
-              >
-                <p className="text-gray-700 mb-4 text-lg">No users found.</p>
-              </motion.div>
+            </h2>
+            {filteredUsers.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm p-6 text-center">
+                <p className="text-sm text-gray-500">No users found.</p>
+              </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-6">
-                {users.map((user) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredUsers.map((user) => (
                   <UserCard
                     key={user._id}
                     user={user}
@@ -700,47 +814,6 @@ const ManageUsers = () => {
               </div>
             )}
           </section>
-
-          <AnimatePresence>
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="fixed bottom-4 right-4 bg-red-600 text-white rounded-lg p-4 shadow-lg"
-              >
-                <p className="text-sm">{error}</p>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="mt-2 text-white underline"
-                  onClick={() => setError("")}
-                  aria-label="Dismiss error"
-                >
-                  Dismiss
-                </motion.button>
-              </motion.div>
-            )}
-            {success && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="fixed bottom-4 right-4 bg-[#456882] text-white rounded-lg p-4 shadow-lg"
-              >
-                <p className="text-sm">{success}</p>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="mt-2 text-white underline"
-                  onClick={() => setSuccess("")}
-                  aria-label="Dismiss success"
-                >
-                  Dismiss
-                </motion.button>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       </div>
     </ErrorBoundary>
