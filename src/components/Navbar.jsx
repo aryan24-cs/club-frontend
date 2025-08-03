@@ -15,6 +15,7 @@ import {
   BookOpen,
   MessageSquare,
   ChevronDown,
+  Trophy,
 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
@@ -29,6 +30,7 @@ const AirplaneMenu = ({
   handleLogout,
 }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [openSubMenu, setOpenSubMenu] = useState(null);
 
   const toggleSubMenu = (label) => {
@@ -75,9 +77,12 @@ const AirplaneMenu = ({
                     alt="Profile"
                     className="w-12 h-12 rounded-full object-cover"
                     onError={(e) => {
-                      console.error('Mobile menu profile picture load error:', user.profilePicture);
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
+                      console.error(
+                        "Mobile menu profile picture load error:",
+                        user.profilePicture
+                      );
+                      e.target.style.display = "none";
+                      e.target.nextSibling.style.display = "flex";
                     }}
                   />
                 ) : (
@@ -193,7 +198,7 @@ const AirplaneMenu = ({
                         location.pathname === link.to
                           ? "bg-[#334d5e] text-white"
                           : ""
-                        }`}
+                      }`}
                       onClick={() => {
                         onClose();
                         navigate(link.to);
@@ -310,7 +315,7 @@ const Navbar = memo(() => {
     },
   ];
 
-  // Role-based navigation links with events and clubs grouped
+  // Role-based navigation links with events, clubs, and ranking grouped
   const navLinks = {
     user: [
       {
@@ -389,6 +394,11 @@ const Navbar = memo(() => {
         icon: <Users className="w-5 h-5 mr-2" />,
       },
       {
+        to: "/ranking-system",
+        label: "Ranking",
+        icon: <Trophy className="w-5 h-5 mr-2" />,
+      },
+      {
         to: "/contact-manage",
         label: "Messages",
         icon: <MessageSquare className="w-5 h-5 mr-2" />,
@@ -445,6 +455,11 @@ const Navbar = memo(() => {
         icon: <Users className="w-5 h-5 mr-2" />,
       },
       {
+        to: "/ranking-system",
+        label: "Ranking",
+        icon: <Trophy className="w-5 h-5 mr-2" />,
+      },
+      {
         to: "/contact-manage",
         label: "Messages",
         icon: <MessageSquare className="w-5 h-5 mr-2" />,
@@ -492,7 +507,12 @@ const Navbar = memo(() => {
 
   if (loading) {
     return (
-      <div className="fixed top-0 w-full h-16 bg-white shadow-md z-50"></div>
+      <div className="fixed top-0 w-full h-16 bg-white shadow-md z-50">
+        <div className="max-w-7.5xl mx-auto px-6 flex justify-between items-center h-full">
+          <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
+          <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
+        </div>
+      </div>
     );
   }
 
@@ -614,9 +634,12 @@ const Navbar = memo(() => {
                       alt="Profile"
                       className="w-6 h-6 rounded-full object-cover mr-2"
                       onError={(e) => {
-                        console.error('Desktop profile picture load error:', user.profilePicture);
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'flex';
+                        console.error(
+                          "Desktop profile picture load error:",
+                          user.profilePicture
+                        );
+                        e.target.style.display = "none";
+                        e.target.nextSibling.style.display = "flex";
                       }}
                     />
                   ) : (
@@ -642,9 +665,12 @@ const Navbar = memo(() => {
                             alt="Profile"
                             className="w-8 h-8 rounded-full object-cover mr-2"
                             onError={(e) => {
-                              console.error('Dropdown profile picture load error:', user.profilePicture);
-                              e.target.style.display = 'none';
-                              e.target.nextSibling.style.display = 'flex';
+                              console.error(
+                                "Dropdown profile picture load error:",
+                                user.profilePicture
+                              );
+                              e.target.style.display = "none";
+                              e.target.nextSibling.style.display = "flex";
                             }}
                           />
                         ) : (
