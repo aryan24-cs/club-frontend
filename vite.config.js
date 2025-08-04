@@ -9,5 +9,5 @@ export default defineConfig({
       plugins: [tailwindcss()],
     },
   },
-  base: '/', // ⬅️ very important
+  base: './', // ⬅️ very important
 })
