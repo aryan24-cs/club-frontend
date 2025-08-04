@@ -20,10 +20,8 @@ import ClubDetailPage from "./components/ClubDetailPage";
 import CreateClubPage from "./components/CreateClubPage";
 import EditClubPage from "./components/EditClubPage";
 import ManageEvents from "./components/ManageEvents";
-// import ManageActivities from "./components/ManageActivities";
 import ManageUsers from "./components/ManageUsers";
 import EventEditPage from "./components/EventEditPage";
-// import ActivityEditPage from "./components/ActivityEditPage";
 import NotificationsPage from "./components/NotificationsPage";
 import ContactPage from "./components/ContactPage";
 import ProfilePage from "./components/ProfilePage";
@@ -41,70 +39,111 @@ import { useEffect, useState } from "react";
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem("token");
-  return token ? children : <Navigate to="/login" />;
+  if (!token) {
+    console.log("ProtectedRoute: No token found, redirecting to /login");
+    return <Navigate to="/login" />;
+  }
+  return children;
 };
 
 // Role-Based Route Component
 const RoleBasedRoute = ({ children, roles }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-  const fetchUser = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.log('No token found, redirecting to /login');
-        navigate('/login');
-        return;
+    const fetchUser = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          console.log("RoleBasedRoute: No token found, redirecting to /login");
+          navigate("/login");
+          return;
+        }
+        const config = { headers: { Authorization: `Bearer ${token}` } };
+        console.log("RoleBasedRoute: Fetching user from /api/auth/user", {
+          token: token.substring(0, 10) + "...",
+        });
+        const response = await axios.get(
+          "https://club-manager-chi.vercel.app/api/auth/user",
+          config
+        );
+        console.log("RoleBasedRoute: User data received", {
+          id: response.data._id,
+          email: response.data.email,
+          isAdmin: response.data.isAdmin,
+          isHeadCoordinator: response.data.isHeadCoordinator,
+          headCoordinatorClubs: response.data.headCoordinatorClubs,
+        });
+        setUser(response.data);
+        setLoading(false);
+      } catch (err) {
+        console.error("RoleBasedRoute: Error fetching user", {
+          message: err.message,
+          status: err.response?.status,
+          data: err.response?.data,
+          headers: err.response?.headers,
+        });
+        setError(err.response?.data?.error || "Failed to fetch user data");
+        localStorage.removeItem("token");
+        navigate("/login");
       }
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      console.log('Fetching user from /api/auth/user');
-      const response = await axios.get(
-        'https://club-manager-chi.vercel.app/api/auth/user',
-        config
-      );
-      console.log('User data received:', response.data);
-      setUser(response.data);
-      setLoading(false);
-    } catch (err) {
-      console.error('Error fetching user:', {
-        message: err.message,
-        status: err.response?.status,
-        data: err.response?.data,
-        headers: err.response?.headers,
-      });
-      localStorage.removeItem('token');
-      navigate('/login');
-    }
-  };
-  fetchUser();
-}, [navigate]);
+    };
+    fetchUser();
+  }, [navigate]);
 
   if (loading) {
-    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="animate-pulse w-16 h-16 bg-gray-200 rounded-full"></div>
-    </div>;
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+        <div className="animate-pulse w-16 h-16 bg-gray-200 rounded-full mb-4"></div>
+        <p className="text-gray-500">Loading user data...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+        <p className="text-red-500">{error}</p>
+        <button
+          onClick={() => navigate("/login")}
+          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Go to Login
+        </button>
+      </div>
+    );
   }
 
   if (!user) {
+    console.log("RoleBasedRoute: No user data, redirecting to /login");
     return <Navigate to="/login" />;
   }
 
+  // Determine user role
+  let userRole = "user";
+  if (user.isAdmin) {
+    userRole = "super-admin";
+  } else if (user.isHeadCoordinator) {
+    userRole = "admin";
+  }
+
   // Check if user has any of the required roles
-  const hasRequiredRole = roles.some((role) => {
-    if (role === "super-admin") return user.isAdmin;
-    if (role === "admin") return user.isHeadCoordinator || user.isAdmin;
-    if (role === "user") return !user.isAdmin && !user.isHeadCoordinator;
-    return false;
-  });
+  const hasRequiredRole = roles.includes(userRole);
 
   if (!hasRequiredRole) {
-    if (user.isAdmin) {
+    console.log("RoleBasedRoute: Role not allowed", {
+      userRole,
+      allowedRoles: roles,
+      userId: user._id,
+      email: user.email,
+    });
+    if (userRole === "super-admin") {
       return <Navigate to="/super-admin-dashboard" />;
     }
-    if (user.isHeadCoordinator) {
+    if (userRole === "admin") {
       return <Navigate to="/admin-dashboard" />;
     }
     return <Navigate to="/dashboard" />;
@@ -331,7 +370,7 @@ const AnimatedRoutes = () => {
           <Route
             path="/ranking-system"
             element={
-              <ProtectedRoute >
+              <ProtectedRoute>
                 <Layout>
                   <RankingSystem />
                 </Layout>
@@ -348,6 +387,8 @@ const AnimatedRoutes = () => {
               </RoleBasedRoute>
             }
           />
+          {/* Fallback Route */}
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </motion.div>
     </AnimatePresence>
