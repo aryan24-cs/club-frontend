@@ -1,5 +1,20 @@
 {
-  "builds": [],
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "/**/*",
+      "use": "@vercel/static"
+    }
+  ],
   "outputDirectory": "dist",
-  "routes": [{ "src": "/(.*)", "dest": "./index.html" }]
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
