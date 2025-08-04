@@ -161,7 +161,7 @@ const CreateClubPage = () => {
         formData.append("headCoordinators", headCoordinators);
 
       const response = await axios.post(
-        "http://localhost:5000/api/clubs",
+        "https://club-manager-chi.vercel.app/api/clubs",
         formData,
         {
           headers: {

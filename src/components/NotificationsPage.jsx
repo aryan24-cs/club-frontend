@@ -100,7 +100,7 @@ const NotificationsPage = () => {
 
       const config = { headers: { Authorization: `Bearer ${token}` } };
       const response = await axios.get(
-        "http://localhost:5000/api/notifications",
+        "https://club-manager-chi.vercel.app/api/notifications",
         config
       );
       const newNotifications = response.data;
@@ -136,8 +136,8 @@ const NotificationsPage = () => {
 
         const config = { headers: { Authorization: `Bearer ${token}` } };
         const [userResponse, notificationsResponse] = await Promise.all([
-          axios.get("http://localhost:5000/api/auth/user", config),
-          axios.get("http://localhost:5000/api/notifications", config),
+          axios.get("https://club-manager-chi.vercel.app/api/auth/user", config),
+          axios.get("https://club-manager-chi.vercel.app/api/notifications", config),
         ]);
 
         setUser(userResponse.data);
@@ -171,7 +171,7 @@ const NotificationsPage = () => {
       }
       const config = { headers: { Authorization: `Bearer ${token}` } };
       await axios.patch(
-        `http://localhost:5000/api/notifications/${notificationId}/read`,
+        `https://club-manager-chi.vercel.app/api/notifications/${notificationId}/read`,
         {},
         config
       );
@@ -204,7 +204,7 @@ const NotificationsPage = () => {
       }
       const config = { headers: { Authorization: `Bearer ${token}` } };
       await axios.patch(
-        "http://localhost:5000/api/notifications/mark-all-read",
+        "https://club-manager-chi.vercel.app/api/notifications/mark-all-read",
         {},
         config
       );

@@ -100,19 +100,19 @@ const ProfilePage = () => {
       setIsLoading(true);
 
       const [userResponse, clubsResponse, eventsResponse, attendanceResponse, practiceAttendanceResponse] = await Promise.all([
-        axios.get("http://localhost:5000/api/auth/user", {
+        axios.get("https://club-manager-chi.vercel.app/api/auth/user", {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        axios.get("http://localhost:5000/api/clubs", {
+        axios.get("https://club-manager-chi.vercel.app/api/clubs", {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        axios.get("http://localhost:5000/api/events", {
+        axios.get("https://club-manager-chi.vercel.app/api/events", {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        axios.get("http://localhost:5000/api/attendance/user", {
+        axios.get("https://club-manager-chi.vercel.app/api/attendance/user", {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        axios.get("http://localhost:5000/api/practice-attendance/user", {
+        axios.get("https://club-manager-chi.vercel.app/api/practice-attendance/user", {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
@@ -289,7 +289,7 @@ const ProfilePage = () => {
       formData.append("profilePicture", blob, `profile_${Date.now()}.${fileExtension}`);
 
       const responseAxios = await axios.post(
-        "http://localhost:5000/api/auth/upload-profile-picture",
+        "https://club-manager-chi.vercel.app/api/auth/upload-profile-picture",
         formData,
         {
           headers: {
@@ -397,7 +397,7 @@ const ProfilePage = () => {
     console.log("Sending payload to backend:", payload);
 
     const response = await axios.put(
-      "http://localhost:5000/api/auth/user",
+      "https://club-manager-chi.vercel.app/api/auth/user",
       payload,
       {
         headers: { Authorization: `Bearer ${token}` },
@@ -453,7 +453,7 @@ const ProfilePage = () => {
       setSuccess("");
 
       const response = await axios.post(
-        "http://localhost:5000/api/auth/verify-email-otp",
+        "https://club-manager-chi.vercel.app/api/auth/verify-email-otp",
         { otp },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -501,7 +501,7 @@ const ProfilePage = () => {
     setIsDeleting(true);
     setError("");
     try {
-      await axios.delete("http://localhost:5000/api/auth/delete-account", {
+      await axios.delete("https://club-manager-chi.vercel.app/api/auth/delete-account", {
         headers: { Authorization: `Bearer ${token}` },
       });
       localStorage.removeItem("token");

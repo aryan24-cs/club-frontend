@@ -511,7 +511,7 @@ const UserDashboard = () => {
 
         // Fetch user data
         const userResponse = await axios
-          .get("http://localhost:5000/api/auth/user", config)
+          .get("https://club-manager-chi.vercel.app/api/auth/user", config)
           .catch((err) => {
             throw new Error(
               `User data fetch failed: ${
@@ -523,7 +523,7 @@ const UserDashboard = () => {
 
         // Fetch clubs
         const clubsResponse = await axios
-          .get("http://localhost:5000/api/clubs", config)
+          .get("https://club-manager-chi.vercel.app/api/clubs", config)
           .catch((err) => {
             throw new Error(
               `Clubs fetch failed: ${err.response?.data?.error || err.message}`
@@ -544,7 +544,7 @@ const UserDashboard = () => {
 
         // Fetch registered events
         const eventsResponse = await axios
-          .get("http://localhost:5000/api/user/registered-events", config)
+          .get("https://club-manager-chi.vercel.app/api/user/registered-events", config)
           .catch((err) => {
             throw new Error(
               `Events fetch failed: ${err.response?.data?.error || err.message}`
@@ -561,7 +561,7 @@ const UserDashboard = () => {
 
         // Fetch notifications
         const notificationsResponse = await axios
-          .get("http://localhost:5000/api/notifications", config)
+          .get("https://club-manager-chi.vercel.app/api/notifications", config)
           .catch((err) => {
             throw new Error(
               `Notifications fetch failed: ${
@@ -575,7 +575,7 @@ const UserDashboard = () => {
         let achievementsData = [];
         try {
           const achievementsResponse = await axios.get(
-            "http://localhost:5000/api/achievements",
+            "https://club-manager-chi.vercel.app/api/achievements",
             config
           );
           achievementsData = achievementsResponse.data;
@@ -589,7 +589,7 @@ const UserDashboard = () => {
 
         // Fetch user points
         const pointsResponse = await axios
-          .get("http://localhost:5000/api/points/user", config)
+          .get("https://club-manager-chi.vercel.app/api/points/user", config)
           .catch((err) => {
             throw new Error(
               `Points fetch failed: ${err.response?.data?.error || err.message}`
@@ -599,7 +599,7 @@ const UserDashboard = () => {
 
         // Fetch leaderboard
         const leaderboardResponse = await axios
-          .get("http://localhost:5000/api/points-table", config)
+          .get("https://club-manager-chi.vercel.app/api/points-table", config)
           .catch((err) => {
             throw new Error(
               `Leaderboard fetch failed: ${
@@ -616,7 +616,7 @@ const UserDashboard = () => {
 
         // Fetch attendance for rate calculation
         const attendanceResponse = await axios
-          .get("http://localhost:5000/api/attendance", config)
+          .get("https://club-manager-chi.vercel.app/api/attendance", config)
           .catch((err) => {
             throw new Error(
               `Attendance fetch failed: ${
@@ -668,7 +668,7 @@ const UserDashboard = () => {
       try {
         const token = localStorage.getItem("token");
         await axios.post(
-          `http://localhost:5000/api/clubs/${clubId}/join`,
+          `https://club-manager-chi.vercel.app/api/clubs/${clubId}/join`,
           {},
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -705,7 +705,7 @@ const UserDashboard = () => {
       try {
         const token = localStorage.getItem("token");
         await axios.delete(
-          `http://localhost:5000/api/events/${eventId}/register`,
+          `https://club-manager-chi.vercel.app/api/events/${eventId}/register`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setRegisteredEvents((prev) => prev.filter((e) => e._id !== eventId));

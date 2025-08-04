@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 // import { 
 //   Users,
@@ -20,6 +19,9 @@ import React, { useState, useEffect } from 'react';
 // } from 'react-icons/fi';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
+
+// Define BASE_URL at the top of the file
+const BASE_URL = 'http://localhost:5000'; // Change this to your production URL when deploying
 
 const ClubPage = () => {
   const { id } = useParams();
@@ -51,7 +53,7 @@ const ClubPage = () => {
         if (!token) throw new Error('No authentication token found');
 
         // Fetch user data
-        const userResponse = await axios.get('http://localhost:5000/api/auth/user', {
+        const userResponse = await axios.get(`${BASE_URL}/api/auth/user`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const user = userResponse.data;
@@ -61,33 +63,33 @@ const ClubPage = () => {
         setIsMember(user.clubName.includes(club?.name));
 
         // Fetch club data
-        const clubResponse = await axios.get(`http://localhost:5000/api/clubs/${id}`, {
+        const clubResponse = await axios.get(`${BASE_URL}/api/clubs/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setClub(clubResponse.data);
 
         // Fetch events
-        const eventsResponse = await axios.get('http://localhost:5000/api/events', {
+        const eventsResponse = await axios.get(`${BASE_URL}/api/events`, {
           params: { club: id },
           headers: { Authorization: `Bearer ${token}` }
         });
         setEvents(eventsResponse.data);
 
         // Fetch activities
-        const activitiesResponse = await axios.get('http://localhost:5000/api/activities', {
+        const activitiesResponse = await axios.get(`${BASE_URL}/api/activities`, {
           params: { club: clubResponse.data.name },
           headers: { Authorization: `Bearer ${token}` }
         });
         setActivities(activitiesResponse.data);
 
         // Fetch members
-        const membersResponse = await axios.get(`http://localhost:5000/api/clubs/${id}/members`, {
+        const membersResponse = await axios.get(`${BASE_URL}/api/clubs/${id}/members`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setMembers(membersResponse.data);
 
         // Fetch attendance
-        const attendanceResponse = await axios.get('http://localhost:5000/api/attendance', {
+        const attendanceResponse = await axios.get(`${BASE_URL}/api/attendance`, {
           params: { club: id },
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -110,7 +112,7 @@ const ClubPage = () => {
     }
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`http://localhost:5000/api/clubs/${id}/join`, {}, {
+      await axios.post(`${BASE_URL}/api/clubs/${id}/join`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setIsMember(true);
@@ -537,7 +539,7 @@ const ClubPage = () => {
                               onClick={async () => {
                                 try {
                                   const token = localStorage.getItem('token');
-                                  await axios.delete(`http://localhost:5000/api/clubs/${id}/members`, {
+                                  await axios.delete(`${BASE_URL}/api/clubs/${id}/members`, {
                                     headers: { Authorization: `Bearer ${token}` },
                                     data: { email: member.email }
                                   });

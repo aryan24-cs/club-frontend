@@ -235,7 +235,7 @@ const EventRegistrationModal = memo(
         }
 
         const response = await axios.post(
-          `http://localhost:5000/api/events/${event._id}/register`,
+          `https://club-manager-chi.vercel.app/api/events/${event._id}/register`,
           {
             name: user.name,
             email: user.email,
@@ -438,13 +438,13 @@ const ManageEvents = () => {
       const config = { headers: { Authorization: `Bearer ${token}` } };
       const [userResponse, clubsResponse, eventsResponse] = await Promise.all([
         axios
-          .get("http://localhost:5000/api/auth/user", config)
+          .get("https://club-manager-chi.vercel.app/api/auth/user", config)
           .catch(() => ({ data: null })),
         axios
-          .get("http://localhost:5000/api/clubs", config)
+          .get("https://club-manager-chi.vercel.app/api/clubs", config)
           .catch(() => ({ data: [] })),
         axios
-          .get("http://localhost:5000/api/events", config)
+          .get("https://club-manager-chi.vercel.app/api/events", config)
           .catch(() => ({ data: [] })),
       ]);
 
@@ -561,7 +561,7 @@ const ManageEvents = () => {
       const token = localStorage.getItem("token");
       console.log("Token:", token);
       if (!token) throw new Error("No authentication token found");
-      await axios.delete(`http://localhost:5000/api/events/${eventId}`, {
+      await axios.delete(`https://club-manager-chi.vercel.app/api/events/${eventId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setEvents((prev) => prev.filter((event) => event._id !== eventId));

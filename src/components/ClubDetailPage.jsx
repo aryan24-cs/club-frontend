@@ -504,7 +504,7 @@ const ClubDetailPage = () => {
       setLoading(true);
       setError("");
       const clubResponse = await axios.get(
-        `http://localhost:5000/api/clubs/${clubId}`,
+        `https://club-manager-chi.vercel.app/api/clubs/${clubId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -523,14 +523,14 @@ const ClubDetailPage = () => {
       setClub(clubData);
       setHeadCoordinators(validCoordinators);
       const eventsResponse = await axios.get(
-        `http://localhost:5000/api/events?club=${clubData._id}`,
+        `https://club-manager-chi.vercel.app/api/events?club=${clubData._id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
       setEvents(eventsResponse.data);
       const membersResponse = await axios.get(
-        `http://localhost:5000/api/clubs/${clubData._id}/members`,
+        `https://club-manager-chi.vercel.app/api/clubs/${clubData._id}/members`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -538,7 +538,7 @@ const ClubDetailPage = () => {
       setMembers(membersResponse.data);
       setFilteredMembers(membersResponse.data);
       const userResponse = await axios.get(
-        "http://localhost:5000/api/auth/user",
+        "https://club-manager-chi.vercel.app/api/auth/user",
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -623,7 +623,7 @@ const ClubDetailPage = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        `http://localhost:5000/api/clubs/${club._id}/leave`,
+        `https://club-manager-chi.vercel.app/api/clubs/${club._id}/leave`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -645,7 +645,7 @@ const ClubDetailPage = () => {
       try {
         const token = localStorage.getItem("token");
         await axios.delete(
-          `http://localhost:5000/api/clubs/${club._id}/members`,
+          `https://club-manager-chi.vercel.app/api/clubs/${club._id}/members`,
           {
             headers: { Authorization: `Bearer ${token}` },
             data: { email },
@@ -663,7 +663,7 @@ const ClubDetailPage = () => {
     if (window.confirm("Are you sure you want to delete this event?")) {
       try {
         const token = localStorage.getItem("token");
-        await axios.delete(`http://localhost:5000/api/events/${eventId}`, {
+        await axios.delete(`https://club-manager-chi.vercel.app/api/events/${eventId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -681,7 +681,7 @@ const ClubDetailPage = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        `http://localhost:5000/api/events/${eventId}/register`,
+        `https://club-manager-chi.vercel.app/events/${eventId}/register`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -717,7 +717,7 @@ const ClubDetailPage = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.post(
-        `http://localhost:5000/api/clubs/${clubId}/contact`,
+        `https://club-manager-chi.vercel.app/api/clubs/${clubId}/contact`,
         {
           message: contactMessage,
           coordinatorEmail,
@@ -746,7 +746,7 @@ const ClubDetailPage = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.patch(
-        `http://localhost:5000/api/clubs/${club._id}`,
+        `https://club-manager-chi.vercel.app/api/clubs/${club._id}`,
         { whatsappLink },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -952,7 +952,7 @@ const ClubDetailPage = () => {
                     window.confirm("Are you sure you want to delete this club?")
                   ) {
                     axios
-                      .delete(`http://localhost:5000/api/clubs/${club._id}`, {
+                      .delete(`https://club-manager-chi.vercel.app/api/clubs/${club._id}`, {
                         headers: {
                           Authorization: `Bearer ${localStorage.getItem(
                             "token"

@@ -59,8 +59,8 @@ const EditClubPage = () => {
 
         const config = { headers: { Authorization: `Bearer ${token}` } };
         const [userResponse, clubResponse] = await Promise.all([
-          axios.get('http://localhost:5000/api/auth/user', config),
-          axios.get(`http://localhost:5000/api/clubs?name=${clubName}`, config),
+          axios.get('https://club-manager-chi.vercel.app/api/auth/user', config),
+          axios.get(`https://club-manager-chi.vercel.app/api/clubs?name=${clubName}`, config),
         ]);
 
         const userData = userResponse.data;
@@ -177,7 +177,7 @@ const EditClubPage = () => {
       formData.append('contactEmail', contactEmail);
       formData.append('headCoordinators', headCoordinators);
 
-      await axios.patch(`http://localhost:5000/api/clubs/${club._id}`, formData, {
+      await axios.patch(`https://club-manager-chi.vercel.app/api/clubs/${club._id}`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',

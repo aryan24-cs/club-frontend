@@ -5,7 +5,7 @@ import { Search, Calendar, ChevronRight, X } from "lucide-react";
 import Navbar from "../components/Navbar"; // Assuming you have a Navbar component
 
 // API Base URL
-const API_BASE_URL = "http://localhost:5000/api";
+const API_BASE_URL = "https://club-manager-chi.vercel.app/api";
 
 // Animation Variants
 const containerVariants = {

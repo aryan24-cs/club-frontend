@@ -267,7 +267,7 @@ const Events = () => {
 
       try {
         // Fetch user data
-        const userResponse = await axios.get("http://localhost:5000/api/auth/user", {
+        const userResponse = await axios.get("https://club-manager-chi.vercel.app/api/auth/user", {
           headers: { Authorization: `Bearer ${token}` },
         });
         const userData = userResponse.data;
@@ -292,7 +292,7 @@ const Events = () => {
         });
 
         // Fetch all events
-        const eventsResponse = await axios.get("http://localhost:5000/api/events", {
+        const eventsResponse = await axios.get("https://club-manager-chi.vercel.app/api/events", {
           headers: { Authorization: `Bearer ${token}` },
         });
         const fetchedEvents = (eventsResponse.data || []).map((event, index) => ({
@@ -367,7 +367,7 @@ const Events = () => {
         throw new Error(`Invalid club ID: ${clubId}`);
       }
       await axios.post(
-        `http://localhost:5000/api/clubs/${clubId}/join`,
+        `https://club-manager-chi.vercel.app/api/clubs/${clubId}/join`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -488,7 +488,7 @@ const Events = () => {
         addToast('Invalid event ID.', 'error');
         throw new Error(`Invalid event ID: ${eventId}`);
       }
-      const requestUrl = `http://localhost:5000/api/events/${eventId}/register`;
+      const requestUrl = `https://club-manager-chi.vercel.app/api/events/${eventId}/register`;
       const requestPayload = {
         name: formData.name,
         email: formData.email,
@@ -599,7 +599,7 @@ const Events = () => {
     console.log('handleDeleteEvent called for eventId:', eventId);
     if (!window.confirm("Are you sure you want to delete this event?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/events/${eventId}`, {
+      await axios.delete(`https://club-manager-chi.vercel.app/api/events/${eventId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const updatedEvents = events.filter((event) => event._id !== eventId);

@@ -60,7 +60,7 @@ const RoleBasedRoute = ({ children, roles }) => {
         }
         const config = { headers: { Authorization: `Bearer ${token}` } };
         const response = await axios.get(
-          "http://localhost:5000/api/auth/user",
+          "https://club-manager-chi.vercel.app/api/auth/user",
           config
         );
         setUser(response.data);

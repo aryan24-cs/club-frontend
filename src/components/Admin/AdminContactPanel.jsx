@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import Navbar from "../Navbar";
 
+const BASE_URL = "https://club-manager-chi.vercel.app";
+
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
   state = { hasError: false };
@@ -279,7 +281,7 @@ const MessageDetailModal = memo(({ message, isOpen, onClose, onReply }) => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.post(
-        `http://localhost:5000/api/contact/messages/${message._id}/reply`,
+        `${BASE_URL}/api/contact/messages/${message._id}/reply`,
         { reply: replyText },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -457,7 +459,7 @@ const AdminContactPanel = () => {
 
         // Fetch user data
         const userResponse = await axios.get(
-          "http://localhost:5000/api/auth/user",
+          `${BASE_URL}/api/auth/user`,
           config
         );
         setUser(userResponse.data);
@@ -471,7 +473,7 @@ const AdminContactPanel = () => {
 
         // Fetch contact messages
         const messagesResponse = await axios.get(
-          "http://localhost:5000/api/contact/messages",
+          `${BASE_URL}/api/contact/messages`,
           {
             ...config,
             params: {
@@ -542,7 +544,7 @@ const AdminContactPanel = () => {
       try {
         const token = localStorage.getItem("token");
         await axios.patch(
-          `http://localhost:5000/api/contact/messages/${message._id}`,
+          `${BASE_URL}/api/contact/messages/${message._id}`,
           { status: "read" },
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -590,7 +592,7 @@ const AdminContactPanel = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.patch(
-        `http://localhost:5000/api/contact/messages/${message._id}`,
+        `${BASE_URL}/api/contact/messages/${message._id}`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -611,7 +613,7 @@ const AdminContactPanel = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.patch(
-        `http://localhost:5000/api/contact/messages/${message._id}`,
+        `${BASE_URL}/api/contact/messages/${message._id}`,
         { isStarred: newStarredStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -633,7 +635,7 @@ const AdminContactPanel = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.patch(
-        `http://localhost:5000/api/contact/messages/${message._id}`,
+        `${BASE_URL}/api/contact/messages/${message._id}`,
         { status: "archived" },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -658,7 +660,7 @@ const AdminContactPanel = () => {
       try {
         const token = localStorage.getItem("token");
         await axios.delete(
-          `http://localhost:5000/api/contact/messages/${message._id}`,
+          `${BASE_URL}/api/contact/messages/${message._id}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setMessages((prev) => prev.filter((m) => m._id !== message._id));
@@ -675,7 +677,7 @@ const AdminContactPanel = () => {
     try {
       const token = localStorage.getItem("token");
       const messagesResponse = await axios.get(
-        "http://localhost:5000/api/contact/messages",
+        `${BASE_URL}/api/contact/messages`,
         {
           headers: { Authorization: `Bearer ${token}` },
           params: {

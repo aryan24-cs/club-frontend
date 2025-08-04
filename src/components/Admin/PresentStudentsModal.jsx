@@ -4,7 +4,7 @@ import axios from "axios";
 import { XCircle, Download, AlertTriangle } from "lucide-react";
 
 // Backend base URL (use environment variable in production)
-const BASE_URL =  "http://localhost:5000";
+const BASE_URL =  "https://club-manager-chi.vercel.app";
 
 const PresentStudentsModal = ({ isOpen, onClose, recordId, type = "event" }) => {
   const [presentStudents, setPresentStudents] = useState([]);

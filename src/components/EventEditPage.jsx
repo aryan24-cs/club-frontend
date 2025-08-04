@@ -120,13 +120,13 @@ const EditEventPage = () => {
         const config = { headers: { Authorization: `Bearer ${token}` } };
         console.log("Fetching data for event ID:", id);
         const [userResponse, eventResponse, clubsResponse] = await Promise.all([
-          axios.get("http://localhost:5000/api/auth/user", config).catch((err) => {
+          axios.get("https://club-manager-chi.vercel.app/api/auth/user", config).catch((err) => {
             throw new Error(`User fetch error: ${err.response?.status} - ${err.response?.data?.error || err.message}`);
           }),
-          axios.get(`http://localhost:5000/api/events/${id}`, config).catch((err) => {
+          axios.get(`https://club-manager-chi.vercel.app/api/events/${id}`, config).catch((err) => {
             throw new Error(`Event fetch error: ${err.response?.status} - ${err.response?.data?.error || err.message}`);
           }),
-          axios.get("http://localhost:5000/api/clubs", config).catch((err) => {
+          axios.get("https://club-manager-chi.vercel.app/api/clubs", config).catch((err) => {
             throw new Error(`Clubs fetch error: ${err.response?.status} - ${err.response?.data?.error || err.message}`);
           }),
         ]);
@@ -371,7 +371,7 @@ const EditEventPage = () => {
           "Content-Type": "multipart/form-data",
         },
       };
-      await axios.put(`http://localhost:5000/api/events/${id}`, formData, config);
+      await axios.put(`https://club-manager-chi.vercel.app/api/events/${id}`, formData, config);
       setError("");
       setSuccess("Event updated successfully!");
       addToast("Event updated successfully!");
