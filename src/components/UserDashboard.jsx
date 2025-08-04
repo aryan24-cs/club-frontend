@@ -16,6 +16,8 @@ import {
   Clock,
   User,
   Star,
+  Trash2,
+  ChevronDown,
 } from "lucide-react";
 import { Bar } from "react-chartjs-2";
 import {
@@ -72,7 +74,7 @@ class ErrorBoundary extends React.Component {
 }
 
 // Modal Component
-const Modal = ({ isOpen, onClose, message, isSuccess }) => (
+const Modal = ({ isOpen, onClose, message, isSuccess, onConfirm, confirmText }) => (
   <AnimatePresence>
     {isOpen && (
       <motion.div
@@ -105,16 +107,26 @@ const Modal = ({ isOpen, onClose, message, isSuccess }) => (
               <X className="w-5 h-5 text-gray-600" />
             </button>
           </div>
-          <button
-            onClick={onClose}
-            className={`w-full py-2 px-4 rounded-lg text-white font-medium ${
-              isSuccess
-                ? "bg-green-600 hover:bg-green-700"
-                : "bg-red-600 hover:bg-red-700"
-            }`}
-          >
-            Close
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              className="flex-1 py-2 px-4 rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300"
+            >
+              Cancel
+            </button>
+            {onConfirm && (
+              <button
+                onClick={onConfirm}
+                className={`flex-1 py-2 px-4 rounded-lg text-white font-medium ${
+                  isSuccess
+                    ? "bg-green-600 hover:bg-green-700"
+                    : "bg-red-600 hover:bg-red-700"
+                }`}
+              >
+                {confirmText || "Confirm"}
+              </button>
+            )}
+          </div>
         </motion.div>
       </motion.div>
     )}
@@ -141,39 +153,63 @@ const StatsCard = memo(({ title, value, icon: Icon }) => (
 ));
 
 // Event Card Component
-const EventCard = memo(({ event }) => {
+const EventCard = memo(({ event, onCancelRegistration }) => {
   const navigate = useNavigate();
+  const [isCanceling, setIsCanceling] = useState(false);
+
+  const handleCancel = async () => {
+    setIsCanceling(true);
+    try {
+      await onCancelRegistration(event._id);
+    } finally {
+      setIsCanceling(false);
+    }
+  };
+
+  const statusStyles = {
+    upcoming: "bg-blue-100 text-blue-700",
+    ongoing: "bg-green-100 text-green-700",
+    past: "bg-gray-100 text-gray-700",
+  };
+
+  const registrationPercentage = event.capacity
+    ? Math.min((event.registeredCount / event.capacity) * 100, 100)
+    : 0;
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
-      whileHover={{ y: -8, transition: { duration: 0.3 } }}
-      className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 group"
+      whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+      className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
     >
       <div className="relative overflow-hidden h-48">
         <img
+          loading="lazy"
           src={
             event.banner ||
             "https://images.unsplash.com/photo-1516321310762-4794370e6a66"
           }
           alt={event.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          className="w-full h-full object-cover transition-transform duration-500"
           onError={(e) => {
             e.target.src =
               "https://images.unsplash.com/photo-1516321310762-4794370e6a66";
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        {event.isUpcoming && (
-          <div className="absolute top-3 left-3">
-            <span className="bg-[#456882] text-white px-3 py-1 rounded-full text-xs font-medium">
-              Upcoming
-            </span>
-          </div>
-        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+        <div className="absolute top-3 left-3">
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-medium ${
+              statusStyles[event.status] || "bg-gray-100 text-gray-700"
+            }`}
+          >
+            {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+          </span>
+        </div>
       </div>
       <div className="p-6">
-        <h3 className="text-xl font-bold text-[#456882] mb-2 group-hover:text-[#334d5e] transition-colors">
+        <h3 className="text-xl font-bold text-[#456882] mb-2 hover:text-[#334d5e] transition-colors">
           {event.title}
         </h3>
         <p className="text-gray-600 text-sm mb-4 line-clamp-2">
@@ -197,23 +233,50 @@ const EventCard = memo(({ event }) => {
             <span>{event.club}</span>
           </div>
         </div>
+        {event.capacity && (
+          <div className="mb-4">
+            <p className="text-xs text-gray-600 mb-1">
+              Registration: {event.registeredCount}/{event.capacity}
+            </p>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-[#456882] h-2 rounded-full transition-all duration-300"
+                style={{ width: `${registrationPercentage}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => navigate(`/events/${event._id}`)}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-[#456882] to-[#5a7a98] text-white rounded-lg hover:from-[#334d5e] hover:to-[#456882] transition-all duration-300 group-hover:shadow-md"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-[#456882] to-[#5a7a98] text-white rounded-lg hover:from-[#334d5e] hover:to-[#456882] transition-all duration-300"
+            aria-label={`View event ${event.title}`}
           >
             <Eye className="w-4 h-4" />
             <span className="font-medium">View Event</span>
           </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="p-2 text-gray-500 hover:text-red-500 transition"
-          >
-            <Heart className="w-5 h-5" />
-          </motion.button>
+          {event.status === "upcoming" && (
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={handleCancel}
+              disabled={isCanceling}
+              className={`p-2 rounded-full ${
+                isCanceling
+                  ? "bg-gray-300 cursor-not-allowed"
+                  : "bg-red-100 text-red-500 hover:bg-red-200"
+              }`}
+              aria-label={`Cancel registration for ${event.title}`}
+            >
+              {isCanceling ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Trash2 className="w-5 h-5" />
+              )}
+            </motion.button>
+          )}
         </div>
       </div>
     </motion.div>
@@ -231,6 +294,7 @@ const ClubCard = memo(({ club, user, handleJoinClub, joinLoading }) => (
   >
     <div className="relative overflow-hidden h-48">
       <img
+        loading="lazy"
         src={club.banner || "https://via.placeholder.com/150?text=Club+Banner"}
         alt={`${club.name} banner`}
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -304,6 +368,7 @@ const ClubCard = memo(({ club, user, handleJoinClub, joinLoading }) => (
               ? "bg-gray-400 cursor-not-allowed"
               : "bg-gradient-to-r from-[#456882] to-[#5a7a98] hover:from-[#334d5e] hover:to-[#456882]"
           }`}
+          aria-label={`Join club ${club.name}`}
         >
           {joinLoading[club._id] ? (
             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
@@ -416,11 +481,18 @@ const UserDashboard = () => {
     search: "",
     category: "",
     club: "",
+    sort: "date-asc",
+    dateRange: "all",
   });
   const [clubFilters, setClubFilters] = useState({
     search: "",
     category: "all",
   });
+  const [leaderboardSort, setLeaderboardSort] = useState({
+    key: "totalPoints",
+    order: "desc",
+  });
+  const [cancelEventId, setCancelEventId] = useState(null);
   const navigate = useNavigate();
 
   // Fetch data
@@ -478,7 +550,14 @@ const UserDashboard = () => {
               `Events fetch failed: ${err.response?.data?.error || err.message}`
             );
           });
-        setRegisteredEvents(eventsResponse.data);
+        setRegisteredEvents(
+          eventsResponse.data.map((event) => ({
+            ...event,
+            status: new Date(event.date) > new Date() ? "upcoming" : new Date(event.date).toDateString() === new Date().toDateString() ? "ongoing" : "past",
+            registeredCount: event.registeredCount || 0,
+            capacity: event.capacity || 0,
+          }))
+        );
 
         // Fetch notifications
         const notificationsResponse = await axios
@@ -492,7 +571,7 @@ const UserDashboard = () => {
           });
         setNotifications(notificationsResponse.data);
 
-        // Fetch achievements (with fallback for 404)
+        // Fetch achievements
         let achievementsData = [];
         try {
           const achievementsResponse = await axios.get(
@@ -528,7 +607,12 @@ const UserDashboard = () => {
               }`
             );
           });
-        setLeaderboard(leaderboardResponse.data);
+        setLeaderboard(
+          leaderboardResponse.data.map((entry) => ({
+            ...entry,
+            clubCount: entry.clubCount || 0,
+          }))
+        );
 
         // Fetch attendance for rate calculation
         const attendanceResponse = await axios
@@ -615,21 +699,68 @@ const UserDashboard = () => {
     [navigate]
   );
 
-  // Filter events
-  const filteredEvents = useMemo(
-    () =>
-      registeredEvents.filter(
-        (event) =>
-          event.title
-            .toLowerCase()
-            .includes(eventFilters.search.toLowerCase()) &&
-          (eventFilters.category === "" ||
-            event.category === eventFilters.category) &&
-          (eventFilters.club === "" ||
-            event.club.toLowerCase().includes(eventFilters.club.toLowerCase()))
-      ),
-    [registeredEvents, eventFilters]
+  // Handle Cancel Registration
+  const handleCancelRegistration = useCallback(
+    async (eventId) => {
+      try {
+        const token = localStorage.getItem("token");
+        await axios.delete(
+          `http://localhost:5000/api/events/${eventId}/register`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setRegisteredEvents((prev) => prev.filter((e) => e._id !== eventId));
+        setSuccess("Event registration canceled successfully.");
+        setTimeout(() => setSuccess(""), 3000);
+      } catch (err) {
+        setError(
+          err.response?.data?.error || "Failed to cancel event registration."
+        );
+        setTimeout(() => setError(""), 3000);
+        if (err.response?.status === 401) {
+          localStorage.removeItem("token");
+          navigate("/login");
+        }
+      } finally {
+        setCancelEventId(null);
+      }
+    },
+    [navigate]
   );
+
+  // Filter and sort events
+  const filteredEvents = useMemo(() => {
+    let events = [...registeredEvents];
+
+    // Apply filters
+    events = events.filter(
+      (event) =>
+        event.title.toLowerCase().includes(eventFilters.search.toLowerCase()) &&
+        (eventFilters.category === "" ||
+          event.category === eventFilters.category) &&
+        (eventFilters.club === "" ||
+          event.club.toLowerCase().includes(eventFilters.club.toLowerCase())) &&
+        (eventFilters.dateRange === "all" ||
+          (eventFilters.dateRange === "upcoming" && event.status === "upcoming") ||
+          (eventFilters.dateRange === "this-week" &&
+            new Date(event.date) >= new Date() &&
+            new Date(event.date) <=
+              new Date(new Date().setDate(new Date().getDate() + 7))))
+    );
+
+    // Apply sorting
+    events.sort((a, b) => {
+      if (eventFilters.sort === "date-asc") {
+        return new Date(a.date) - new Date(b.date);
+      } else if (eventFilters.sort === "date-desc") {
+        return new Date(b.date) - new Date(a.date);
+      } else if (eventFilters.sort === "title") {
+        return a.title.localeCompare(b.title);
+      }
+      return 0;
+    });
+
+    return events;
+  }, [registeredEvents, eventFilters]);
 
   // Filter clubs
   const filteredClubs = useMemo(
@@ -645,6 +776,16 @@ const UserDashboard = () => {
     [clubs, clubFilters]
   );
 
+  // Sort leaderboard
+  const sortedLeaderboard = useMemo(() => {
+    const sorted = [...leaderboard].sort((a, b) => {
+      const key = leaderboardSort.key;
+      const order = leaderboardSort.order === "desc" ? -1 : 1;
+      return (a[key] - b[key]) * order;
+    });
+    return sorted.slice(0, 10); // Limit to top 10
+  }, [leaderboard, leaderboardSort]);
+
   // Categories for club filter
   const clubCategories = useMemo(
     () => [
@@ -659,26 +800,40 @@ const UserDashboard = () => {
   // Chart.js data for leaderboard
   const chartData = useMemo(
     () => ({
-      labels: leaderboard.slice(0, 5).map((user) => user.name || "Unknown"),
+      labels: sortedLeaderboard.slice(0, 5).map((user) => user.name || "Unknown"),
       datasets: [
         {
           label: "Total Points",
-          data: leaderboard.slice(0, 5).map((user) => user.totalPoints || 0),
+          data: sortedLeaderboard
+            .slice(0, 5)
+            .map((user) => user.totalPoints || 0),
           backgroundColor: (context) => {
+            const index = context.dataIndex;
+            const userId = sortedLeaderboard[index]?.userId;
             const ctx = context.chart.ctx;
             const gradient = ctx.createLinearGradient(0, 0, 0, 200);
-            gradient.addColorStop(0, "#456882");
-            gradient.addColorStop(1, "#5a7a98");
+            if (userId === user?._id) {
+              gradient.addColorStop(0, "#FFD700"); // Gold for current user
+              gradient.addColorStop(1, "#FFA500");
+            } else {
+              gradient.addColorStop(0, "#456882");
+              gradient.addColorStop(1, "#5a7a98");
+            }
             return gradient;
           },
-          borderColor: ["#334d5e"],
+          borderColor: (context) => {
+            const index = context.dataIndex;
+            return sortedLeaderboard[index]?.userId === user?._id
+              ? "#FFA500"
+              : "#334d5e";
+          },
           borderWidth: 1,
           borderRadius: 8,
           barThickness: 30,
         },
       ],
     }),
-    [leaderboard]
+    [sortedLeaderboard, user]
   );
 
   const chartOptions = {
@@ -688,19 +843,19 @@ const UserDashboard = () => {
         title: {
           display: true,
           text: "Points",
-          font: { size: 14, weight: "600" },
+          font: { size: 14, weight: "600", family: "Poppins" },
         },
         grid: { color: "rgba(200, 200, 200, 0.2)" },
-        ticks: { color: "#334d5e", font: { size: 12 } },
+        ticks: { color: "#334d5e", font: { size: 12, family: "Poppins" } },
       },
       x: {
         title: {
           display: true,
           text: "Top Users",
-          font: { size: 14, weight: "600" },
+          font: { size: 14, weight: "600", family: "Poppins" },
         },
         grid: { display: false },
-        ticks: { color: "#334d5e", font: { size: 12 } },
+        ticks: { color: "#334d5e", font: { size: 12, family: "Poppins" } },
       },
     },
     plugins: {
@@ -708,13 +863,23 @@ const UserDashboard = () => {
       title: {
         display: true,
         text: "Club Leaderboard",
-        font: { size: 18, weight: "700" },
+        font: { size: 18, weight: "700", family: "Poppins" },
+        color: "#334d5e",
       },
       tooltip: {
         backgroundColor: "#334d5e",
-        titleFont: { size: 14 },
-        bodyFont: { size: 12 },
+        titleFont: { size: 14, family: "Poppins" },
+        bodyFont: { size: 12, family: "Poppins" },
         padding: 10,
+        callbacks: {
+          label: (context) => {
+            const userData = sortedLeaderboard[context.dataIndex];
+            return [
+              `Points: ${userData.totalPoints}`,
+              `Clubs: ${userData.clubCount}`,
+            ];
+          },
+        },
       },
     },
     maintainAspectRatio: false,
@@ -771,7 +936,7 @@ const UserDashboard = () => {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gray-50 font-sans">
+      <div className="min-h-screen bg-gray-50 font-[Poppins]">
         <Navbar user={user} />
         <Modal
           isOpen={!!error}
@@ -784,6 +949,16 @@ const UserDashboard = () => {
           onClose={() => setSuccess("")}
           message={success}
           isSuccess={true}
+        />
+        <Modal
+          isOpen={!!cancelEventId}
+          onClose={() => setCancelEventId(null)}
+          message={`Are you sure you want to cancel your registration for ${
+            registeredEvents.find((e) => e._id === cancelEventId)?.title
+          }?`}
+          isSuccess={false}
+          onConfirm={() => handleCancelRegistration(cancelEventId)}
+          confirmText="Cancel Registration"
         />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
           {/* Header */}
@@ -839,84 +1014,121 @@ const UserDashboard = () => {
               {/* Leaderboard */}
               <motion.div
                 variants={itemVariants}
-                className="bg-gradient-to-br from-[#456882] to-[#5a7a98] rounded-2xl shadow-lg p-6 text-white"
+                className="bg-white rounded-2xl shadow-lg p-6"
               >
-                <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                  <Star className="w-6 h-6" />
-                  Club Leaderboard
-                </h3>
-                {leaderboard.length === 0 ? (
-                  <p className="text-sm text-gray-200 text-center">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                  <h3 className="text-xl font-bold text-[#456882] flex items-center gap-2">
+                    <Star className="w-6 h-6" />
+                    Club Leaderboard
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    <select
+                      value={leaderboardSort.key}
+                      onChange={(e) =>
+                        setLeaderboardSort({
+                          ...leaderboardSort,
+                          key: e.target.value,
+                        })
+                      }
+                      className="w-full sm:w-36 pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
+                      aria-label="Sort leaderboard by"
+                    >
+                      <option value="totalPoints">Points</option>
+                      <option value="clubCount">Clubs Joined</option>
+                    </select>
+                    <select
+                      value={leaderboardSort.order}
+                      onChange={(e) =>
+                        setLeaderboardSort({
+                          ...leaderboardSort,
+                          order: e.target.value,
+                        })
+                      }
+                      className="w-full sm:w-36 pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
+                      aria-label="Sort order"
+                    >
+                      <option value="desc">Descending</option>
+                      <option value="asc">Ascending</option>
+                    </select>
+                    <Link
+                      to="/leaderboard"
+                      className="px-4 py-2 bg-[#456882] text-white rounded-lg hover:bg-[#334d5e]"
+                    >
+                      View Full
+                    </Link>
+                  </div>
+                </div>
+                {sortedLeaderboard.length === 0 ? (
+                  <p className="text-sm text-gray-500 text-center">
                     No leaderboard data available.
                   </p>
                 ) : (
-                  <div className="flex flex-col gap-4">
-                    {/* Card-based Leaderboard */}
-                    <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200">
-                      {leaderboard.slice(0, 5).map((entry, index) => (
-                        <motion.div
-                          key={entry.userId}
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          className={`flex-shrink-0 w-64 bg-white text-gray-900 rounded-xl p-4 shadow-md hover:shadow-xl transition-all duration-300 ${
-                            entry.userId === user?._id
-                              ? "ring-2 ring-yellow-400"
-                              : ""
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="relative">
-                              {entry.profilePicture ? (
-                                <img
-                                  src={entry.profilePicture}
-                                  alt={entry.name}
-                                  className="w-12 h-12 rounded-full object-cover border-2 border-[#456882]"
-                                  onError={(e) => {
-                                    e.target.src =
-                                      "https://via.placeholder.com/150?text=User";
-                                  }}
-                                />
-                              ) : (
-                                <div className="w-12 h-12 rounded-full bg-[#456882] flex items-center justify-center text-white text-lg font-semibold">
-                                  {entry.name?.charAt(0).toUpperCase() || "U"}
-                                </div>
-                              )}
-                              <span
-                                className={`absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                                  index === 0
-                                    ? "bg-yellow-400 text-gray-900"
-                                    : index === 1
-                                    ? "bg-gray-300 text-gray-900"
-                                    : index === 2
-                                    ? "bg-amber-600 text-white"
-                                    : "bg-gray-500 text-white"
-                                }`}
-                              >
-                                {index + 1}
-                              </span>
-                            </div>
-                            <div className="flex-1">
-                              <Link
-                                to={`/profile/${entry.userId}`}
-                                className="text-sm font-semibold text-[#456882] hover:underline"
-                              >
-                                {entry.name || "Unknown"}
-                              </Link>
-                              <p className="text-xs text-gray-600">
-                                {entry.totalPoints} Points
-                              </p>
-                              {entry.userId === user?._id && (
-                                <p className="text-xs text-yellow-600 font-medium">
-                                  You
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
+                  <div className="space-y-4">
+                    <div className="overflow-x-auto">
+                      <table
+                        className="w-full text-sm text-gray-900"
+                        aria-label="Leaderboard table"
+                      >
+                        <thead>
+                          <tr className="text-left border-b border-gray-200">
+                            <th className="py-2 px-4">Rank</th>
+                            <th className="py-2 px-4">User</th>
+                            <th className="py-2 px-4">Points</th>
+                            <th className="py-2 px-4">Clubs</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sortedLeaderboard.map((entry, index) => (
+                            <motion.tr
+                              key={entry.userId}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.1 }}
+                              className={`border-b border-gray-100 hover:bg-gray-50 ${
+                                entry.userId === user?._id
+                                  ? "bg-yellow-50 ring-1 ring-yellow-400"
+                                  : ""
+                              }`}
+                            >
+                              <td className="py-3 px-4 flex items-center gap-2">
+                                <span
+                                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                                    index === 0
+                                      ? "bg-yellow-400 text-gray-900 animate-pulse"
+                                      : index === 1
+                                      ? "bg-gray-300 text-gray-900"
+                                      : index === 2
+                                      ? "bg-amber-600 text-white"
+                                      : "bg-gray-500 text-white"
+                                  }`}
+                                >
+                                  {index + 1}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4">
+                                <Link
+                                  to={`/profile/${entry.userId}`}
+                                  className="text-[#456882] hover:underline"
+                                >
+                                  {entry.name || "Unknown"}
+                                </Link>
+                                {entry.userId === user?._id && (
+                                  <span className="ml-2 text-xs text-yellow-600">
+                                    (You)
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-3 px-4">
+                                {entry.totalPoints}
+                              </td>
+                              <td className="py-3 px-4">
+                                {entry.clubCount}
+                              </td>
+                            </motion.tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
-                    {/* Chart */}
                     <div className="h-64 bg-white rounded-xl p-4">
                       <Bar data={chartData} options={chartOptions} />
                     </div>
@@ -925,14 +1137,17 @@ const UserDashboard = () => {
               </motion.div>
 
               {/* Registered Events */}
-              <div>
+              <motion.div variants={itemVariants}>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
                   <h2 className="text-lg font-semibold text-gray-900">
                     Your Registered Events
                   </h2>
                   <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                     <div className="relative flex-1 min-w-[200px]">
-                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Search
+                        className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4"
+                        aria-hidden="true"
+                      />
                       <input
                         type="text"
                         placeholder="Search events..."
@@ -955,7 +1170,7 @@ const UserDashboard = () => {
                           category: e.target.value,
                         })
                       }
-                      className="w-full sm:w-48 pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
+                      className="w-full sm:w-36 pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
                       aria-label="Filter by category"
                     >
                       <option value="">All Categories</option>
@@ -970,7 +1185,7 @@ const UserDashboard = () => {
                           club: e.target.value,
                         })
                       }
-                      className="w-full sm:w-48 pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
+                      className="w-full sm:w-36 pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
                       aria-label="Filter by club"
                     >
                       <option value="">All Clubs</option>
@@ -980,6 +1195,59 @@ const UserDashboard = () => {
                         </option>
                       ))}
                     </select>
+                    <select
+                      value={eventFilters.sort}
+                      onChange={(e) =>
+                        setEventFilters({
+                          ...eventFilters,
+                          sort: e.target.value,
+                        })
+                      }
+                      className="w-full sm:w-36 pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
+                      aria-label="Sort events by"
+                    >
+                      <option value="date-asc">Date (Ascending)</option>
+                      <option value="date-desc">Date (Descending)</option>
+                      <option value="title">Title</option>
+                    </select>
+                    <select
+                      value={eventFilters.dateRange}
+                      onChange={(e) =>
+                        setEventFilters({
+                          ...eventFilters,
+                          dateRange: e.target.value,
+                        })
+                      }
+                      className="w-full sm:w-36 pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
+                      aria-label="Filter by date range"
+                    >
+                      <option value="all">All Events</option>
+                      <option value="upcoming">Upcoming</option>
+                      <option value="this-week">This Week</option>
+                    </select>
+                    {(eventFilters.search ||
+                      eventFilters.category ||
+                      eventFilters.club ||
+                      eventFilters.sort !== "date-asc" ||
+                      eventFilters.dateRange !== "all") && (
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() =>
+                          setEventFilters({
+                            search: "",
+                            category: "",
+                            club: "",
+                            sort: "date-asc",
+                            dateRange: "all",
+                          })
+                        }
+                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                        aria-label="Clear all filters"
+                      >
+                        Clear Filters
+                      </motion.button>
+                    )}
                   </div>
                 </div>
                 {filteredEvents.length === 0 ? (
@@ -1004,12 +1272,16 @@ const UserDashboard = () => {
                   >
                     <AnimatePresence>
                       {filteredEvents.map((event) => (
-                        <EventCard key={event._id} event={event} />
+                        <EventCard
+                          key={event._id}
+                          event={event}
+                          onCancelRegistration={() => setCancelEventId(event._id)}
+                        />
                       ))}
                     </AnimatePresence>
                   </motion.div>
                 )}
-              </div>
+              </motion.div>
             </div>
 
             {/* Sidebar */}
@@ -1098,7 +1370,10 @@ const UserDashboard = () => {
               </h2>
               <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <div className="relative flex-1 min-w-[200px]">
-                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Search
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4"
+                    aria-hidden="true"
+                  />
                   <input
                     type="text"
                     placeholder="Search clubs..."

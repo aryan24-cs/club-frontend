@@ -285,13 +285,13 @@ const ClubCard = memo(({ club, index }) => {
             </ul>
           </div>
         )}
-        <Link
+        {/* <Link
           to={`/clubs/${club._id}`}
           className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-[#456882] to-[#5a7a98] text-white rounded-lg hover:from-[#334d5e] hover:to-[#456882] transition-all duration-300 group-hover:shadow-md transform group-hover:scale-100"
         >
           <span className="font-medium">View Club</span>
           <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-        </Link>
+        </Link> */}
       </div>
     </motion.div>
   );
