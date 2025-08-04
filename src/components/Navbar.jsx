@@ -1,4 +1,4 @@
-import React, { memo, useState, useEffect, useCallback } from "react";
+import React, { memo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home,
@@ -15,11 +15,11 @@ import {
   BookOpen,
   MessageSquare,
   ChevronDown,
-  Trophy,
 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 
+// Airplane Menu Component
 const AirplaneMenu = ({
   isOpen,
   onClose,
@@ -27,10 +27,8 @@ const AirplaneMenu = ({
   userLinks,
   user,
   handleLogout,
-  unreadCount,
 }) => {
   const location = useLocation();
-  const navigate = useNavigate();
   const [openSubMenu, setOpenSubMenu] = useState(null);
 
   const toggleSubMenu = (label) => {
@@ -205,14 +203,7 @@ const AirplaneMenu = ({
                       }}
                       aria-label={`Navigate to ${link.label}`}
                     >
-                      <div className="relative">
-                        {link.label === "Notifications" && unreadCount > 0 && (
-                          <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                            {unreadCount}
-                          </span>
-                        )}
-                        {link.icon}
-                      </div>
+                      {link.icon}
                       <span className="ml-2">{link.label}</span>
                     </Link>
                   </motion.div>
@@ -242,15 +233,55 @@ const AirplaneMenu = ({
   );
 };
 
-const Navbar = memo(({ user, role, unreadCount }) => {
+const Navbar = memo(() => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [openSubMenu, setOpenSubMenu] = useState(null);
+  const [user, setUser] = useState(null);
+  const [role, setRole] = useState("user");
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
 
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          navigate("/login");
+          return;
+        }
+        const config = { headers: { Authorization: `Bearer ${token}` } };
+        const response = await axios.get(
+          "http://localhost:5000/api/auth/user",
+          config
+        );
+        setUser(response.data);
+        if (response.data.isAdmin) {
+          setRole("superadmin");
+        } else if (response.data.headCoordinatorClubs?.length > 0) {
+          setRole("admin");
+        } else {
+          setRole("user");
+        }
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching user:", {
+          message: err.message,
+          status: err.response?.status,
+          data: err.response?.data,
+        });
+        localStorage.removeItem("token");
+        navigate("/login");
+      }
+    };
+    fetchUser();
+  }, [navigate]);
+
   const handleLogout = () => {
     localStorage.removeItem("token");
+    setUser(null);
+    setRole("user");
     navigate("/login");
   };
 
@@ -258,6 +289,7 @@ const Navbar = memo(({ user, role, unreadCount }) => {
     setOpenSubMenu(openSubMenu === label ? null : label);
   };
 
+  // Common user links for the dropdown and mobile menu
   const userLinks = [
     {
       to: "/dashboard",
@@ -281,6 +313,7 @@ const Navbar = memo(({ user, role, unreadCount }) => {
     },
   ];
 
+  // Role-based navigation links with events and clubs grouped
   const navLinks = {
     user: [
       {
@@ -351,11 +384,6 @@ const Navbar = memo(({ user, role, unreadCount }) => {
             label: "Attendance",
             icon: <BookOpen className="w-5 h-5 mr-2" />,
           },
-          {
-            to: "/ranking-system",
-            label: "Ranking",
-            icon: <Trophy className="w-5 h-5 mr-2" />,
-          },
         ],
       },
       {
@@ -363,7 +391,6 @@ const Navbar = memo(({ user, role, unreadCount }) => {
         label: "Users",
         icon: <Users className="w-5 h-5 mr-2" />,
       },
-
       {
         to: "/contact-manage",
         label: "Messages",
@@ -413,11 +440,6 @@ const Navbar = memo(({ user, role, unreadCount }) => {
             label: "Attendance",
             icon: <BookOpen className="w-5 h-5 mr-2" />,
           },
-          {
-            to: "/ranking-system",
-            label: "Ranking",
-            icon: <Trophy className="w-5 h-5 mr-2" />,
-          },
         ],
       },
       {
@@ -425,7 +447,6 @@ const Navbar = memo(({ user, role, unreadCount }) => {
         label: "Users",
         icon: <Users className="w-5 h-5 mr-2" />,
       },
-
       {
         to: "/contact-manage",
         label: "Messages",
@@ -464,6 +485,7 @@ const Navbar = memo(({ user, role, unreadCount }) => {
     },
   ];
 
+  // Define home route based on role
   const homeRoute =
     {
       user: "/dashboard",
@@ -471,14 +493,9 @@ const Navbar = memo(({ user, role, unreadCount }) => {
       superadmin: "/super-admin-dashboard",
     }[role] || "/dashboard";
 
-  if (!user) {
+  if (loading) {
     return (
-      <div className="fixed top-0 w-full h-16 bg-white shadow-md z-50">
-        <div className="max-w-7.5xl mx-auto px-6 flex justify-between items-center h-full">
-          <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
-          <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
-        </div>
-      </div>
+      <div className="fixed top-0 w-full h-16 bg-white shadow-md z-50"></div>
     );
   }
 
@@ -500,6 +517,7 @@ const Navbar = memo(({ user, role, unreadCount }) => {
               ACEM
             </Link>
 
+            {/* Desktop Menu */}
             <div className="hidden md:flex items-center space-x-1">
               {navLinks.map((link) => (
                 <div key={link.label} className="relative">
@@ -667,15 +685,7 @@ const Navbar = memo(({ user, role, unreadCount }) => {
                           }}
                           aria-label={`Navigate to ${link.label}`}
                         >
-                          <div className="relative">
-                            {link.label === "Notifications" &&
-                              unreadCount > 0 && (
-                                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                                  {unreadCount}
-                                </span>
-                              )}
-                            {link.icon}
-                          </div>
+                          {link.icon}
                           <span className="ml-2">{link.label}</span>
                         </Link>
                       ))}
@@ -693,6 +703,7 @@ const Navbar = memo(({ user, role, unreadCount }) => {
               </div>
             </div>
 
+            {/* Mobile Menu Button */}
             <button
               className="md:hidden text-[#456882] hover:text-[#334d5e]"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -715,7 +726,6 @@ const Navbar = memo(({ user, role, unreadCount }) => {
         userLinks={userLinks}
         user={user}
         handleLogout={handleLogout}
-        unreadCount={unreadCount}
       />
     </>
   );

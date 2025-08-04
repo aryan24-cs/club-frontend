@@ -323,11 +323,11 @@ const AnimatedRoutes = () => {
           <Route
             path="/ranking-system"
             element={
-              <RoleBasedRoute roles={["admin", "super-admin"]}>
+              <ProtectedRoute >
                 <Layout>
                   <RankingSystem />
                 </Layout>
-              </RoleBasedRoute>
+              </ProtectedRoute>
             }
           />
           <Route

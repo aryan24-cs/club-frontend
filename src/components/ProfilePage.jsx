@@ -343,92 +343,107 @@ const ProfilePage = () => {
   }, [token, navigate]);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      setIsSubmitting(true);
-      setError("");
-      setSuccess("");
+  e.preventDefault();
+  try {
+    setIsSubmitting(true);
+    setError("");
+    setSuccess("");
 
-      if (!profile.name || !profile.name.trim()) {
-        throw new Error("Name is required.");
-      }
-      if (!profile.email || !profile.email.trim()) {
-        throw new Error("Email is required.");
-      }
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(profile.email)) {
-        throw new Error("Invalid email format.");
-      }
-
-      const payload = {
-        name: profile.name.trim(),
-        email: profile.email.trim(),
-        phone: profile.phone ? profile.phone.trim() : undefined,
-        semester: profile.semester ? String(profile.semester).trim() : undefined,
-        course: profile.course ? profile.course.trim() : undefined,
-        specialization: profile.specialization ? profile.specialization.trim() : undefined,
-        rollNo: profile.rollNo ? profile.rollNo.trim() : undefined,
-      };
-
-      console.log("Sending payload to backend:", payload);
-
-      const response = await axios.put(
-        "http://localhost:5000/api/auth/user",
-        payload,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.data.requiresOtp) {
-        setPendingProfile(payload);
-        setShowOtpModal(true);
-        setSuccess("OTP sent to your new email. Please verify.");
-        setTimeout(() => setSuccess(""), 3000);
-        return;
-      }
-
-      if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
-      }
-
-      setSuccess("Profile updated successfully!");
-      setUser((prev) => ({
-        ...prev,
-        name: profile.name,
-        email: profile.email,
-        phone: profile.phone,
-        semester: profile.semester,
-        course: profile.course,
-        specialization: profile.specialization,
-        rollNo: profile.rollNo,
-        isACEMStudent: profile.isACEMStudent,
-        collegeName: profile.collegeName,
-        profilePicture: profile.profilePicture,
-      }));
-      setIsEditing(false);
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      console.error("Error updating profile:", {
-        message: err.message,
-        status: err.response?.status,
-        data: err.response?.data,
-      });
-      let errorMessage = err.message || "Failed to update profile.";
-      if (err.response?.status === 400) {
-        errorMessage = err.response?.data?.error || "Invalid input data. Please check your entries.";
-      } else if (err.response?.status === 401) {
-        errorMessage = "Session expired. Please log in again.";
-        localStorage.removeItem("token");
-        navigate("/login");
-      } else if (err.response?.status === 500) {
-        errorMessage = "Server error while updating profile. Please try again or contact support.";
-      }
-      setError(errorMessage);
-    } finally {
-      setIsSubmitting(false);
+    // Frontend validation
+    if (!profile.name || !profile.name.trim()) {
+      throw new Error("Name is required.");
     }
-  };
+    if (profile.name.trim().length < 2) {
+      throw new Error("Name must be at least 2 characters.");
+    }
+    if (!profile.email || !profile.email.trim()) {
+      throw new Error("Email is required.");
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(profile.email)) {
+      throw new Error("Invalid email format.");
+    }
+    if (profile.phone && !/^\+?\d{10,15}$/.test(profile.phone)) {
+      throw new Error("Invalid phone number format.");
+    }
+    if (profile.semester && (isNaN(profile.semester) || profile.semester < 1 || profile.semester > 8)) {
+      throw new Error("Semester must be between 1 and 8.");
+    }
+    if (profile.rollNo && !/^[A-Za-z0-9]+$/.test(profile.rollNo)) {
+      throw new Error("Invalid roll number format.");
+    }
+    if (profile.isACEMStudent === undefined) {
+      throw new Error("ACEM student status is required.");
+    }
+    if (!profile.isACEMStudent && (!profile.collegeName || !profile.collegeName.trim())) {
+      throw new Error("College name is required for non-ACEM students.");
+    }
+
+    // Only include rollNo in payload if it has changed
+    const payload = {
+      name: profile.name.trim(),
+      email: profile.email.trim(),
+      phone: profile.phone ? profile.phone.trim() : "",
+      semester: profile.semester ? Number(profile.semester) : null,
+      course: profile.course ? profile.course.trim() : "",
+      specialization: profile.specialization ? profile.specialization.trim() : "",
+      isACEMStudent: profile.isACEMStudent || false,
+      collegeName: profile.isACEMStudent ? "Aravali College Of Engineering And Management" : profile.collegeName ? profile.collegeName.trim() : "",
+    };
+    if (profile.rollNo && profile.rollNo.trim() !== user?.rollNo) {
+      payload.rollNo = profile.rollNo.trim();
+    }
+
+    console.log("Sending payload to backend:", payload);
+
+    const response = await axios.put(
+      "http://localhost:5000/api/auth/user",
+      payload,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    if (response.data.requiresOtp) {
+      setPendingProfile(payload);
+      setShowOtpModal(true);
+      setSuccess("OTP sent to your new email. Please verify.");
+      setTimeout(() => setSuccess(""), 3000);
+      return;
+    }
+
+    if (response.data.token) {
+      localStorage.setItem("token", response.data.token);
+    }
+
+    setSuccess("Profile updated successfully!");
+    setUser((prev) => ({
+      ...prev,
+      ...payload,
+    }));
+    setIsEditing(false);
+    setTimeout(() => setSuccess(""), 3000);
+  } catch (err) {
+    console.error("Error updating profile:", {
+      message: err.message,
+      status: err.response?.status,
+      data: err.response?.data,
+    });
+    let errorMessage = err.message || "Failed to update profile.";
+    if (err.response?.status === 400) {
+      errorMessage = err.response?.data?.error || "Invalid input data. Please check your entries.";
+    } else if (err.response?.status === 401) {
+      errorMessage = "Session expired. Please log in again.";
+      localStorage.removeItem("token");
+      navigate("/login");
+    } else if (err.response?.status === 500) {
+      errorMessage = "Server error while updating profile. Please try again or contact support.";
+    }
+    setError(errorMessage);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const handleOtpSubmit = async (e) => {
     e.preventDefault();

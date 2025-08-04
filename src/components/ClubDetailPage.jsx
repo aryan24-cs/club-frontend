@@ -32,12 +32,13 @@ import {
   FaIdCard,
   FaGraduationCap,
   FaLink,
+  FaMoneyBillWave, // Added missing import
 } from "react-icons/fa";
 import { FaWhatsapp } from "react-icons/fa6";
 import toast, { Toaster } from "react-hot-toast";
 import Navbar from "../components/Navbar";
 
-// Simple Error Boundary Component
+// Error Boundary Component
 class CoordinatorCardErrorBoundary extends Component {
   state = { hasError: false, error: null };
   static getDerivedStateFromError(error) {
@@ -46,8 +47,8 @@ class CoordinatorCardErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="bg-red-50 p-4 rounded-xl border border-red-200 text-red-600">
-          Error rendering coordinator card: {this.state.error.message}
+        <div className="bg-red-50 p-4 rounded-xl border border-red-200 text-red-600 text-sm sm:text-base">
+          Error rendering coordinator card: {this.state.error?.message || "Unknown error"}
         </div>
       );
     }
@@ -55,7 +56,7 @@ class CoordinatorCardErrorBoundary extends Component {
   }
 }
 
-// Floating Particle Component with Responsive Constraints
+// Floating Particle Component
 const FloatingParticle = ({ delay, duration }) => {
   const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
   const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
@@ -71,12 +72,12 @@ const FloatingParticle = ({ delay, duration }) => {
     <motion.div
       className="absolute w-2 h-2 bg-[#456882] rounded-full opacity-20"
       initial={{
-        x: Math.random() * viewportWidth * 0.8,
+        x: Math.random() * viewportWidth * 0.9,
         y: viewportHeight,
         opacity: 0,
       }}
       animate={{
-        x: Math.random() * viewportWidth * 0.8,
+        x: Math.random() * viewportWidth * 0.9,
         y: -20,
         opacity: [0, 0.6, 0],
       }}
@@ -87,7 +88,7 @@ const FloatingParticle = ({ delay, duration }) => {
         ease: "linear",
       }}
       style={{
-        x: `clamp(0px, ${viewportWidth * 0.8}px, ${viewportWidth - 20}px)`,
+        x: `clamp(0px, ${viewportWidth * 0.9}px, ${viewportWidth - 20}px)`,
         y: `clamp(-20px, ${viewportHeight}px, ${viewportHeight}px)`,
       }}
     />
@@ -122,7 +123,7 @@ const AnimatedGrid = () => {
 
 // Coordinator Card Component
 const CoordinatorCard = ({ coordinator, index }) => {
-  const displayName = coordinator.name || "Unknown Coordinator";
+  const displayName = coordinator?.name || "Unknown Coordinator";
   return (
     <CoordinatorCardErrorBoundary>
       <motion.div
@@ -132,7 +133,7 @@ const CoordinatorCard = ({ coordinator, index }) => {
         className="relative group"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 rounded-2xl blur-sm opacity-30 group-hover:opacity-50 transition-opacity"></div>
-        <div className="relative bg-white/95 backdrop-blur-xl rounded-2xl p-6 border border-white/40 shadow-xl hover:shadow-2xl transition-all duration-300">
+        <div className="relative bg-white/95 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-white/40 shadow-xl hover:shadow-2xl transition-all duration-300">
           <div className="absolute top-3 right-3">
             <div className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-bold rounded-full shadow-lg">
               <FaCrown className="w-3 h-3" />
@@ -141,43 +142,43 @@ const CoordinatorCard = ({ coordinator, index }) => {
           </div>
           <div className="flex items-start gap-4">
             <div className="relative">
-              <div className="w-16 h-16 bg-gradient-to-br from-[#456882] to-[#5a7a95] rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
+              <div className="w-12 sm:w-16 h-12 sm:h-16 bg-gradient-to-br from-[#456882] to-[#5a7a95] rounded-xl flex items-center justify-center text-white font-bold text-lg sm:text-xl shadow-lg">
                 {displayName.charAt(0).toUpperCase()}
               </div>
               <motion.div
                 animate={{ scale: [1, 1.2, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
-                className="absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg"
+                className="absolute -bottom-1 -right-1 w-5 sm:w-6 h-5 sm:h-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg"
               >
                 <FaStar className="text-white text-xs" />
               </motion.div>
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-bold text-[#456882] mb-1 truncate">
+              <h3 className="text-base sm:text-lg font-bold text-[#456882] mb-1 truncate">
                 {displayName}
               </h3>
-              <div className="space-y-2 text-sm">
+              <div className="space-y-2 text-xs sm:text-sm">
                 <div className="flex items-center gap-2 text-gray-600">
-                  <FaEnvelope className="w-4 h-4 text-[#456882]" />
+                  <FaEnvelope className="w-3 sm:w-4 h-3 sm:h-4 text-[#456882]" />
                   <span className="truncate">
-                    {coordinator.email || "No email"}
+                    {coordinator?.email || "No email"}
                   </span>
                 </div>
-                {coordinator.phone && (
+                {coordinator?.phone && (
                   <div className="flex items-center gap-2 text-gray-600">
-                    <FaPhone className="w-4 h-4 text-[#456882]" />
+                    <FaPhone className="w-3 sm:w-4 h-3 sm:h-4 text-[#456882]" />
                     <span>{coordinator.phone}</span>
                   </div>
                 )}
-                {coordinator.rollNo && (
+                {coordinator?.rollNo && (
                   <div className="flex items-center gap-2 text-gray-600">
-                    <FaIdCard className="w-4 h-4 text-[#456882]" />
+                    <FaIdCard className="w-3 sm:w-4 h-3 sm:h-4 text-[#456882]" />
                     <span>Roll: {coordinator.rollNo}</span>
                   </div>
                 )}
-                {coordinator.year && (
+                {coordinator?.year && (
                   <div className="flex items-center gap-2 text-gray-600">
-                    <FaGraduationCap className="w-4 h-4 text-[#456882]" />
+                    <FaGraduationCap className="w-3 sm:w-4 h-3 sm:h-4 text-[#456882]" />
                     <span>Year: {coordinator.year}</span>
                   </div>
                 )}
@@ -192,7 +193,7 @@ const CoordinatorCard = ({ coordinator, index }) => {
 
 // Admin Card Component
 const AdminCard = ({ admin, index, isSuperAdmin }) => {
-  const displayName = admin.name || "Unknown Admin";
+  const displayName = admin?.name || "Unknown Admin";
   return (
     <CoordinatorCardErrorBoundary>
       <motion.div
@@ -202,7 +203,7 @@ const AdminCard = ({ admin, index, isSuperAdmin }) => {
         className="relative group"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 rounded-2xl blur-sm opacity-30 group-hover:opacity-50 transition-opacity"></div>
-        <div className="relative bg-white/95 backdrop-blur-xl rounded-2xl p-6 border border-white/40 shadow-xl hover:shadow-2xl transition-all duration-300">
+        <div className="relative bg-white/95 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-white/40 shadow-xl hover:shadow-2xl transition-all duration-300">
           <div className="absolute top-3 right-3">
             <div className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-bold rounded-full shadow-lg">
               {isSuperAdmin ? (
@@ -215,31 +216,31 @@ const AdminCard = ({ admin, index, isSuperAdmin }) => {
           </div>
           <div className="flex items-start gap-4">
             <div className="relative">
-              <div className="w-16 h-16 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
+              <div className="w-12 sm:w-16 h-12 sm:h-16 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl flex items-center justify-center text-white font-bold text-lg sm:text-xl shadow-lg">
                 {displayName.charAt(0).toUpperCase()}
               </div>
               {isSuperAdmin && (
                 <motion.div
                   animate={{ scale: [1, 1.2, 1] }}
                   transition={{ duration: 2, repeat: Infinity }}
-                  className="absolute -bottom-1 -right-1 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center shadow-lg"
+                  className="absolute -bottom-1 -right-1 w-5 sm:w-6 h-5 sm:h-6 bg-yellow-500 rounded-full flex items-center justify-center shadow-lg"
                 >
                   <FaCrown className="text-white text-xs" />
                 </motion.div>
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-bold text-[#456882] mb-1 truncate">
+              <h3 className="text-base sm:text-lg font-bold text-[#456882] mb-1 truncate">
                 {displayName}
               </h3>
-              <div className="space-y-2 text-sm">
+              <div className="space-y-2 text-xs sm:text-sm">
                 <div className="flex items-center gap-2 text-gray-600">
-                  <FaEnvelope className="w-4 h-4 text-[#456882]" />
-                  <span className="truncate">{admin.email || "No email"}</span>
+                  <FaEnvelope className="w-3 sm:w-4 h-3 sm:h-4 text-[#456882]" />
+                  <span className="truncate">{admin?.email || "No email"}</span>
                 </div>
-                {admin.phone && (
+                {admin?.phone && (
                   <div className="flex items-center gap-2 text-gray-600">
-                    <FaPhone className="w-4 h-4 text-[#456882]" />
+                    <FaPhone className="w-3 sm:w-4 h-3 sm:h-4 text-[#456882]" />
                     <span>{admin.phone}</span>
                   </div>
                 )}
@@ -261,19 +262,19 @@ const LeaveClubModal = ({ isOpen, onClose, onConfirm, clubName, loading }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4"
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border border-gray-200"
+            className="bg-white rounded-2xl p-6 sm:p-8 max-w-sm sm:max-w-md w-full shadow-2xl border border-gray-200"
           >
-            <h2 className="text-2xl font-bold text-[#456882] mb-4">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#456882] mb-4">
               Leave {clubName}?
             </h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 mb-6 text-sm sm:text-base">
               Are you sure you want to leave this club? You can rejoin later if
               needed.
             </p>
@@ -282,7 +283,7 @@ const LeaveClubModal = ({ isOpen, onClose, onConfirm, clubName, loading }) => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={onClose}
-                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium shadow-lg hover:bg-gray-300 transition-all"
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-gray-200 text-gray-700 rounded-xl font-medium shadow-lg hover:bg-gray-300 transition-all text-sm sm:text-base"
               >
                 Cancel
               </motion.button>
@@ -291,12 +292,12 @@ const LeaveClubModal = ({ isOpen, onClose, onConfirm, clubName, loading }) => {
                 whileTap={{ scale: 0.98 }}
                 onClick={onConfirm}
                 disabled={loading}
-                className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-700 text-white rounded-xl font-medium shadow-lg hover:from-red-600 hover:to-red-800 transition-all disabled:opacity-50"
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-red-500 to-red-700 text-white rounded-xl font-medium shadow-lg hover:from-red-600 hover:to-red-800 transition-all disabled:opacity-50 text-sm sm:text-base"
               >
                 {loading ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block mr-2" />
+                  <div className="w-4 sm:w-5 h-4 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block mr-2" />
                 ) : (
-                  <FaSignOutAlt className="w-5 h-5 inline-block mr-2" />
+                  <FaSignOutAlt className="w-4 sm:w-5 h-4 sm:h-5 inline-block mr-2" />
                 )}
                 Confirm
               </motion.button>
@@ -335,23 +336,23 @@ const WhatsAppLinkModal = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4"
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border border-gray-200"
+            className="bg-white rounded-2xl p-6 sm:p-8 max-w-sm sm:max-w-md w-full shadow-2xl border border-gray-200"
           >
-            <h2 className="text-2xl font-bold text-[#456882] mb-4">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#456882] mb-4">
               Set WhatsApp Group Link
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label
                   htmlFor="whatsappLink"
-                  className="block text-lg font-semibold text-gray-700 mb-2"
+                  className="block text-base sm:text-lg font-semibold text-gray-700 mb-2"
                 >
                   WhatsApp Group Link
                 </label>
@@ -360,7 +361,7 @@ const WhatsAppLinkModal = ({
                   type="url"
                   value={whatsappLink}
                   onChange={(e) => setWhatsappLink(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#456882] focus:border-transparent bg-gray-50/50 text-lg"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#456882] focus:border-transparent bg-gray-50/50 text-sm sm:text-base"
                   placeholder="https://chat.whatsapp.com/..."
                 />
               </div>
@@ -370,7 +371,7 @@ const WhatsAppLinkModal = ({
                   whileTap={{ scale: 0.98 }}
                   type="button"
                   onClick={onClose}
-                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium shadow-lg hover:bg-gray-300 transition-all"
+                  className="px-4 sm:px-6 py-2 sm:py-3 bg-gray-200 text-gray-700 rounded-xl font-medium shadow-lg hover:bg-gray-300 transition-all text-sm sm:text-base"
                 >
                   Cancel
                 </motion.button>
@@ -379,17 +380,72 @@ const WhatsAppLinkModal = ({
                   whileTap={{ scale: 0.98 }}
                   type="submit"
                   disabled={loading}
-                  className="px-6 py-3 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl font-medium shadow-lg hover:from-[#334d5e] hover:to-[#456882] transition-all disabled:opacity-50"
+                  className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl font-medium shadow-lg hover:from-[#334d5e] hover:to-[#456882] transition-all disabled:opacity-50 text-sm sm:text-base"
                 >
                   {loading ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block mr-2" />
+                    <div className="w-4 sm:w-5 h-4 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block mr-2" />
                   ) : (
-                    <FaLink className="w-5 h-5 inline-block mr-2" />
+                    <FaLink className="w-4 sm:w-5 h-4 sm:h-5 inline-block mr-2" />
                   )}
                   Save
                 </motion.button>
               </div>
             </form>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+// Event Registration Modal
+const EventRegistrationModal = ({ isOpen, onClose, onConfirm, eventId, loading }) => {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4"
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white rounded-2xl p-6 sm:p-8 max-w-sm sm:max-w-md w-full shadow-2xl border border-gray-200"
+          >
+            <h2 className="text-xl sm:text-2xl font-bold text-[#456882] mb-4">
+              Register for Event
+            </h2>
+            <p className="text-gray-600 mb-6 text-sm sm:text-base">
+              Are you sure you want to register for this event?
+            </p>
+            <div className="flex justify-end gap-4">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onClose}
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-gray-200 text-gray-700 rounded-xl font-medium shadow-lg hover:bg-gray-300 transition-all text-sm sm:text-base"
+              >
+                Cancel
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => onConfirm(eventId)}
+                disabled={loading}
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl font-medium shadow-lg hover:from-[#334d5e] hover:to-[#456882] transition-all disabled:opacity-50 text-sm sm:text-base"
+              >
+                {loading ? (
+                  <div className="w-4 sm:w-5 h-4 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block mr-2" />
+                ) : (
+                  <FaUser className="w-4 sm:w-5 h-4 sm:h-5 inline-block mr-2" />
+                )}
+                Confirm Registration
+              </motion.button>
+            </div>
           </motion.div>
         </motion.div>
       )}
@@ -405,6 +461,7 @@ const ClubDetailPage = () => {
   const [members, setMembers] = useState([]);
   const [filteredMembers, setFilteredMembers] = useState([]);
   const [headCoordinators, setHeadCoordinators] = useState([]);
+  const [user, setUser] = useState(null); // Added user state
   const [isMember, setIsMember] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isHeadCoordinator, setIsHeadCoordinator] = useState(false);
@@ -426,6 +483,9 @@ const ClubDetailPage = () => {
   const [eventsPage, setEventsPage] = useState(1);
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [whatsAppLoading, setWhatsAppLoading] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false); // Added for event registration
+  const [registerLoading, setRegisterLoading] = useState({}); // Added for registration loading state
+  const [selectedEventId, setSelectedEventId] = useState(null); // Added for selected event
   const itemsPerPage = 6;
   const { scrollY } = useScroll();
   const bgY = useTransform(scrollY, [0, 500], [0, -50]);
@@ -460,7 +520,6 @@ const ClubDetailPage = () => {
           typeof coordinator.name === "string" &&
           coordinator.email
       );
-      console.log("Fetched headCoordinators:", validCoordinators); // Debug log
       setClub(clubData);
       setHeadCoordinators(validCoordinators);
       const eventsResponse = await axios.get(
@@ -484,6 +543,7 @@ const ClubDetailPage = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+      setUser(userResponse.data); // Store user data
       const userClubs = userResponse.data.clubs || [];
       const isUserMember = userClubs.some(
         (club) => club._id && club._id.toString() === clubData._id.toString()
@@ -492,12 +552,14 @@ const ClubDetailPage = () => {
       setIsAdmin(userResponse.data.isAdmin);
       setIsHeadCoordinator(
         userResponse.data.isHeadCoordinator &&
+          Array.isArray(userResponse.data.headCoordinatorClubs) &&
           userResponse.data.headCoordinatorClubs.includes(clubData.name)
       );
       setIsSuperAdmin(
-        clubData.superAdmins.some(
-          (admin) => admin._id.toString() === userResponse.data._id.toString()
-        )
+        Array.isArray(clubData.superAdmins) &&
+          clubData.superAdmins.some(
+            (admin) => admin._id.toString() === userResponse.data._id.toString()
+          )
       );
       setLoading(false);
       setRetryCount(0);
@@ -614,6 +676,31 @@ const ClubDetailPage = () => {
     }
   };
 
+  const handleRegisterEvent = async (eventId) => {
+    setRegisterLoading((prev) => ({ ...prev, [eventId]: true }));
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `http://localhost:5000/api/events/${eventId}/register`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      toast.success("Registered for the event successfully");
+      setShowRegisterModal(false);
+      await fetchClubData();
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to register for the event");
+    }
+    setRegisterLoading((prev) => ({ ...prev, [eventId]: false }));
+  };
+
+  const openRegisterModal = (eventId) => {
+    setSelectedEventId(eventId);
+    setShowRegisterModal(true);
+  };
+
   const handleContactSubmit = async (e) => {
     e.preventDefault();
     if (!contactMessage.trim()) {
@@ -645,7 +732,8 @@ const ClubDetailPage = () => {
       toast.success("Message sent successfully");
     } catch (err) {
       console.error("Error submitting contact form:", err);
-      const errorMessage = err.response?.data?.error || "Failed to send message";
+      const errorMessage =
+        err.response?.data?.error || "Failed to send message";
       setContactError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -688,13 +776,10 @@ const ClubDetailPage = () => {
     (eventsPage - 1) * itemsPerPage,
     eventsPage * itemsPerPage
   );
-
   const particles = Array.from({ length: 12 }, (_, i) => ({
     delay: i * 1.5,
     duration: 12 + Math.random() * 8,
   }));
-
-  // Filter super admins and admins from members
   const superAdmins = club?.superAdmins || [];
   const admins = members.filter(
     (member) =>
@@ -709,16 +794,16 @@ const ClubDetailPage = () => {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
         <Navbar />
         <div className="animate-pulse">
-          <div className="h-96 bg-gray-200"></div>
-          <div className="max-w-7xl mx-auto px-6 py-8">
-            <div className="h-8 bg-gray-200 rounded mb-4"></div>
+          <div className="h-64 sm:h-96 bg-gray-200"></div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+            <div className="h-6 sm:h-8 bg-gray-200 rounded mb-4"></div>
             <div className="h-4 bg-gray-200 rounded mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded w-3/4 mb-8"></div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="h-4 bg-gray-200 rounded w-3/4 mb-6 sm:mb-8"></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {[...Array(6)].map((_, i) => (
                 <div
                   key={`placeholder-${i}`}
-                  className="h-32 bg-gray-200 rounded-lg"
+                  className="h-24 sm:h-32 bg-gray-200 rounded-lg"
                 ></div>
               ))}
             </div>
@@ -730,14 +815,16 @@ const ClubDetailPage = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
-        <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8 max-w-md mx-auto text-center">
-          <div className="text-red-600 text-lg font-medium mb-4">{error}</div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center px-4">
+        <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-6 sm:p-8 max-w-sm sm:max-w-md mx-auto text-center">
+          <div className="text-red-600 text-base sm:text-lg font-medium mb-4">
+            {error}
+          </div>
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => fetchClubData()}
-            className="px-6 py-3 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl hover:shadow-lg transition-all"
+            className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl hover:shadow-lg transition-all text-sm sm:text-base"
           >
             Retry
           </motion.button>
@@ -748,14 +835,14 @@ const ClubDetailPage = () => {
 
   if (!club) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center px-4">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-[#456882] mb-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-[#456882] mb-2">
             Club not found
           </h2>
           <Link
             to="/clubs"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl hover:from-[#334d5e] hover:to-[#456882] transition-all"
+            className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl hover:from-[#334d5e] hover:to-[#456882] transition-all text-sm sm:text-base"
           >
             <FaArrowLeft className="w-4 h-4" />
             Back to Clubs
@@ -787,7 +874,7 @@ const ClubDetailPage = () => {
             repeat: Infinity,
             ease: "linear",
           }}
-          className="absolute top-20 right-20 w-32 h-32 bg-[#456882] opacity-5 rounded-full"
+          className="absolute top-20 right-10 sm:right-20 w-24 sm:w-32 h-24 sm:h-32 bg-[#456882] opacity-5 rounded-full"
         />
         <motion.div
           animate={{
@@ -799,11 +886,11 @@ const ClubDetailPage = () => {
             repeat: Infinity,
             ease: "linear",
           }}
-          className="absolute bottom-20 left-20 w-24 h-24 bg-[#456882] opacity-5 rounded-full"
+          className="absolute bottom-20 left-10 sm:left-20 w-20 sm:w-24 h-20 sm:h-24 bg-[#456882] opacity-5 rounded-full"
         />
       </motion.div>
-      {/* Enhanced Header Section */}
-      <div className="relative h-96 overflow-hidden">
+      {/* Header Section */}
+      <div className="relative h-64 sm:h-96 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-[#456882] to-[#5a7a95]">
           <img
             src={
@@ -811,7 +898,7 @@ const ClubDetailPage = () => {
               "https://via.placeholder.com/1200x400?text=Club+Banner"
             }
             alt={`${club.name} banner`}
-            className="w-full h-full object-cover opacity-30"
+            className="w-full h-full object-cover object-center opacity-30"
             onError={(e) => {
               e.target.src =
                 "https://via.placeholder.com/1200x400?text=Club+Banner";
@@ -823,11 +910,11 @@ const ClubDetailPage = () => {
           initial={{ x: -100, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="absolute top-6 left-6 z-20"
+          className="absolute top-4 sm:top-6 left-4 sm:left-6 z-20"
         >
           <Link
             to="/clubs"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm text-[#456882] rounded-full hover:bg-white/90 transition-all shadow-lg"
+            className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-white/80 backdrop-blur-sm text-[#456882] rounded-full hover:bg-white/90 transition-all shadow-lg text-sm sm:text-base"
           >
             <FaArrowLeft className="w-4 h-4" />
             Back to Clubs
@@ -838,11 +925,11 @@ const ClubDetailPage = () => {
             initial={{ x: 100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="absolute top-6 right-6 flex gap-2 z-20"
+            className="absolute top-4 sm:top-6 right-4 sm:right-6 flex flex-col sm:flex-row gap-2 z-20"
           >
             <Link
               to={`/clubs/${club._id}/edit`}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm text-[#456882] rounded-full hover:bg-white/90 transition-all shadow-lg"
+              className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-white/80 backdrop-blur-sm text-[#456882] rounded-full hover:bg-white/90 transition-all shadow-lg text-sm sm:text-base"
             >
               <FaEdit className="w-4 h-4" />
               Edit Club
@@ -851,7 +938,7 @@ const ClubDetailPage = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setShowWhatsAppModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600/80 backdrop-blur-sm text-white rounded-full hover:bg-green-700/80 transition-all shadow-lg"
+              className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-600/80 backdrop-blur-sm text-white rounded-full hover:bg-green-700/80 transition-all shadow-lg text-sm sm:text-base"
             >
               <FaWhatsapp className="w-4 h-4" />
               {club.whatsappLink ? "Edit WhatsApp Link" : "Add WhatsApp Link"}
@@ -879,7 +966,7 @@ const ClubDetailPage = () => {
                       .catch(() => toast.error("Failed to delete club"));
                   }
                 }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-red-600/80 backdrop-blur-sm text-white rounded-full hover:bg-red-700/80 transition-all shadow-lg"
+                className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-red-600/80 backdrop-blur-sm text-white rounded-full hover:bg-red-700/80 transition-all shadow-lg text-sm sm:text-base"
               >
                 <FaTrash className="w-4 h-4" />
                 Delete Club
@@ -887,8 +974,8 @@ const ClubDetailPage = () => {
             )}
           </motion.div>
         )}
-        <div className="absolute bottom-8 left-6 right-6">
-          <div className="flex items-end gap-6">
+        <div className="absolute bottom-6 sm:bottom-8 left-4 sm:left-6 right-4 sm:right-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-6">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -901,7 +988,7 @@ const ClubDetailPage = () => {
                   "https://via.placeholder.com/120x120?text=Club+Icon"
                 }
                 alt={`${club.name} icon`}
-                className="w-24 h-24 rounded-2xl border-4 border-white shadow-2xl"
+                className="w-20 sm:w-24 h-20 sm:h-24 rounded-2xl border-4 border-white shadow-2xl"
                 onError={(e) => {
                   e.target.src =
                     "https://via.placeholder.com/120x120?text=Club+Icon";
@@ -910,7 +997,7 @@ const ClubDetailPage = () => {
               <motion.div
                 animate={{ scale: [1, 1.2, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
-                className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center"
+                className="absolute -top-1 -right-1 w-5 sm:w-6 h-5 sm:h-6 bg-green-500 rounded-full flex items-center justify-center"
               >
                 <FaCheckCircle className="text-white text-xs" />
               </motion.div>
@@ -920,7 +1007,7 @@ const ClubDetailPage = () => {
                 initial={{ y: 30, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.6, delay: 0.1 }}
-                className="text-4xl md:text-5xl font-bold text-white mb-2"
+                className="text-2xl sm:text-4xl md:text-5xl font-bold text-white mb-2"
               >
                 {club.name}
               </motion.h1>
@@ -928,19 +1015,19 @@ const ClubDetailPage = () => {
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
-                className="flex items-center gap-6 text-white/90 flex-wrap"
+                className="flex flex-wrap items-center gap-4 sm:gap-6 text-white/90 text-sm sm:text-base"
               >
                 <div className="flex items-center gap-2">
-                  <FaUsers className="w-5 h-5" />
+                  <FaUsers className="w-4 sm:w-5 h-4 sm:h-5" />
                   <span>{members.length} members</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <FaCalendar className="w-5 h-5" />
+                  <FaCalendar className="w-4 sm:w-5 h-4 sm:h-5" />
                   <span>{events.length} events</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <FaAward className="w-5 h-5" />
-                  <span className="px-3 py-1 bg-white/20 rounded-full text-sm">
+                  <FaAward className="w-4 sm:w-5 h-4 sm:h-5" />
+                  <span className="px-2 sm:px-3 py-1 bg-white/20 rounded-full text-xs sm:text-sm">
                     {club.category || "General"}
                   </span>
                 </div>
@@ -949,9 +1036,9 @@ const ClubDetailPage = () => {
                     href={club.whatsappLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 hover:bg-green-600/30 px-3 py-1 rounded-full transition-all"
+                    className="flex items-center gap-2 hover:bg-green-600/30 px-2 sm:px-3 py-1 rounded-full transition-all text-xs sm:text-sm"
                   >
-                    <FaWhatsapp className="w-5 h-5 text-green-400" />
+                    <FaWhatsapp className="w-4 sm:w-5 h-4 sm:h-5 text-green-400" />
                     <span>Join WhatsApp Group</span>
                   </a>
                 )}
@@ -960,13 +1047,13 @@ const ClubDetailPage = () => {
           </div>
         </div>
       </div>
-      <div className="max-w-7xl mx-auto px-6 py-8 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 relative z-10">
         {/* Membership Action Button */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.6 }}
-          className="mb-8"
+          className="mb-6 sm:mb-8"
         >
           {isMember && (
             <motion.button
@@ -977,12 +1064,12 @@ const ClubDetailPage = () => {
               whileTap={{ scale: 0.98 }}
               onClick={() => setShowLeaveModal(true)}
               disabled={leaveLoading}
-              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-red-500 to-red-700 text-white rounded-xl hover:from-red-600 hover:to-red-800 transition-all shadow-lg disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-red-500 to-red-700 text-white rounded-xl hover:from-red-600 hover:to-red-800 transition-all shadow-lg disabled:opacity-50 text-sm sm:text-base"
             >
               {leaveLoading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="w-4 sm:w-5 h-4 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                <FaSignOutAlt className="w-5 h-5" />
+                <FaSignOutAlt className="w-4 sm:w-5 h-4 sm:h-5" />
               )}
               <span className="font-medium">
                 {leaveLoading ? "Leaving Club..." : "Leave Club"}
@@ -990,7 +1077,7 @@ const ClubDetailPage = () => {
             </motion.button>
           )}
         </motion.div>
-        {/* Leadership Section (Super Admins, Admins, and Head Coordinators) */}
+        {/* Leadership Section */}
         {(superAdmins.length > 0 ||
           admins.length > 0 ||
           headCoordinators.length > 0) && (
@@ -998,18 +1085,18 @@ const ClubDetailPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="mb-8"
+            className="mb-6 sm:mb-8"
           >
-            <div className="relative overflow-hidden bg-gradient-to-r from-yellow-200 via-yellow-300 to-yellow-400 rounded-3xl shadow-2xl border border-yellow-300 p-8">
+            <div className="relative overflow-hidden bg-gradient-to-r from-yellow-200 via-yellow-300 to-yellow-400 rounded-3xl shadow-2xl border border-yellow-300 p-6 sm:p-8">
               <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-yellow-500 via-orange-500 to-yellow-600"></div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-bold rounded-full shadow-lg">
-                  <FaCrown className="w-5 h-5" />
+              <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                <div className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-bold rounded-full shadow-lg text-sm sm:text-base">
+                  <FaCrown className="w-4 sm:w-5 h-4 sm:h-5" />
                   <span>CLUB LEADERSHIP</span>
                 </div>
                 <div className="flex-1 h-px bg-gradient-to-r from-yellow-400 to-transparent"></div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {superAdmins.map((admin, index) => (
                   <AdminCard
                     key={`super-admin-${admin._id}`}
@@ -1037,7 +1124,7 @@ const ClubDetailPage = () => {
             </div>
           </motion.div>
         )}
-        {/* Leave Club Confirmation Modal */}
+        {/* Modals */}
         <LeaveClubModal
           isOpen={showLeaveModal}
           onClose={() => setShowLeaveModal(false)}
@@ -1045,7 +1132,6 @@ const ClubDetailPage = () => {
           clubName={club?.name || "this club"}
           loading={leaveLoading}
         />
-        {/* WhatsApp Link Modal */}
         <WhatsAppLinkModal
           isOpen={showWhatsAppModal}
           onClose={() => setShowWhatsAppModal(false)}
@@ -1053,14 +1139,21 @@ const ClubDetailPage = () => {
           currentLink={club?.whatsappLink}
           loading={whatsAppLoading}
         />
-        {/* Enhanced Tab Navigation */}
+        <EventRegistrationModal
+          isOpen={showRegisterModal}
+          onClose={() => setShowRegisterModal(false)}
+          onConfirm={handleRegisterEvent}
+          eventId={selectedEventId}
+          loading={registerLoading[selectedEventId]}
+        />
+        {/* Tab Navigation */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
-          className="mb-8"
+          className="mb-6 sm:mb-8"
         >
-          <div className="flex space-x-1 bg-gradient-to-r from-gray-100/50 to-gray-200/50 backdrop-blur-sm p-1 rounded-2xl shadow-lg">
+          <div className="flex flex-wrap gap-1 sm:gap-0 sm:space-x-1 bg-gradient-to-r from-gray-100/50 to-gray-200/50 backdrop-blur-sm p-1 rounded-2xl shadow-lg">
             {tabs.map((tab) => {
               const IconComponent = tab.icon;
               return (
@@ -1073,7 +1166,7 @@ const ClubDetailPage = () => {
                   }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium transition-all ${
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-medium transition-all text-sm sm:text-base ${
                     activeTab === tab.id
                       ? "bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white shadow-lg"
                       : "text-gray-600 hover:text-[#456882] hover:bg-white/50"
@@ -1094,17 +1187,17 @@ const ClubDetailPage = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8"
+              className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-6 sm:p-8"
             >
-              <h2 className="text-3xl font-bold text-[#456882] mb-6 flex items-center gap-3">
-                <FaUsers className="w-8 h-8" />
+              <h2 className="text-2xl sm:text-3xl font-bold text-[#456882] mb-4 sm:mb-6 flex items-center gap-3">
+                <FaUsers className="w-6 sm:w-8 h-6 sm:h-8" />
                 About {club.name}
               </h2>
-              <p className="text-gray-600 text-lg leading-relaxed mb-8">
+              <p className="text-gray-600 text-sm sm:text-lg leading-relaxed mb-6 sm:mb-8">
                 {club.description ||
                   "Discover amazing opportunities and connect with like-minded students in this vibrant community."}
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -1112,17 +1205,19 @@ const ClubDetailPage = () => {
                   className="relative group"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 rounded-2xl blur-sm opacity-20 group-hover:opacity-30 transition-opacity"></div>
-                  <div className="relative bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-2xl shadow-lg border border-blue-200/50">
+                  <div className="relative bg-gradient-to-br from-blue-50 to-blue-100 p-4 sm:p-6 rounded-2xl shadow-lg border border-blue-200/50">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="p-2 bg-blue-500 rounded-xl">
-                        <FaUsers className="w-6 h-6 text-white" />
+                        <FaUsers className="w-5 sm:w-6 h-5 sm:h-6 text-white" />
                       </div>
-                      <h3 className="font-bold text-blue-900">Total Members</h3>
+                      <h3 className="font-bold text-blue-900 text-sm sm:text-base">
+                        Total Members
+                      </h3>
                     </div>
-                    <p className="text-3xl font-bold text-blue-600 mb-1">
+                    <p className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">
                       {members.length}
                     </p>
-                    <p className="text-blue-700 text-sm">
+                    <p className="text-blue-700 text-xs sm:text-sm">
                       Active community members
                     </p>
                   </div>
@@ -1134,19 +1229,19 @@ const ClubDetailPage = () => {
                   className="relative group"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-green-600 rounded-2xl blur-sm opacity-20 group-hover:opacity-30 transition-opacity"></div>
-                  <div className="relative bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-2xl shadow-lg border border-green-200/50">
+                  <div className="relative bg-gradient-to-br from-green-50 to-green-100 p-4 sm:p-6 rounded-2xl shadow-lg border border-green-200/50">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="p-2 bg-green-500 rounded-xl">
-                        <FaCalendar className="w-6 h-6 text-white" />
+                        <FaCalendar className="w-5 sm:w-6 h-5 sm:h-6 text-white" />
                       </div>
-                      <h3 className="font-bold text-green-900">
+                      <h3 className="font-bold text-green-900 text-sm sm:text-base">
                         Events Hosted
                       </h3>
                     </div>
-                    <p className="text-3xl font-bold text-green-600 mb-1">
+                    <p className="text-2xl sm:text-3xl font-bold text-green-600 mb-1">
                       {events.length}
                     </p>
-                    <p className="text-green-700 text-sm">
+                    <p className="text-green-700 text-xs sm:text-sm">
                       Amazing experiences organized
                     </p>
                   </div>
@@ -1158,17 +1253,19 @@ const ClubDetailPage = () => {
                   className="relative group"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-600 rounded-2xl blur-sm opacity-20 group-hover:opacity-30 transition-opacity"></div>
-                  <div className="relative bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-2xl shadow-lg border border-purple-200/50">
+                  <div className="relative bg-gradient-to-br from-purple-50 to-purple-100 p-4 sm:p-6 rounded-2xl shadow-lg border border-purple-200/50">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="p-2 bg-purple-500 rounded-xl">
-                        <FaAward className="w-6 h-6 text-white" />
+                        <FaAward className="w-5 sm:w-6 h-5 sm:h-6 text-white" />
                       </div>
-                      <h3 className="font-bold text-purple-900">Category</h3>
+                      <h3 className="font-bold text-purple-900 text-sm sm:text-base">
+                        Category
+                      </h3>
                     </div>
-                    <p className="text-xl font-bold text-purple-600 mb-1">
+                    <p className="text-lg sm:text-xl font-bold text-purple-600 mb-1">
                       {club.category || "General"}
                     </p>
-                    <p className="text-purple-700 text-sm">
+                    <p className="text-purple-700 text-xs sm:text-sm">
                       Club specialization
                     </p>
                   </div>
@@ -1183,136 +1280,166 @@ const ClubDetailPage = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8"
+              className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-6 sm:p-8"
             >
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-3xl font-bold text-[#456882] flex items-center gap-3">
-                  <FaCalendar className="w-8 h-8" />
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8">
+                <h2 className="text-2xl sm:text-3xl font-bold text-[#456882] flex items-center gap-3">
+                  <FaCalendar className="w-6 sm:w-8 h-6 sm:h-8" />
                   Club Events
                 </h2>
                 {(isAdmin || isHeadCoordinator) && (
                   <Link
                     to={`/clubs/${club._id}/events/new`}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl hover:from-[#334d5e] hover:to-[#456882] transition-all shadow-lg"
+                    className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl hover:from-[#334d5e] hover:to-[#456882] transition-all shadow-lg text-sm sm:text-base"
                   >
-                    <FaCalendar className="w-5 h-5" />
+                    <FaCalendar className="w-4 sm:w-5 h-4 sm:h-5" />
                     Create New Event
                   </Link>
                 )}
               </div>
               {events.length === 0 ? (
-                <div className="text-center py-16">
+                <div className="text-center py-12 sm:py-16">
                   <div className="relative mb-6">
-                    <FaCalendar className="w-20 h-20 text-gray-300 mx-auto" />
+                    <FaCalendar className="w-16 sm:w-20 h-16 sm:h-20 text-gray-300 mx-auto" />
                     <motion.div
                       animate={{ scale: [1, 1.1, 1] }}
                       transition={{ duration: 2, repeat: Infinity }}
                       className="absolute top-2 right-1/2 transform translate-x-1/2 w-4 h-4 bg-[#456882] rounded-full opacity-20"
                     />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-600 mb-3">
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-600 mb-3">
                     No events scheduled yet
                   </h3>
-                  <p className="text-gray-500 text-lg">
+                  <p className="text-gray-500 text-sm sm:text-lg">
                     Stay tuned for exciting upcoming events!
                   </p>
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {paginatedEvents.map((event, index) => (
-                      <motion.div
-                        key={event._id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.1 }}
-                        className="relative group"
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-r from-[#456882] to-[#5a7a95] rounded-2xl blur-sm opacity-10 group-hover:opacity-20 transition-opacity"></div>
-                        <div className="relative bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg transition-all">
-                          <div className="flex items-start justify-between mb-4">
-                            <h3 className="text-xl font-bold text-[#456882] flex-1 leading-tight">
-                              {event.title}
-                            </h3>
-                            {(isAdmin || isHeadCoordinator) && (
-                              <div className="flex gap-2">
-                                <Link
-                                  to={`/clubs/${club._id}/events/${event._id}/edit`}
-                                  className="p-2 text-gray-400 hover:text-[#456882] hover:bg-gray-100 rounded-full transition-all"
-                                >
-                                  <FaEdit className="w-4 h-4" />
-                                </Link>
-                                <button
-                                  onClick={() => handleDeleteEvent(event._id)}
-                                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all"
-                                >
-                                  <FaTrash className="w-4 h-4" />
-                                </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                    {paginatedEvents.map((event, index) => {
+                      const isPrivilegedUser =
+                        isAdmin ||
+                        isHeadCoordinator ||
+                        (Array.isArray(club?.superAdmins) &&
+                          club.superAdmins.some(
+                            (admin) =>
+                              admin._id.toString() === user?._id?.toString()
+                          ));
+                      const isRegistered = Array.isArray(event.registeredUsers) &&
+                        event.registeredUsers.some(
+                          (reg) =>
+                            reg.userId?._id?.toString() === user?._id?.toString()
+                        );
+                      return (
+                        <motion.div
+                          key={event._id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.1 }}
+                          className="relative group"
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-r from-[#456882] to-[#5a7a95] rounded-2xl blur-sm opacity-10 group-hover:opacity-20 transition-opacity"></div>
+                          <div className="relative bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition-all">
+                            <div className="flex items-start justify-between mb-4">
+                              <h3 className="text-lg sm:text-xl font-bold text-[#456882] flex-1 leading-tight">
+                                {event.title}
+                              </h3>
+                              {(isAdmin || isHeadCoordinator) && (
+                                <div className="flex gap-2">
+                                  <Link
+                                    to={`/clubs/${club._id}/events/${event._id}/edit`}
+                                    className="p-2 text-gray-400 hover:text-[#456882] hover:bg-gray-100 rounded-full transition-all"
+                                  >
+                                    <FaEdit className="w-4 h-4" />
+                                  </Link>
+                                  <button
+                                    onClick={() => handleDeleteEvent(event._id)}
+                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all"
+                                  >
+                                    <FaTrash className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                            <div className="space-y-3 mb-4">
+                              <div className="flex items-center gap-3 text-gray-600">
+                                <div className="p-1 bg-[#456882]/10 rounded-lg">
+                                  <FaClock className="w-4 h-4 text-[#456882]" />
+                                </div>
+                                <span className="text-xs sm:text-sm font-medium">
+                                  {new Date(event.date).toLocaleDateString()} at{" "}
+                                  {event.time}
+                                </span>
                               </div>
+                              <div className="flex items-center gap-3 text-gray-600">
+                                <div className="p-1 bg-[#456882]/10 rounded-lg">
+                                  <FaMapPin className="w-4 h-4 text-[#456882]" />
+                                </div>
+                                <span className="text-xs sm:text-sm font-medium truncate">
+                                  {event.location}
+                                </span>
+                              </div>
+                              {event.hasRegistrationFee && (
+                                <div className="flex items-center gap-3 text-gray-600">
+                                  <div className="p-1 bg-[#456882]/10 rounded-lg">
+                                    <FaMoneyBillWave className="w-4 h-4 text-[#456882]" />
+                                  </div>
+                                  <span className="text-xs sm:text-sm font-medium">
+                                    Fee: ₹
+                                    {user?.isACEMStudent
+                                      ? event.acemFee
+                                      : event.nonAcemFee}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <p className="text-gray-600 text-xs sm:text-sm line-clamp-3 mb-4">
+                              {event.description}
+                            </p>
+                            {isMember && (
+                              <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => {
+                                  if (isRegistered) {
+                                    toast.success(
+                                      "You are already registered for this event"
+                                    );
+                                    return;
+                                  }
+                                  openRegisterModal(event._id);
+                                }}
+                                disabled={
+                                  registerLoading[event._id] || isRegistered
+                                }
+                                className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2 sm:py-3 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl hover:from-[#334d5e] hover:to-[#456882] transition-all shadow-lg text-sm sm:text-base ${
+                                  isRegistered || registerLoading[event._id]
+                                    ? "opacity-50 cursor-not-allowed"
+                                    : ""
+                                }`}
+                              >
+                                {registerLoading[event._id] ? (
+                                  <div className="w-4 sm:w-5 h-4 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : isRegistered ? (
+                                  <>
+                                    <FaCheckCircle className="w-4 h-4" />
+                                    Already Registered
+                                  </>
+                                ) : (
+                                  <>
+                                    <FaUser className="w-4 h-4" />
+                                    Register for Event
+                                  </>
+                                )}
+                              </motion.button>
                             )}
                           </div>
-                          <div className="space-y-3 mb-4">
-                            <div className="flex items-center gap-3 text-gray-600">
-                              <div className="p-1 bg-[#456882]/10 rounded-lg">
-                                <FaClock className="w-4 h-4 text-[#456882]" />
-                              </div>
-                              <span className="text-sm font-medium">
-                                {new Date(event.date).toLocaleDateString()} at{" "}
-                                {event.time}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-3 text-gray-600">
-                              <div className="p-1 bg-[#456882]/10 rounded-lg">
-                                <FaMapPin className="w-4 h-4 text-[#456882]" />
-                              </div>
-                              <span className="text-sm font-medium truncate">
-                                {event.location}
-                              </span>
-                            </div>
-                          </div>
-                          <p className="text-gray-600 text-sm line-clamp-3 mb-4">
-                            {event.description}
-                          </p>
-                          {isMember && (
-                            <motion.button
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                              onClick={() => {
-                                axios
-                                  .post(
-                                    `http://localhost:5000/api/events/${event._id}/register`,
-                                    {},
-                                    {
-                                      headers: {
-                                        Authorization: `Bearer ${localStorage.getItem(
-                                          "token"
-                                        )}`,
-                                      },
-                                    }
-                                  )
-                                  .then(() =>
-                                    toast.success(
-                                      "Registered for event successfully"
-                                    )
-                                  )
-                                  .catch((err) =>
-                                    toast.error(
-                                      err.response?.data?.error ||
-                                        "Failed to register"
-                                    )
-                                  );
-                              }}
-                              className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl hover:from-[#334d5e] hover:to-[#456882] transition-all shadow-lg"
-                            >
-                              <FaUser className="w-4 h-4" />
-                              Register for Event
-                            </motion.button>
-                          )}
-                        </div>
-                      </motion.div>
-                    ))}
+                        </motion.div>
+                      );
+                    })}
                   </div>
-                  <div className="flex items-center justify-between mt-8 px-4">
+                  <div className="flex flex-col sm:flex-row items-center justify-between mt-6 sm:mt-8 px-4">
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -1320,12 +1447,12 @@ const ClubDetailPage = () => {
                         setEventsPage((prev) => Math.max(prev - 1, 1))
                       }
                       disabled={eventsPage === 1}
-                      className="px-6 py-3 bg-gradient-to-r from-gray-200 to-gray-300 text-gray-700 rounded-xl disabled:opacity-50 font-medium shadow-lg hover:shadow-xl transition-all"
+                      className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-gray-200 to-gray-300 text-gray-700 rounded-xl disabled:opacity-50 font-medium shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
                     >
                       Previous
                     </motion.button>
-                    <div className="flex items-center gap-2">
-                      <span className="px-4 py-2 bg-[#456882]/10 text-[#456882] rounded-xl font-medium">
+                    <div className="flex items-center gap-2 my-2 sm:my-0">
+                      <span className="px-3 sm:px-4 py-2 bg-[#456882]/10 text-[#456882] rounded-xl font-medium text-sm sm:text-base">
                         Page {eventsPage} of{" "}
                         {Math.ceil(events.length / itemsPerPage)}
                       </span>
@@ -1344,7 +1471,7 @@ const ClubDetailPage = () => {
                       disabled={
                         eventsPage === Math.ceil(events.length / itemsPerPage)
                       }
-                      className="px-6 py-3 bg-gradient-to-r from-gray-200 to-gray-300 text-gray-700 rounded-xl disabled:opacity-50 font-medium shadow-lg hover:shadow-xl transition-all"
+                      className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-gray-200 to-gray-300 text-gray-700 rounded-xl disabled:opacity-50 font-medium shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
                     >
                       Next
                     </motion.button>
@@ -1360,34 +1487,34 @@ const ClubDetailPage = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8"
+              className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-6 sm:p-8"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-                <h2 className="text-3xl font-bold text-[#456882] flex items-center gap-3">
-                  <FaUsers className="w-8 h-8" />
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+                <h2 className="text-2xl sm:text-3xl font-bold text-[#456882] flex items-center gap-3">
+                  <FaUsers className="w-6 sm:w-8 h-6 sm:h-8" />
                   Club Members ({filteredMembers.length})
                 </h2>
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="relative w-full sm:w-64">
+                    <FaSearch className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 sm:w-5 h-4 sm:h-5" />
                     <input
                       type="text"
                       placeholder="Search members..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#456882] focus:border-transparent bg-gray-50/50 w-64 shadow-lg"
+                      className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#456882] focus:border-transparent bg-gray-50/50 shadow-lg text-sm sm:text-base"
                     />
                   </div>
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setShowMembers(!showMembers)}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl hover:from-[#334d5e] hover:to-[#456882] transition-all shadow-lg"
+                    className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl hover:from-[#334d5e] hover:to-[#456882] transition-all shadow-lg text-sm sm:text-base"
                   >
                     {showMembers ? (
-                      <FaEyeSlash className="w-5 h-5" />
+                      <FaEyeSlash className="w-4 sm:w-5 h-4 sm:h-5" />
                     ) : (
-                      <FaEye className="w-5 h-5" />
+                      <FaEye className="w-4 sm:w-5 h-4 sm:h-5" />
                     )}
                     {showMembers ? "Hide Members" : "Show Members"}
                   </motion.button>
@@ -1402,19 +1529,19 @@ const ClubDetailPage = () => {
                     transition={{ duration: 0.3 }}
                   >
                     {filteredMembers.length === 0 ? (
-                      <div className="text-center py-16">
+                      <div className="text-center py-12 sm:py-16">
                         <div className="relative mb-6">
-                          <FaUsers className="w-20 h-20 text-gray-300 mx-auto" />
+                          <FaUsers className="w-16 sm:w-20 h-16 sm:h-20 text-gray-300 mx-auto" />
                           <motion.div
                             animate={{ scale: [1, 1.1, 1] }}
                             transition={{ duration: 2, repeat: Infinity }}
                             className="absolute top-2 right-1/2 transform translate-x-1/2 w-4 h-4 bg-[#456882] rounded-full opacity-20"
                           />
                         </div>
-                        <h3 className="text-2xl font-bold text-gray-600 mb-3">
+                        <h3 className="text-xl sm:text-2xl font-bold text-gray-600 mb-3">
                           {searchQuery ? "No members found" : "No members yet"}
                         </h3>
-                        <p className="text-gray-500 text-lg">
+                        <p className="text-gray-500 text-sm sm:text-lg">
                           {searchQuery
                             ? "Try adjusting your search terms"
                             : "Be the first to join this amazing club!"}
@@ -1422,7 +1549,7 @@ const ClubDetailPage = () => {
                       </div>
                     ) : (
                       <>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                           {paginatedMembers.map((member, index) => {
                             const isPrivileged =
                               member &&
@@ -1455,12 +1582,12 @@ const ClubDetailPage = () => {
                                       : "bg-gradient-to-r from-[#456882] to-[#5a7a95] group-hover:opacity-20"
                                   }`}
                                 ></div>
-                                <div className="relative bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg transition-all">
+                                <div className="relative bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition-all">
                                   <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                                    <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                                       <div className="relative">
                                         <div
-                                          className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg ${
+                                          className={`w-10 sm:w-12 h-10 sm:h-12 rounded-xl flex items-center justify-center text-white font-bold text-base sm:text-lg shadow-lg ${
                                             isPrivileged
                                               ? "bg-gradient-to-br from-yellow-500 to-orange-600"
                                               : "bg-gradient-to-br from-[#456882] to-[#5a7a95]"
@@ -1479,7 +1606,7 @@ const ClubDetailPage = () => {
                                               duration: 2,
                                               repeat: Infinity,
                                             }}
-                                            className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center shadow-lg"
+                                            className="absolute -top-1 -right-1 w-4 sm:w-5 h-4 sm:h-5 bg-yellow-500 rounded-full flex items-center justify-center shadow-lg"
                                           >
                                             <FaCrown className="text-white text-xs" />
                                           </motion.div>
@@ -1487,7 +1614,7 @@ const ClubDetailPage = () => {
                                       </div>
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
-                                          <p className="font-bold text-gray-800 truncate">
+                                          <p className="font-bold text-gray-800 truncate text-sm sm:text-base">
                                             {member.name || "Unknown Member"}
                                           </p>
                                           {isPrivileged && (
@@ -1508,13 +1635,13 @@ const ClubDetailPage = () => {
                                           )}
                                         </div>
                                         <div className="space-y-1">
-                                          <p className="text-sm text-gray-500 flex items-center gap-2 truncate">
-                                            <FaEnvelope className="w-3 h-3 text-[#456882]" />
+                                          <p className="text-xs sm:text-sm text-gray-500 flex items-center gap-2 truncate">
+                                            <FaEnvelope className="w-3 sm:w-3 h-3 sm:h-3 text-[#456882]" />
                                             {member.email}
                                           </p>
                                           {member.rollNo && (
-                                            <p className="text-sm text-gray-500 flex items-center gap-2">
-                                              <FaIdCard className="w-3 h-3 text-[#456882]" />
+                                            <p className="text-xs sm:text-sm text-gray-500 flex items-center gap-2">
+                                              <FaIdCard className="w-3 sm:w-3 h-3 sm:h-3 text-[#456882]" />
                                               Roll: {member.rollNo}
                                             </p>
                                           )}
@@ -1542,7 +1669,7 @@ const ClubDetailPage = () => {
                             );
                           })}
                         </div>
-                        <div className="flex items-center justify-between mt-8 px-4">
+                        <div className="flex flex-col sm:flex-row items-center justify-between mt-6 sm:mt-8 px-4">
                           <motion.button
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
@@ -1550,12 +1677,12 @@ const ClubDetailPage = () => {
                               setMembersPage((prev) => Math.max(prev - 1, 1))
                             }
                             disabled={membersPage === 1}
-                            className="px-6 py-3 bg-gradient-to-r from-gray-200 to-gray-300 text-gray-700 rounded-xl disabled:opacity-50 font-medium shadow-lg hover:shadow-xl transition-all"
+                            className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-gray-200 to-gray-300 text-gray-700 rounded-xl disabled:opacity-50 font-medium shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
                           >
                             Previous
                           </motion.button>
-                          <div className="flex items-center gap-2">
-                            <span className="px-4 py-2 bg-[#456882]/10 text-[#456882] rounded-xl font-medium">
+                          <div className="flex items-center gap-2 my-2 sm:my-0">
+                            <span className="px-3 sm:px-4 py-2 bg-[#456882]/10 text-[#456882] rounded-xl font-medium text-sm sm:text-base">
                               Page {membersPage} of{" "}
                               {Math.ceil(filteredMembers.length / itemsPerPage)}
                             </span>
@@ -1577,7 +1704,7 @@ const ClubDetailPage = () => {
                               membersPage ===
                               Math.ceil(filteredMembers.length / itemsPerPage)
                             }
-                            className="px-6 py-3 bg-gradient-to-r from-gray-200 to-gray-300 text-gray-700 rounded-xl disabled:opacity-50 font-medium shadow-lg hover:shadow-xl transition-all"
+                            className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-gray-200 to-gray-300 text-gray-700 rounded-xl disabled:opacity-50 font-medium shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
                           >
                             Next
                           </motion.button>
@@ -1596,149 +1723,111 @@ const ClubDetailPage = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8"
+              className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-6 sm:p-8"
             >
-              <h2 className="text-3xl font-bold text-[#456882] mb-6 flex items-center gap-3">
-                <FaEnvelope className="w-8 h-8" />
+              <h2 className="text-2xl sm:text-3xl font-bold text-[#456882] mb-4 sm:mb-6 flex items-center gap-3">
+                <FaEnvelope className="w-6 sm:w-8 h-6 sm:h-8" />
                 Contact {club.name}
               </h2>
               {headCoordinators.length > 0 ? (
-                <div className="mb-8">
-                  <h3 className="text-lg font-semibold text-gray-700 mb-4">
+                <div className="mb-6 sm:mb-8">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-3 sm:mb-4">
                     Reach out to our Head Coordinators
                   </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     {headCoordinators.map((coordinator, index) => (
                       <motion.div
                         key={coordinator._id || `coordinator-${index}`}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3, delay: index * 0.1 }}
-                        className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl"
+                        className="flex items-center gap-3 px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl"
                       >
-                        <FaCrown className="w-5 h-5 text-yellow-600" />
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-gray-800">
-                              {coordinator.name || "Unknown Coordinator"}
-                            </span>
-                            <span className="text-xs font-bold text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">
-                              Head Coordinator
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
-                            {coordinator.phone ? (
-                              <>
-                                <FaPhone className="w-4 h-4 text-[#456882]" />
-                                <a
-                                  href={`tel:${coordinator.phone}`}
-                                  className="hover:underline"
-                                >
-                                  {coordinator.phone}
-                                </a>
-                              </>
-                            ) : (
-                              <>
-                                <FaEnvelope className="w-4 h-4 text-[#456882]" />
-                                <a
-                                  href={`mailto:${coordinator.email}`}
-                                  className="hover:underline truncate"
-                                >
-                                  {coordinator.email || "No email"}
-                                </a>
-                              </>
-                            )}
-                          </div>
-                        </div>
+                        <FaCrown className="w-4 sm:w-5 h-4 sm:h5 text-yellow-600" />
+                        <span className="text-xs sm:text-sm font-medium text-gray-700 truncate">
+                          {coordinator.name || "Unknown Coordinator"} (
+                          {coordinator.email})
+                        </span>
                       </motion.div>
                     ))}
                   </div>
                 </div>
               ) : (
-                <p className="text-gray-600 text-lg mb-8">
-                  No head coordinators are currently assigned to this club.
+                <p className="text-gray-600 text-sm sm:text-base mb-6 sm:mb-8">
+                  No head coordinators assigned yet.
                 </p>
               )}
-              {(isAdmin || isHeadCoordinator || isSuperAdmin) ? (
-                <form onSubmit={handleContactSubmit} className="space-y-6">
-                  <div>
-                    <label
-                      htmlFor="coordinatorEmail"
-                      className="block text-lg font-semibold text-gray-700 mb-3"
-                    >
-                      Select Coordinator
-                    </label>
-                    <select
-                      id="coordinatorEmail"
-                      value={coordinatorEmail}
-                      onChange={(e) => setCoordinatorEmail(e.target.value)}
-                      className="w-full px-6 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#456882] focus:border-transparent bg-gray-50/50 text-lg shadow-lg"
-                      required
-                    >
-                      <option value="" disabled>
-                        {headCoordinators.length > 0
-                          ? "Select a coordinator"
-                          : "No coordinators available"}
-                      </option>
-                      {headCoordinators.map((coordinator) => (
-                        <option
-                          key={coordinator._id || coordinator.email}
-                          value={coordinator.email}
-                        >
-                          {coordinator.name} ({coordinator.email})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="message"
-                      className="block text-lg font-semibold text-gray-700 mb-3"
-                    >
-                      Your Message
-                    </label>
-                    <textarea
-                      id="message"
-                      value={contactMessage}
-                      onChange={(e) => setContactMessage(e.target.value)}
-                      rows={6}
-                      className="w-full px-6 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#456882] focus:border-transparent bg-gray-50/50 text-lg shadow-lg resize-none"
-                      placeholder="Share your thoughts, questions, or ideas with the club coordinators..."
-                      required
-                    />
-                  </div>
-                  {contactError && (
-                    <p className="text-red-600 text-sm">{contactError}</p>
-                  )}
-                  {contactSuccess && (
-                    <p className="text-green-600 text-sm">{contactSuccess}</p>
-                  )}
-                  <motion.button
-                    whileHover={{
-                      scale: 1.02,
-                      boxShadow: "0 15px 35px rgba(69, 104, 130, 0.3)",
-                    }}
-                    whileTap={{ scale: 0.98 }}
-                    type="submit"
-                    disabled={contactSending || headCoordinators.length === 0}
-                    className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl hover:from-[#334d5e] hover:to-[#456882] transition-all shadow-lg disabled:opacity-50 font-medium text-lg"
+              <form
+                onSubmit={handleContactSubmit}
+                className="space-y-4 sm:space-y-6"
+              >
+                <div>
+                  <label
+                    htmlFor="coordinatorEmail"
+                    className="block text-base sm:text-lg font-semibold text-gray-700 mb-2"
                   >
-                    {contactSending ? (
-                      <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <FaPaperPlane className="w-5 h-5" />
-                    )}
-                    <span>
-                      {contactSending ? "Sending Message..." : "Send Message"}
-                    </span>
-                  </motion.button>
-                </form>
-              ) : (
-                <p className="text-gray-600 text-lg">
-                  The contact form is only available to club administrators and
-                  coordinators.
-                </p>
-              )}
+                    Select Coordinator
+                  </label>
+                  <select
+                    id="coordinatorEmail"
+                    value={coordinatorEmail}
+                    onChange={(e) => setCoordinatorEmail(e.target.value)}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#456882] focus:border-transparent bg-gray-50/50 text-sm sm:text-base"
+                  >
+                    <option value="">Select a coordinator</option>
+                    {headCoordinators.map((coordinator) => (
+                      <option
+                        key={
+                          coordinator._id || `coordinator-${coordinator.email}`
+                        }
+                        value={coordinator.email}
+                      >
+                        {coordinator.name || "Unknown"} ({coordinator.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label
+                    htmlFor="message"
+                    className="block text-base sm:text-lg font-semibold text-gray-700 mb-2"
+                  >
+                    Your Message
+                  </label>
+                  <textarea
+                    id="message"
+                    value={contactMessage}
+                    onChange={(e) => setContactMessage(e.target.value)}
+                    rows={5}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#456882] focus:border-transparent bg-gray-50/50 resize-y text-sm sm:text-base"
+                    placeholder="Type your message here..."
+                  />
+                </div>
+                {contactError && (
+                  <p className="text-red-600 text-xs sm:text-sm">
+                    {contactError}
+                  </p>
+                )}
+                {contactSuccess && (
+                  <p className="text-green-600 text-xs sm:text-sm">
+                    {contactSuccess}
+                  </p>
+                )}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="submit"
+                  disabled={contactSending}
+                  className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-[#456882] to-[#5a7a95] text-white rounded-xl hover:from-[#334d5e] hover:to-[#456882] transition-all shadow-lg disabled:opacity-50 text-sm sm:text-base"
+                >
+                  {contactSending ? (
+                    <div className="w-4 sm:w-5 h-4 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block mr-2" />
+                  ) : (
+                    <FaPaperPlane className="w-4 sm:w-5 h-4 sm:h-5 inline-block mr-2" />
+                  )}
+                  Send Message
+                </motion.button>
+              </form>
             </motion.div>
           )}
         </AnimatePresence>
