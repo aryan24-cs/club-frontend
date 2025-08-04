@@ -51,28 +51,36 @@ const RoleBasedRoute = ({ children, roles }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          navigate("/login");
-          return;
-        }
-        const config = { headers: { Authorization: `Bearer ${token}` } };
-        const response = await axios.get(
-          "https://club-manager-chi.vercel.app/api/auth/user",
-          config
-        );
-        setUser(response.data);
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching user:", err);
-        localStorage.removeItem("token");
-        navigate("/login");
+  const fetchUser = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.log('No token found, redirecting to /login');
+        navigate('/login');
+        return;
       }
-    };
-    fetchUser();
-  }, [navigate]);
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      console.log('Fetching user from /api/auth/user');
+      const response = await axios.get(
+        'https://club-manager-chi.vercel.app/api/auth/user',
+        config
+      );
+      console.log('User data received:', response.data);
+      setUser(response.data);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching user:', {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+        headers: err.response?.headers,
+      });
+      localStorage.removeItem('token');
+      navigate('/login');
+    }
+  };
+  fetchUser();
+}, [navigate]);
 
   if (loading) {
     return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
