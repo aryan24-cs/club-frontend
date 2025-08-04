@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useState, useMemo } from "react";
+import React, { memo, useEffect, useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   XCircle,
   CheckCircle,
+  Bell,
 } from "lucide-react";
 import Navbar from "./Navbar";
 
@@ -67,6 +68,41 @@ const StatsCard = memo(({ title, value, icon: Icon }) => (
   </motion.div>
 ));
 
+// Notification Card Component
+const NotificationCard = memo(({ notification, onMarkAsRead }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="bg-gray-50 rounded-lg p-3 border border-gray-100"
+  >
+    <div className="flex items-center gap-2">
+      <div className="w-8 h-8 bg-[#456882] rounded-lg flex items-center justify-center text-white text-sm">
+        {notification.type.charAt(0).toUpperCase()}
+      </div>
+      <div className="flex-1">
+        <p className="text-sm text-gray-800">{notification.message}</p>
+        <p className="text-xs text-gray-500">
+          {new Date(notification.createdAt).toLocaleString()}
+        </p>
+      </div>
+      {!notification.read && (
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => onMarkAsRead(notification._id)}
+            className="text-gray-500 hover:text-[#456882] text-xs"
+            aria-label={`Mark notification ${notification.message} as read`}
+          >
+            Mark as read
+          </motion.button>
+        </div>
+      )}
+    </div>
+  </motion.div>
+));
+
 // Club Card Component
 const ClubCard = memo(({ club, onEdit, onView }) => (
   <motion.div
@@ -96,12 +132,14 @@ const ClubCard = memo(({ club, onEdit, onView }) => (
         <button
           onClick={() => onView(club)}
           className="p-1 bg-white/20 rounded-full hover:bg-white/30"
+          aria-label={`View club ${club.name}`}
         >
           <Eye className="w-4 h-4 text-white" />
         </button>
         <button
           onClick={() => onEdit(club)}
           className="p-1 bg-white/20 rounded-full hover:bg-white/30"
+          aria-label={`Edit club ${club.name}`}
         >
           <Edit3 className="w-4 h-4 text-white" />
         </button>
@@ -153,6 +191,7 @@ const ClubCard = memo(({ club, onEdit, onView }) => (
       <Link
         to={`/clubs/${club._id}`}
         className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#456882] to-[#5a7a98] text-white rounded-full hover:from-[#334d5e] hover:to-[#456882] transition-all duration-300 group-hover:shadow-lg transform group-hover:scale-105"
+        aria-label={`View club ${club.name}`}
       >
         <span className="font-medium">View Club</span>
         <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -164,6 +203,7 @@ const ClubCard = memo(({ club, onEdit, onView }) => (
 const AdminDashboard = () => {
   const [user, setUser] = useState(null);
   const [clubs, setClubs] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [categories, setCategories] = useState(["all"]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -184,10 +224,17 @@ const AdminDashboard = () => {
         }
 
         const config = { headers: { Authorization: `Bearer ${token}` } };
-        const [userResponse, clubsResponse] = await Promise.all([
-          axios.get("http://localhost:5000/api/auth/user", config),
-          axios.get("http://localhost:5000/api/clubs", config),
-        ]);
+        const [userResponse, clubsResponse, notificationsResponse] =
+          await Promise.all([
+            axios.get("http://localhost:5000/api/auth/user", config),
+            axios.get("http://localhost:5000/api/clubs", config),
+            axios
+              .get("http://localhost:5000/api/notifications", config)
+              .catch((err) => {
+                console.warn("Failed to fetch notifications:", err.message);
+                return { data: [] }; // Fallback to empty array
+              }),
+          ]);
 
         const userData = userResponse.data;
         if (!userData || !userData._id) {
@@ -245,6 +292,9 @@ const AdminDashboard = () => {
         setClubs(clubsWithMembers);
         console.log("AdminDashboard - Clubs:", clubsWithMembers);
 
+        // Set notifications
+        setNotifications(notificationsResponse.data);
+
         // Set categories
         setCategories([
           "all",
@@ -280,6 +330,35 @@ const AdminDashboard = () => {
     fetchData();
   }, [navigate]);
 
+  // Handle marking notification as read
+  const handleMarkAsRead = useCallback(
+    async (notificationId) => {
+      try {
+        const token = localStorage.getItem("token");
+        await axios.put(
+          `http://localhost:5000/api/notifications/${notificationId}/read`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setNotifications((prev) =>
+          prev.map((n) => (n._id === notificationId ? { ...n, read: true } : n))
+        );
+        setSuccess("Notification marked as read.");
+        setTimeout(() => setSuccess(""), 3000);
+      } catch (err) {
+        setError(
+          err.response?.data?.error || "Failed to mark notification as read."
+        );
+        setTimeout(() => setError(""), 3000);
+        if (err.response?.status === 401) {
+          localStorage.removeItem("token");
+          navigate("/login");
+        }
+      }
+    },
+    [navigate]
+  );
+
   const filteredClubs = useMemo(
     () =>
       clubs.filter(
@@ -289,6 +368,19 @@ const AdminDashboard = () => {
             club.category?.toLowerCase() === selectedFilter.toLowerCase())
       ),
     [clubs, searchTerm, selectedFilter]
+  );
+
+  // Filter notifications for admin
+  const filteredNotifications = useMemo(
+    () =>
+      notifications
+        .filter(
+          (n) =>
+            user?.isAdmin ||
+            (n.clubId && user?.headCoordinatorClubs?.includes(n.clubId))
+        )
+        .slice(0, 3),
+    [notifications, user]
   );
 
   if (loading) {
@@ -310,6 +402,9 @@ const AdminDashboard = () => {
                     <div key={i} className="h-48 bg-gray-200 rounded-xl"></div>
                   ))}
                 </div>
+              </div>
+              <div className="space-y-6">
+                <div className="h-64 bg-gray-200 rounded-xl"></div>
               </div>
             </div>
           </div>
@@ -408,95 +503,148 @@ const AdminDashboard = () => {
             )}
           </AnimatePresence>
 
-          {/* Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            <StatsCard
-              title="Managed Clubs"
-              value={clubs.length}
-              icon={Users}
-            />
-            <StatsCard
-              title="Total Members"
-              value={clubs.reduce(
-                (sum, club) => sum + (Number(club.memberCount) || 0),
-                0
-              )}
-              icon={Users}
-            />
-            <StatsCard
-              title="Active Events"
-              value={clubs.reduce(
-                (sum, club) => sum + (Number(club.eventsCount) || 0),
-                0
-              )}
-              icon={Calendar}
-            />
-          </div>
-
-          {/* Clubs */}
-          <div className="lg:col-span-2 space-y-6">
-            <div>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Your Managed Clubs
-                </h2>
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <div className="relative flex-1 sm:flex-none">
-                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <input
-                      type="text"
-                      placeholder="Search clubs..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full sm:w-64 pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
-                    />
-                  </div>
-                  <div className="relative">
-                    <select
-                      value={selectedFilter}
-                      onChange={(e) => setSelectedFilter(e.target.value)}
-                      className="w-full sm:w-48 pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
-                    >
-                      {categories.map((category) => (
-                        <option key={category} value={category}>
-                          {category === "all"
-                            ? "All Categories"
-                            : category.charAt(0).toUpperCase() +
-                              category.slice(1)}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  </div>
-                </div>
+          {/* Main Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              {/* Stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                <StatsCard
+                  title="Managed Clubs"
+                  value={clubs.length}
+                  icon={Users}
+                />
+                <StatsCard
+                  title="Total Members"
+                  value={clubs.reduce(
+                    (sum, club) => sum + (Number(club.memberCount) || 0),
+                    0
+                  )}
+                  icon={Users}
+                />
+                <StatsCard
+                  title="Active Events"
+                  value={clubs.reduce(
+                    (sum, club) => sum + (Number(club.eventsCount) || 0),
+                    0
+                  )}
+                  icon={Calendar}
+                />
               </div>
-              {filteredClubs.length === 0 ? (
-                <div className="bg-white rounded-xl shadow-sm p-6 text-center">
-                  <Users className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">
-                    {searchTerm
-                      ? "No clubs found."
-                      : "You are not assigned to any clubs. Contact a super admin to get started."}
-                  </p>
+
+              {/* Clubs */}
+              <div>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Your Managed Clubs
+                  </h2>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <div className="relative flex-1 sm:flex-none">
+                      <Search
+                        className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4"
+                        aria-hidden="true"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Search clubs..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full sm:w-64 pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
+                        aria-label="Search clubs"
+                      />
+                    </div>
+                    <div className="relative">
+                      <select
+                        value={selectedFilter}
+                        onChange={(e) => setSelectedFilter(e.target.value)}
+                        className="w-full sm:w-48 pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-[#456882] focus:border-[#456882]"
+                        aria-label="Filter by category"
+                      >
+                        {categories.map((category) => (
+                          <option key={category} value={category}>
+                            {category === "all"
+                              ? "All Categories"
+                              : category.charAt(0).toUpperCase() +
+                                category.slice(1)}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4"
+                        aria-hidden="true"
+                      />
+                    </div>
+                  </div>
+                </div>
+                {filteredClubs.length === 0 ? (
+                  <div className="bg-white rounded-xl shadow-sm p-6 text-center">
+                    <Users className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">
+                      {searchTerm
+                        ? "No clubs found."
+                        : "You are not assigned to any clubs. Contact a super admin to get started."}
+                    </p>
+                    <Link
+                      to="/manage-clubs"
+                      className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#456882] text-white rounded-lg hover:bg-[#334d5e]"
+                    >
+                      Manage Clubs
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {filteredClubs.map((club) => (
+                      <ClubCard
+                        key={club._id}
+                        club={club}
+                        onEdit={() => navigate(`/clubs/${club._id}/edit`)}
+                        onView={() => navigate(`/clubs/${club._id}`)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Notifications */}
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Recent Notifications
+                  </h3>
+                  {filteredNotifications.filter((n) => !n.read).length > 0 && (
+                    <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">
+                      {filteredNotifications.filter((n) => !n.read).length}{" "}
+                      unread
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {filteredNotifications.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center">
+                      No notifications.
+                    </p>
+                  ) : (
+                    filteredNotifications.map((notification) => (
+                      <NotificationCard
+                        key={notification._id}
+                        notification={notification}
+                        onMarkAsRead={handleMarkAsRead}
+                      />
+                    ))
+                  )}
+                </div>
+                {notifications.length > 3 && (
                   <Link
-                    to="/manage-clubs"
-                    className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#456882] text-white rounded-lg hover:bg-[#334d5e]"
+                    to="/notifications"
+                    className="block mt-4 text-center text-sm text-[#456882] hover:underline"
+                    aria-label="View all notifications"
                   >
-                    Manage Clubs
+                    View All Notifications
                   </Link>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {filteredClubs.map((club) => (
-                    <ClubCard
-                      key={club._id}
-                      club={club}
-                      onEdit={() => navigate(`/clubs/${club._id}/edit`)}
-                      onView={() => navigate(`/clubs/${club._id}`)}
-                    />
-                  ))}
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
