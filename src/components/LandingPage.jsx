@@ -26,7 +26,7 @@ import axios from "axios";
 import { Link } from "react-router-dom"; // Added Link for navigation
 
 // API Base URL
-const API_BASE_URL = "http://localhost:5000/api";
+const API_BASE_URL = "https://club-manager-chi.vercel.app/api";
 
 // Animation Variants
 const containerVariants = {
