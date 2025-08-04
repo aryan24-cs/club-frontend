@@ -1,13 +1,13 @@
 {
   "name": "club-frontend",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "version": "1.0.0",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "vite preview",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@lottiefiles/react-lottie-player": "^3.6.0",
