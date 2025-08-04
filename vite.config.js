@@ -1,16 +1,16 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/postcss'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/postcss"; // Use @tailwindcss/postcss
 
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: 'dist', // Confirm output directory
+    outDir: "dist", // Output directory
   },
   css: {
     postcss: {
-      plugins: [tailwindcss()],
+      plugins: [tailwindcss(), require("autoprefixer")],
     },
   },
-  base: './', // ⬅️ very important
-})
+  base: "./", // Relative paths for assets
+});
