@@ -416,7 +416,7 @@ const SuperAdminDashboard = () => {
           practiceAttendanceResponse,
           notificationsResponse,
         ] = await Promise.all([
-          axios.get("https://club-manager-chi.vercel.app/auth/user", config),
+          axios.get("https://club-manager-chi.vercel.app/api/auth/user", config),
           axios.get("https://club-manager-chi.vercel.app/api/clubs", config),
           axios.get("https://club-manager-chi.vercel.app/api/membership-requests?all=true", config),
           axios.get("https://club-manager-chi.vercel.app/api/attendance", config),
