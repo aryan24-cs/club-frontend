@@ -26,7 +26,7 @@ import axios from "axios";
 import { Link } from "react-router-dom"; // Added Link for navigation
 
 // API Base URL
-const API_BASE_URL = "https://club-manager-chi.vercel.app/api";
+const API_BASE_URL = "https://club-manager-chi.vercel.app/";
 
 // Animation Variants
 const containerVariants = {
@@ -312,7 +312,7 @@ const ContactForm = memo(() => {
   useEffect(() => {
     const fetchClubs = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/landing/clubs`);
+        const response = await axios.get(`${API_BASE_URL}api/landing/clubs`);
         setClubs(response.data.clubs);
       } catch (error) {
         console.error("Error fetching clubs for contact form:", error.message);
@@ -326,7 +326,7 @@ const ContactForm = memo(() => {
     setIsSubmitting(true);
 
     try {
-      await axios.post(`${API_BASE_URL}/landing/contact`, formData, {
+      await axios.post(`${API_BASE_URL}api/landing/contact`, formData, {
         headers: { "Content-Type": "application/json" },
       });
       setFormData({ name: "", email: "", subject: "", message: "", club: "" });
@@ -459,11 +459,11 @@ const LandingPage = () => {
         setError(null);
 
         // Fetch statistics
-        const statsResponse = await axios.get(`${API_BASE_URL}/landing/stats`);
+        const statsResponse = await axios.get(`${API_BASE_URL}api/landing/stats`);
         setStats(statsResponse.data);
 
         // Fetch clubs and active events
-        const clubsResponse = await axios.get(`${API_BASE_URL}/landing/clubs`);
+        const clubsResponse = await axios.get(`${API_BASE_URL}api/landing/clubs`);
         setClubsData(clubsResponse.data);
       } catch (err) {
         console.error("Error fetching landing data:", err.message);
