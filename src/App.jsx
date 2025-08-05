@@ -67,7 +67,7 @@ const RoleBasedRoute = ({ children, roles }) => {
           token: token.substring(0, 10) + "...",
         });
         const response = await axios.get(
-          "https://club-manager-chi.vercel.app/api/auth/user",
+          "https://club-manager-3k6y.vercel.app/api/auth/user",
           config
         );
         console.log("RoleBasedRoute: User data received", {
