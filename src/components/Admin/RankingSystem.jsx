@@ -28,7 +28,7 @@ import { debounce } from 'lodash';
 import Navbar from '../Navbar';
 
 // Backend base URL
-const BASE_URL = "https://club-manager-chi.vercel.app";
+const BASE_URL = "https://club-manager-3k6y.vercel.app";
 
 // Custom Axios instance for centralized token management
 const api = {

@@ -226,10 +226,10 @@ const AdminDashboard = () => {
         const config = { headers: { Authorization: `Bearer ${token}` } };
         const [userResponse, clubsResponse, notificationsResponse] =
           await Promise.all([
-            axios.get("https://club-manager-chi.vercel.app/api/auth/user", config),
-            axios.get("https://club-manager-chi.vercel.app/api/clubs", config),
+            axios.get("https://club-manager-3k6y.vercel.app/api/auth/user", config),
+            axios.get("https://club-manager-3k6y.vercel.app/api/clubs", config),
             axios
-              .get("https://club-manager-chi.vercel.app/api/notifications", config)
+              .get("https://club-manager-3k6y.vercel.app/api/notifications", config)
               .catch((err) => {
                 console.warn("Failed to fetch notifications:", err.message);
                 return { data: [] }; // Fallback to empty array
@@ -267,7 +267,7 @@ const AdminDashboard = () => {
           .map(async (club) => {
             try {
               const membersResponse = await axios.get(
-                `https://club-manager-chi.vercel.app/api/clubs/${club._id}/members`,
+                `https://club-manager-3k6y.vercel.app/api/clubs/${club._id}/members`,
                 config
               );
               return {
@@ -336,7 +336,7 @@ const AdminDashboard = () => {
       try {
         const token = localStorage.getItem("token");
         await axios.put(
-          `https://club-manager-chi.vercel.app/api/notifications/${notificationId}/read`,
+          `https://club-manager-3k6y.vercel.app/api/notifications/${notificationId}/read`,
           {},
           { headers: { Authorization: `Bearer ${token}` } }
         );

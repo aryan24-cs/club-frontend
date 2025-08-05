@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import Navbar from "../Navbar";
 
-const BASE_URL = "https://club-manager-chi.vercel.app";
+const BASE_URL = "https://club-manager-3k6y.vercel.app";
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {

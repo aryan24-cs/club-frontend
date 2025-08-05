@@ -21,7 +21,7 @@ import axios from 'axios';
 import { useParams } from 'react-router-dom';
 
 // Define BASE_URL at the top of the file
-const BASE_URL = 'https://club-manager-chi.vercel.app'; // Change this to your production URL when deploying
+const BASE_URL = 'https://club-manager-3k6y.vercel.app'; // Change this to your production URL when deploying
 
 const ClubPage = () => {
   const { id } = useParams();
