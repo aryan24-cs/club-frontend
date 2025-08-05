@@ -87,8 +87,8 @@ const ManageClubsPage = () => {
 
         const config = { headers: { Authorization: `Bearer ${token}` } };
         const [userResponse, clubsResponse] = await Promise.all([
-          axios.get("https://club-manager-chi.vercel.app/api/auth/user", config),
-          axios.get("https://club-manager-chi.vercel.app/api/clubs", config),
+          axios.get("https://club-manager-3k6y.vercel.app/api/auth/user", config),
+          axios.get("https://club-manager-3k6y.vercel.app/api/clubs", config),
         ]);
 
         const userData = userResponse.data;
@@ -134,7 +134,7 @@ const ManageClubsPage = () => {
           managedClubs.map(async (club) => {
             try {
               const membersResponse = await axios.get(
-                `https://club-manager-chi.vercel.app/api/clubs/${club._id}/members`,
+                `https://club-manager-3k6y.vercel.app/api/clubs/${club._id}/members`,
                 config
               );
               return {
@@ -195,7 +195,7 @@ const ManageClubsPage = () => {
     try {
       const token = localStorage.getItem("token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
-      await axios.delete(`https://club-manager-chi.vercel.app/api/clubs/${clubId}`, config);
+      await axios.delete(`https://club-manager-3k6y.vercel.app/api/clubs/${clubId}`, config);
       setClubs((prev) => prev.filter((club) => club._id !== clubId));
       setError("Club deleted successfully!");
     } catch (err) {
