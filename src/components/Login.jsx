@@ -195,7 +195,7 @@ const Login = () => {
     setLoading(true);
     try {
       console.log("Sending OTP to:", trimmedEmail);
-      await axios.post("https://club-manager-chi.vercel.app/api/auth/send-otp", {
+      await axios.post("https://club-manager-3k6y.vercel.app/api/auth/send-otp", {
         email: trimmedEmail,
       });
       setOtpSent(true);
@@ -230,7 +230,7 @@ const Login = () => {
     try {
       console.log("Attempting password login for:", trimmedEmail);
       const res = await axios.post(
-        "https://club-manager-chi.vercel.app/api/auth/login-password",
+        "https://club-manager-3k6y.vercel.app/api/auth/login-password",
         { email: trimmedEmail, password }
       );
       localStorage.setItem("token", res.data.token);
@@ -259,7 +259,7 @@ const Login = () => {
     try {
       console.log("Verifying OTP for:", { email, otp: trimmedOtp });
       const res = await axios.post(
-        "https://club-manager-chi.vercel.app/api/auth/verify-otp-login",
+        "https://club-manager-3k6y.vercel.app/api/auth/verify-otp-login",
         { email: email.trim().toLowerCase(), otp: trimmedOtp }
       );
       localStorage.setItem("token", res.data.token);
@@ -294,7 +294,7 @@ const Login = () => {
     try {
       console.log("Requesting password reset OTP for:", trimmedEmail);
       await axios.post(
-        "https://club-manager-chi.vercel.app/api/auth/reset-password-otp-request",
+        "https://club-manager-3k6y.vercel.app/api/auth/reset-password-otp-request",
         { email: trimmedEmail }
       );
       setResetOtpSent(true);
@@ -330,7 +330,7 @@ const Login = () => {
         otp: trimmedOtp,
       });
       const res = await axios.post(
-        "https://club-manager-chi.vercel.app/api/auth/verify-reset-otp",
+        "https://club-manager-3k6y.vercel.app/api/auth/verify-reset-otp",
         { email: trimmedEmail, otp: trimmedOtp },
         { headers: { "Content-Type": "application/json" } }
       );
@@ -385,7 +385,7 @@ const Login = () => {
         newPassword: "[provided]",
       });
       await axios.post(
-        "https://club-manager-chi.vercel.app/api/auth/reset-password",
+        "https://club-manager-3k6y.vercel.app/api/auth/reset-password",
         { email: trimmedEmail, otp: trimmedOtp, newPassword },
         { headers: { "Content-Type": "application/json" } }
       );
