@@ -223,7 +223,7 @@ const ContactPage = () => {
 
         // Fetch user
         const userResponse = await axios.get(
-          "https://club-manager-chi.vercel.app/api/auth/user",
+          "https://club-manager-3k6y.vercel.app/api/auth/user",
           config
         );
         setUser(userResponse.data);
@@ -235,7 +235,7 @@ const ContactPage = () => {
 
         // Fetch clubs
         const clubsResponse = await axios.get(
-          "https://club-manager-chi.vercel.app/api/clubs",
+          "https://club-manager-3k6y.vercel.app/api/clubs",
           config
         );
         const validClubs = clubsResponse.data.filter((club) => club._id);
@@ -276,7 +276,7 @@ const ContactPage = () => {
         const token = localStorage.getItem("token");
         const config = { headers: { Authorization: `Bearer ${token}` } };
         const response = await axios.get(
-          `https://club-manager-chi.vercel.app/api/clubs/${selectedClub}/contact-info`,
+          `https://club-manager-3k6y.vercel.app/api/clubs/${selectedClub}/contact-info`,
           config
         );
         const { creator, superAdmins, headCoordinators, clubDetails } =
@@ -447,7 +447,7 @@ const ContactPage = () => {
         message: formData.message,
       });
       await axios.post(
-        `https://club-manager-chi.vercel.app/api/clubs/${formData.clubId}/contact`,
+        `https://club-manager-3k6y.vercel.app/api/clubs/${formData.clubId}/contact`,
         payload,
         config
       );

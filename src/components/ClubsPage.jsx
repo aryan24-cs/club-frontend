@@ -88,7 +88,7 @@ const ClubsPage = () => {
         setLoading(true);
         // Fetch user data for clubs and pending clubs
         const userResponse = await axios.get(
-          "https://club-manager-chi.vercel.app/api/auth/user",
+          "https://club-manager-3k6y.vercel.app/api/auth/user",
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -100,7 +100,7 @@ const ClubsPage = () => {
 
         // Fetch all clubs
         const clubsResponse = await axios.get(
-          "https://club-manager-chi.vercel.app/api/clubs",
+          "https://club-manager-3k6y.vercel.app/api/clubs",
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -109,7 +109,7 @@ const ClubsPage = () => {
 
         // Fetch all events
         const eventsResponse = await axios.get(
-          "https://club-manager-chi.vercel.app/api/events",
+          "https://club-manager-3k6y.vercel.app/api/events",
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -160,7 +160,7 @@ const ClubsPage = () => {
     setJoinLoading((prev) => ({ ...prev, [clubId]: true }));
     try {
       await axios.post(
-        `https://club-manager-chi.vercel.app/api/clubs/${clubId}/join`,
+        `https://club-manager-3k6y.vercel.app/api/clubs/${clubId}/join`,
         {},
         {
           headers: {

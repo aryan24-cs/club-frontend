@@ -83,8 +83,8 @@ const CreateEventPage = () => {
 
         const config = { headers: { Authorization: `Bearer ${token}` } };
         const [userResponse, clubsResponse] = await Promise.all([
-          axios.get("https://club-manager-chi.vercel.app/api/auth/user", config),
-          axios.get("https://club-manager-chi.vercel.app/api/clubs", config),
+          axios.get("https://club-manager-3k6y.vercel.app/api/auth/user", config),
+          axios.get("https://club-manager-3k6y.vercel.app/api/clubs", config),
         ]);
 
         const userData = userResponse.data;
@@ -286,7 +286,7 @@ const CreateEventPage = () => {
         "Content-Type": "multipart/form-data",
       },
     };
-    await axios.post("https://club-manager-chi.vercel.app/api/events", formData, config);
+    await axios.post("https://club-manager-3k6y.vercel.app/api/events", formData, config);
     setError("");
     setSuccess("Event created successfully!");
     setTimeout(() => {
