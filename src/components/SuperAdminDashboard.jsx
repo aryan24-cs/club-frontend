@@ -376,7 +376,7 @@ const SuperAdminDashboard = () => {
         return;
       }
       const config = { headers: { Authorization: `Bearer ${token}` } };
-      const response = await axios.get("https://club-manager-chi.vercel.app/api/notifications", config);
+      const response = await axios.get("https://club-manager-3k6y.vercel.app/api/notifications", config);
       const newNotifications = response.data.slice(0, 5); // Limit to 5 notifications
       const newUnreadCount = newNotifications.filter((n) => !n.read).length;
       if (newUnreadCount > unreadCount && unreadCount !== 0) {
@@ -416,12 +416,12 @@ const SuperAdminDashboard = () => {
           practiceAttendanceResponse,
           notificationsResponse,
         ] = await Promise.all([
-          axios.get("https://club-manager-chi.vercel.app/api/auth/user", config),
-          axios.get("https://club-manager-chi.vercel.app/api/clubs", config),
-          axios.get("https://club-manager-chi.vercel.app/api/membership-requests?all=true", config),
-          axios.get("https://club-manager-chi.vercel.app/api/attendance", config),
-          axios.get("https://club-manager-chi.vercel.app/api/practice-attendance", config),
-          axios.get("https://club-manager-chi.vercel.app/api/notifications", config),
+          axios.get("https://club-manager-3k6y.vercel.app/api/auth/user", config),
+          axios.get("https://club-manager-3k6y.vercel.app/api/clubs", config),
+          axios.get("https://club-manager-3k6y.vercel.app/api/membership-requests?all=true", config),
+          axios.get("https://club-manager-3k6y.vercel.app/api/attendance", config),
+          axios.get("https://club-manager-3k6y.vercel.app/api/practice-attendance", config),
+          axios.get("https://club-manager-3k6y.vercel.app/api/notifications", config),
         ]);
 
         const userData = userResponse.data;
@@ -538,7 +538,7 @@ const SuperAdminDashboard = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.patch(
-        `https://club-manager-chi.vercel.app/api/membership-requests/${requestId}`,
+        `https://club-manager-3k6y.vercel.app/api/membership-requests/${requestId}`,
         { status: "approved" },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -587,7 +587,7 @@ const SuperAdminDashboard = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.patch(
-        `https://club-manager-chi.vercel.app/api/membership-requests/${requestId}`,
+        `https://club-manager-3k6y.vercel.app/api/membership-requests/${requestId}`,
         { status: "rejected" },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -623,7 +623,7 @@ const SuperAdminDashboard = () => {
     if (!window.confirm(`Delete ${club.name}? This cannot be undone.`)) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`https://club-manager-chi.vercel.app/api/clubs/${club._id}`, {
+      await axios.delete(`https://club-manager-3k6y.vercel.app/api/clubs/${club._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setClubs((prev) => prev.filter((c) => c._id !== club._id));
@@ -645,7 +645,7 @@ const SuperAdminDashboard = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        `https://club-manager-chi.vercel.app/api/attendance/${attendance._id}/report`,
+        `https://club-manager-3k6y.vercel.app/api/attendance/${attendance._id}/report`,
         {
           headers: { Authorization: `Bearer ${token}` },
           responseType: "blob",
@@ -676,7 +676,7 @@ const SuperAdminDashboard = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        `https://club-manager-chi.vercel.app/api/practice-attendance/${attendance._id}/report`,
+        `https://club-manager-3k6y.vercel.app/api/practice-attendance/${attendance._id}/report`,
         {
           headers: { Authorization: `Bearer ${token}` },
           responseType: "blob",
@@ -713,7 +713,7 @@ const SuperAdminDashboard = () => {
       }
       const config = { headers: { Authorization: `Bearer ${token}` } };
       await axios.patch(
-        `https://club-manager-chi.vercel.app/api/notifications/${notificationId}/read`,
+        `https://club-manager-3k6y.vercel.app/api/notifications/${notificationId}/read`,
         {},
         config
       );
@@ -749,7 +749,7 @@ const SuperAdminDashboard = () => {
       }
       const config = { headers: { Authorization: `Bearer ${token}` } };
       await axios.patch(
-        "https://club-manager-chi.vercel.app/api/notifications/mark-all-read",
+        "https://club-manager-3k6y.vercel.app/api/notifications/mark-all-read",
         {},
         config
       );
