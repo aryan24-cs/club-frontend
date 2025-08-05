@@ -9,11 +9,13 @@
       }
     }
   ],
-  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "env": {
+    "VITE_API_URL": "https://club-manager-chi.vercel.app"
+  }
 }
