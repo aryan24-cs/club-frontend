@@ -72,13 +72,15 @@ const UserDetailsForm = () => {
       setCollegeName(storedCollegeName);
     }
 
+    // Clear rollNo for non-ACEM students
+    if (!isACEMStudent) {
+      setRollNo('');
+    }
+
     const totalSteps = isACEMStudent ? 5 : 4; // 4 steps for non-ACEM, 5 for ACEM
     setProgress((currentQuestion / totalSteps) * 100);
     if (currentQuestion > 1 && !completedSteps.includes(currentQuestion - 1)) {
       setCompletedSteps(prev => [...prev, currentQuestion - 1]);
-    }
-    if (!isACEMStudent) {
-      setRollNo('');
     }
   }, [currentQuestion, isACEMStudent]);
 
@@ -149,11 +151,11 @@ const UserDetailsForm = () => {
       setError('Please select a specialization');
       return;
     }
-    if (currentQuestion === 4 && isACEMStudent && !rollNo) {
-      setError('Please enter your roll number');
+    if (currentQuestion === 4 && isACEMStudent && (!rollNo || rollNo.trim() === '')) {
+      setError('Please enter a valid roll number');
       return;
     }
-    if (currentQuestion === 4 && !isACEMStudent && !collegeName) {
+    if (currentQuestion === 4 && !isACEMStudent && (!collegeName || collegeName.trim() === '')) {
       setError('Please enter your college name');
       return;
     }
@@ -184,6 +186,23 @@ const UserDetailsForm = () => {
     setError('');
     setLoading(true);
 
+    // Client-side validation
+    if (!semester || !course || !specialization) {
+      setError('Please fill all required fields');
+      setLoading(false);
+      return;
+    }
+    if (isACEMStudent && (!rollNo || rollNo.trim() === '')) {
+      setError('Roll number is required for ACEM students');
+      setLoading(false);
+      return;
+    }
+    if (!isACEMStudent && (!collegeName || collegeName.trim() === '')) {
+      setError('College name is required for non-ACEM students');
+      setLoading(false);
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -193,22 +212,28 @@ const UserDetailsForm = () => {
         return;
       }
 
+      const formData = {
+        semester,
+        course,
+        specialization,
+        isACEMStudent,
+        collegeName: isACEMStudent ? '' : collegeName,
+        isClubMember: selectedClubs.length > 0,
+        clubName: selectedClubs,
+      };
+
+      // Only include rollNo for ACEM students
+      if (isACEMStudent) {
+        formData.rollNo = rollNo;
+      }
+
       const config = {
         headers: { Authorization: `Bearer ${token}` },
       };
 
       await axios.post(
         'https://club-manager-3k6y.vercel.app/api/auth/user-details',
-        {
-          semester,
-          course,
-          specialization,
-          rollNo: isACEMStudent ? rollNo : undefined,
-          isACEMStudent,
-          collegeName: isACEMStudent ? '' : collegeName,
-          isClubMember: selectedClubs.length > 0,
-          clubName: selectedClubs,
-        },
+        formData,
         config
       );
 
@@ -228,7 +253,7 @@ const UserDetailsForm = () => {
   const getStepIcon = (step) => {
     const icons = isACEMStudent
       ? [FaUser, FaGraduationCap, FaCog, FaIdCard, FaUsers]
-      : [FaUser, FaGraduationCap, FaCog, FaUsers];
+      : [FaUser, FaGraduationCap, FaCog, FaUniversity];
     const Icon = icons[step - 1];
     return <Icon className="text-lg" />;
   };
@@ -277,7 +302,12 @@ const UserDetailsForm = () => {
                 <input
                   type="checkbox"
                   checked={isACEMStudent}
-                  onChange={(e) => setIsACEMStudent(e.target.checked)}
+                  onChange={(e) => {
+                    setIsACEMStudent(e.target.checked);
+                    if (!e.target.checked) {
+                      setRollNo(''); // Clear rollNo when switching to non-ACEM
+                    }
+                  }}
                   className="w-5 h-5 text-teal-600 focus:ring-teal-600 rounded"
                   style={{ accentColor: '#456882' }}
                 />
@@ -523,7 +553,7 @@ const UserDetailsForm = () => {
                     style={{ borderBottomColor: '#456882' }}
                   />
                   <motion.div
-                    className="absolute bottom-0 left-0 h-0.5 bg-teal-600"
+                    className="absolute bottom-0 left-0 h-0.5 colspan='2'>teal-600"
                     initial={{ width: 0 }}
                     animate={{ width: collegeName ? '100%' : '0%' }}
                     transition={{ duration: 0.3 }}
@@ -762,7 +792,6 @@ const UserDetailsForm = () => {
             whileTap={{ scale: 0.95 }}
             onClick={handleSkipToClubs}
             className="text-gray-500 hover:text-teal-600 transition-colors font-medium"
-            style={{ color: '#456882' }}
           >
             Skip to Clubs →
           </motion.button>

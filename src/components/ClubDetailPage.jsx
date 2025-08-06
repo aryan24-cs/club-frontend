@@ -681,7 +681,7 @@ const ClubDetailPage = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        `https://club-manager-3k6y.vercel.app/events/${eventId}/register`,
+        `https://club-manager-3k6y.vercel.app/clubs/${clubId}/events/register`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
