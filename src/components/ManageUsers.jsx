@@ -256,19 +256,19 @@ const ManageUsers = () => {
           requestsResponse,
           allRequestsResponse,
         ] = await Promise.all([
-          axios.get("https://club-manager-chi.vercel.app/api/auth/user", config).catch((err) => {
+          axios.get("https://club-manager-3k6y.vercel.app/api/auth/user", config).catch((err) => {
             console.error("Error fetching user:", err.response?.data || err.message);
             throw err;
           }),
-          axios.get("https://club-manager-chi.vercel.app/api/clubs", config).catch((err) => {
+          axios.get("https://club-manager-3k6y.vercel.app/api/clubs", config).catch((err) => {
             console.error("Error fetching clubs:", err.response?.data || err.message);
             return { data: [] };
           }),
-          axios.get("https://club-manager-chi.vercel.app/api/membership-requests?all=true", config).catch((err) => {
+          axios.get("https://club-manager-3k6y.vercel.app/api/membership-requests?all=true", config).catch((err) => {
             console.error("Error fetching membership requests:", err.response?.data || err.message);
             return { data: [] };
           }),
-          axios.get("https://club-manager-chi.vercel.app/api/membership-requests?all=true", config).catch((err) => {
+          axios.get("https://club-manager-3k6y.vercel.app/api/membership-requests?all=true", config).catch((err) => {
             console.error("Error fetching all membership requests:", err.response?.data || err.message);
             return { data: [] };
           }),
@@ -361,7 +361,7 @@ const ManageUsers = () => {
         // Fetch users
         let allUsers = [];
         if (isGlobalAdmin) {
-          const usersResponse = await axios.get("https://club-manager-chi.vercel.app/api/users", config).catch((err) => {
+          const usersResponse = await axios.get("https://club-manager-3k6y.vercel.app/api/users", config).catch((err) => {
             console.error("Error fetching users:", err.response?.data || err.message);
             return { data: [] };
           });
@@ -377,7 +377,7 @@ const ManageUsers = () => {
           const managedClubIds = managedClubs.map((club) => club._id.toString());
           console.log("Fetching members for clubs:", managedClubIds);
           const clubMembersPromises = managedClubIds.map((clubId) =>
-            axios.get(`https://club-manager-chi.vercel.app/api/clubs/${clubId}/members`, config).catch((err) => {
+            axios.get(`https://club-manager-3k6y.vercel.app/api/clubs/${clubId}/members`, config).catch((err) => {
               console.error(`Error fetching members for club ${clubId}:`, err.response?.data || err.message);
               return { data: [] };
             })
@@ -467,7 +467,7 @@ const ManageUsers = () => {
       const config = { headers: { Authorization: `Bearer ${token}` } };
       console.log("Approving request:", { requestId, status: "approved" });
       const response = await axios.patch(
-        `https://club-manager-chi.vercel.app/api/membership-requests/${requestId}`,
+        `https://club-manager-3k6y.vercel.app/api/membership-requests/${requestId}`,
         { status: "approved" },
         config
       );
@@ -521,7 +521,7 @@ const ManageUsers = () => {
       const config = { headers: { Authorization: `Bearer ${token}` } };
       console.log("Rejecting request:", { requestId, status: "rejected" });
       const response = await axios.patch(
-        `https://club-manager-chi.vercel.app/api/membership-requests/${requestId}`,
+        `https://club-manager-3k6y.vercel.app/api/membership-requests/${requestId}`,
         { status: "rejected" },
         config
       );
@@ -561,7 +561,7 @@ const ManageUsers = () => {
       const config = { headers: { Authorization: `Bearer ${token}` } };
       console.log("Updating role:", { userId, newRole });
       const response = await axios.patch(
-        `https://club-manager-chi.vercel.app/api/users/${userId}`,
+        `https://club-manager-3k6y.vercel.app/api/users/${userId}`,
         { role: newRole },
         config
       );
@@ -590,7 +590,7 @@ const ManageUsers = () => {
       const config = { headers: { Authorization: `Bearer ${token}` } };
       console.log("Deleting user:", { userId });
       const response = await axios.delete(
-        `https://club-manager-chi.vercel.app/api/users/${userId}`,
+        `https://club-manager-3k6y.vercel.app/api/users/${userId}`,
         config
       );
       console.log("Delete user response:", response.data);

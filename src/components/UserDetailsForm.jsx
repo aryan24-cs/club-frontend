@@ -198,7 +198,7 @@ const UserDetailsForm = () => {
       };
 
       await axios.post(
-        'https://club-manager-chi.vercel.app/api/auth/user-details',
+        'https://club-manager-3k6y.vercel.app/api/auth/user-details',
         {
           semester,
           course,

@@ -253,7 +253,7 @@ const Navbar = memo(() => {
         }
         const config = { headers: { Authorization: `Bearer ${token}` } };
         const response = await axios.get(
-          "https://club-manager-chi.vercel.app/api/auth/user",
+          "https://club-manager-3k6y.vercel.app/api/auth/user",
           config
         );
         setUser(response.data);

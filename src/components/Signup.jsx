@@ -172,7 +172,7 @@ const Signup = () => {
     setError("");
     setLoading(true);
     try {
-      await axios.post("https://club-manager-chi.vercel.app/api/auth/send-otp", { email });
+      await axios.post("https://club-manager-3k6y.vercel.app/api/auth/send-otp", { email });
       setOtpSent(true);
     } catch (err) {
       setError(err.response?.data?.error || "Failed to send OTP. Try again.");
@@ -188,7 +188,7 @@ const Signup = () => {
     setError("");
     setLoading(true);
     try {
-      await axios.post("https://club-manager-chi.vercel.app/api/auth/verify-otp", {
+      await axios.post("https://club-manager-3k6y.vercel.app/api/auth/verify-otp", {
         email,
         otp,
       });
@@ -207,7 +207,7 @@ const Signup = () => {
     setError("");
     setLoading(true);
     try {
-      const res = await axios.post("https://club-manager-chi.vercel.app/api/auth/signup", {
+      const res = await axios.post("https://club-manager-3k6y.vercel.app/api/auth/signup", {
         name,
         email,
         password,
